@@ -216,12 +216,11 @@ struct FrameAnalyzer<'a> {
     options: &'a GenerateOptions,
     fft_size: usize,
     hop_size: usize,
-    band_edges_hz: Vec<f32>,
-    nyquist: f64,
     channel_count: usize,
     hann: Vec<f32>,
     fft: std::sync::Arc<dyn rustfft::Fft<f32>>,
     prev_mag: Vec<f64>,
+    bin_to_band: Vec<usize>,
     pending: Vec<f32>,
     pending_start: usize,
     fft_buf: Vec<Complex32>,
@@ -244,8 +243,7 @@ impl<'a> FrameAnalyzer<'a> {
             options,
             fft_size,
             hop_size,
-            band_edges_hz,
-            nyquist: sample_rate as f64 / 2.0,
+            bin_to_band: build_bin_to_band(fft_size, sample_rate as f64 / 2.0, &band_edges_hz),
             channel_count,
             hann: hann_window(fft_size),
             fft,
@@ -322,7 +320,6 @@ impl<'a> FrameAnalyzer<'a> {
         self.fft.process(&mut self.fft_buf);
 
         for (k, c) in self.fft_buf.iter().take(self.fft_size / 2).enumerate() {
-            let freq = (k as f64 / (self.fft_size as f64 / 2.0)) * self.nyquist;
             let mag = (c.re as f64).hypot(c.im as f64);
             let signal = match self.options.detection_mode {
                 DetectionMode::SpectralEnergy => mag,
@@ -332,7 +329,7 @@ impl<'a> FrameAnalyzer<'a> {
                     flux
                 }
             };
-            let idx = band_index(freq, &self.band_edges_hz);
+            let idx = self.bin_to_band[k];
             self.frame_scratch[idx] += signal;
         }
         self.frames_flat.extend_from_slice(&self.frame_scratch);
@@ -493,6 +490,15 @@ fn band_index(freq_hz: f64, edges_hz: &[f32]) -> usize {
         }
     }
     edges_hz.len()
+}
+
+fn build_bin_to_band(fft_size: usize, nyquist: f64, edges_hz: &[f32]) -> Vec<usize> {
+    (0..fft_size / 2)
+        .map(|k| {
+            let freq = (k as f64 / (fft_size as f64 / 2.0)) * nyquist;
+            band_index(freq, edges_hz)
+        })
+        .collect()
 }
 
 fn aggregate_frames(frames: &[Vec<f64>], frames_per_color: usize) -> Vec<Vec<f64>> {
@@ -766,5 +772,20 @@ mod tests {
         );
         assert!(waveform.contains("<path"));
         assert!(waveform.contains("url(#mood-gradient)"));
+    }
+
+    #[test]
+    fn precomputed_bin_mapping_matches_direct_band_indexing() {
+        let fft_size = 2048;
+        let nyquist = 22_050.0;
+        let edges = vec![120.0, 500.0, 1200.0, 3200.0, 8500.0];
+        let map = build_bin_to_band(fft_size, nyquist, &edges);
+
+        assert_eq!(map.len(), fft_size / 2);
+        for (k, mapped) in map.iter().enumerate() {
+            let freq = (k as f64 / (fft_size as f64 / 2.0)) * nyquist;
+            let direct = band_index(freq, &edges);
+            assert_eq!(*mapped, direct);
+        }
     }
 }
