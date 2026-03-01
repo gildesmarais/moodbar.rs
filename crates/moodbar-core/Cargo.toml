@@ -1,0 +1,18 @@
+[package]
+name = "moodbar-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+num-complex.workspace = true
+rustfft.workspace = true
+symphonia.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
