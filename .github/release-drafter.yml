@@ -1,0 +1,30 @@
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+
+version-resolver:
+  major:
+    labels:
+      - 'semver:major'
+  minor:
+    labels:
+      - 'semver:minor'
+  patch:
+    labels:
+      - 'semver:patch'
+  default: patch
+
+categories:
+  - title: 'Features'
+    labels:
+      - 'semver:minor'
+      - 'semver:major'
+  - title: 'Fixes'
+    labels:
+      - 'semver:patch'
+
+change-template: '- $TITLE (#$NUMBER) @$AUTHOR'
+change-title-escapes: '\\<*_&'
+template: |
+  ## Changes
+
+  $CHANGES
