@@ -87,7 +87,7 @@ impl Default for SvgOptions {
             width: 1200,
             height: 96,
             shape: SvgShape::Strip,
-            background: "#0f1115",
+            background: "transparent",
         }
     }
 }
@@ -292,12 +292,10 @@ pub fn render_svg(analysis: &MoodbarAnalysis, options: &SvgOptions) -> String {
     for (i, frame) in analysis.frames.iter().enumerate() {
         let denom = (analysis.frames.len().saturating_sub(1)).max(1) as f64;
         let offset = (i as f64 / denom) * 100.0;
-        let (r, g, b) = frame_to_rgb(frame);
+        let (r, g, b) = frame_to_svg_rgb(frame);
         s.push_str(&format!(
             "<stop offset=\"{offset:.3}%\" stop-color=\"rgb({},{},{})\"/>",
-            scale_to_u8(r),
-            scale_to_u8(g),
-            scale_to_u8(b)
+            r, g, b
         ));
     }
     s.push_str("</linearGradient></defs>");
@@ -308,7 +306,7 @@ pub fn render_svg(analysis: &MoodbarAnalysis, options: &SvgOptions) -> String {
                 let x = i as f64 * step;
                 let (r, g, b) = frame_to_rgb(frame);
                 s.push_str(&format!(
-                    "<rect x=\"{:.3}\" y=\"0\" width=\"{:.3}\" height=\"{}\" fill=\"rgb({},{},{})\"/>",
+                    "<rect x=\"{:.6}\" y=\"0\" width=\"{:.6}\" height=\"{}\" fill=\"rgb({},{},{})\"/>",
                     x,
                     step + 0.5,
                     height,
@@ -328,9 +326,9 @@ pub fn render_svg(analysis: &MoodbarAnalysis, options: &SvgOptions) -> String {
                 let amp = energy * mid * 0.95;
                 let y = mid - amp;
                 if i == 0 {
-                    d.push_str(&format!("M {:.3} {:.3}", x, y));
+                    d.push_str(&format!("M {:.6} {:.6}", x, y));
                 } else {
-                    d.push_str(&format!(" L {:.3} {:.3}", x, y));
+                    d.push_str(&format!(" L {:.6} {:.6}", x, y));
                 }
             }
             for i in (0..analysis.frames.len()).rev() {
@@ -340,11 +338,11 @@ pub fn render_svg(analysis: &MoodbarAnalysis, options: &SvgOptions) -> String {
                     (frame.iter().sum::<f64>() / frame.len().max(1) as f64).clamp(0.0, 1.0);
                 let amp = energy * mid * 0.95;
                 let y = mid + amp;
-                d.push_str(&format!(" L {:.3} {:.3}", x, y));
+                d.push_str(&format!(" L {:.6} {:.6}", x, y));
             }
             d.push_str(" Z");
             s.push_str(&format!(
-                "<path d=\"{}\" fill=\"url(#{})\" fill-opacity=\"0.50\" stroke=\"url(#{})\" stroke-width=\"1\"/>",
+                "<path d=\"{}\" fill=\"url(#{})\" fill-opacity=\"0.78\" stroke=\"url(#{})\" stroke-opacity=\"0.95\" stroke-width=\"1.60\" vector-effect=\"non-scaling-stroke\" stroke-linecap=\"round\" stroke-linejoin=\"round\" shape-rendering=\"geometricPrecision\"/>",
                 d, gradient_id, gradient_id
             ));
         }
@@ -492,6 +490,26 @@ fn frame_to_rgb(frame: &[f64]) -> (f64, f64, f64) {
     let intensity = (sum / frame.len() as f64).clamp(0.0, 1.0);
     let hue = max_idx as f64 / frame.len() as f64;
     hsv_to_rgb(hue, 0.85, intensity)
+}
+
+fn frame_to_svg_rgb(frame: &[f64]) -> (u8, u8, u8) {
+    let (r, g, b) = frame_to_rgb(frame);
+    let peak = r.max(g).max(b);
+    if peak <= 1e-12 {
+        return (0, 0, 0);
+    }
+
+    // Keep hue from channel ratios but increase chroma for clearer default SVG rendering.
+    let sr = (r / peak).clamp(0.0, 1.0);
+    let sg = (g / peak).clamp(0.0, 1.0);
+    let sb = (b / peak).clamp(0.0, 1.0);
+    let brightness = (0.30 + 0.70 * peak).clamp(0.0, 1.0);
+
+    (
+        scale_to_u8(sr * brightness),
+        scale_to_u8(sg * brightness),
+        scale_to_u8(sb * brightness),
+    )
 }
 
 fn hsv_to_rgb(h: f64, s: f64, v: f64) -> (f64, f64, f64) {
