@@ -142,8 +142,7 @@ pub fn analyze_path(
 
     let mut decoder =
         symphonia::default::get_codecs().make(&track.codec_params, &DecoderOptions::default())?;
-
-    let mut mono_samples = Vec::<f32>::new();
+    let mut analyzer = FrameAnalyzer::new(sample_rate, options);
 
     loop {
         let packet = match format.next_packet() {
@@ -174,7 +173,8 @@ pub fn analyze_path(
 
                 for frame in interleaved.chunks_exact(channels) {
                     let sum = frame.iter().copied().sum::<f32>();
-                    mono_samples.push(sum / channels as f32);
+                    let mono = [sum / channels as f32];
+                    analyzer.feed_mono_samples(&mono);
                 }
             }
             Err(SymphoniaError::DecodeError(_)) => continue,
@@ -187,11 +187,11 @@ pub fn analyze_path(
         }
     }
 
-    if mono_samples.is_empty() {
+    if analyzer.is_empty() {
         return Err(MoodbarError::EmptyAudio);
     }
 
-    Ok(analyze_pcm_mono(sample_rate, &mono_samples, options))
+    Ok(analyzer.finish())
 }
 
 pub fn generate_moodbar_from_path(
@@ -207,54 +207,123 @@ pub fn analyze_pcm_mono(
     samples: &[f32],
     options: &GenerateOptions,
 ) -> MoodbarAnalysis {
-    let fft_size = options.fft_size;
-    let hop_size = fft_size / 2;
-    let band_edges_hz = options.effective_band_edges();
-    let channel_count = band_edges_hz.len() + 1;
+    let mut analyzer = FrameAnalyzer::new(sample_rate, options);
+    analyzer.feed_mono_samples(samples);
+    analyzer.finish()
+}
 
-    let hann = hann_window(fft_size);
-    let fft = {
+struct FrameAnalyzer<'a> {
+    options: &'a GenerateOptions,
+    fft_size: usize,
+    hop_size: usize,
+    band_edges_hz: Vec<f32>,
+    nyquist: f64,
+    channel_count: usize,
+    hann: Vec<f32>,
+    fft: std::sync::Arc<dyn rustfft::Fft<f32>>,
+    prev_mag: Vec<f64>,
+    pending: Vec<f32>,
+    pending_start: usize,
+    frames: Vec<Vec<f64>>,
+}
+
+impl<'a> FrameAnalyzer<'a> {
+    fn new(sample_rate: u32, options: &'a GenerateOptions) -> Self {
+        let fft_size = options.fft_size;
+        let hop_size = fft_size / 2;
+        let band_edges_hz = options.effective_band_edges();
+        let channel_count = band_edges_hz.len() + 1;
+
         let mut planner = FftPlanner::<f32>::new();
-        planner.plan_fft_forward(fft_size)
-    };
+        let fft = planner.plan_fft_forward(fft_size);
 
-    let nyquist = sample_rate as f64 / 2.0;
-    let mut frames = Vec::<Vec<f64>>::new();
-    let mut prev_mag = vec![0.0f64; fft_size / 2];
+        Self {
+            options,
+            fft_size,
+            hop_size,
+            band_edges_hz,
+            nyquist: sample_rate as f64 / 2.0,
+            channel_count,
+            hann: hann_window(fft_size),
+            fft,
+            prev_mag: vec![0.0; fft_size / 2],
+            pending: Vec::with_capacity(fft_size * 2),
+            pending_start: 0,
+            frames: Vec::new(),
+        }
+    }
 
-    let mut cursor = 0;
-    while cursor < samples.len() {
-        let mut buf = vec![Complex32::new(0.0, 0.0); fft_size];
-        for i in 0..fft_size {
-            let sample = samples.get(cursor + i).copied().unwrap_or(0.0);
-            buf[i].re = sample * hann[i];
+    fn feed_mono_samples(&mut self, samples: &[f32]) {
+        if !samples.is_empty() {
+            self.pending.extend_from_slice(samples);
         }
 
-        fft.process(&mut buf);
+        while self.pending.len().saturating_sub(self.pending_start) >= self.fft_size {
+            let start = self.pending_start;
+            let end = start + self.fft_size;
+            let window = self.pending[start..end].to_vec();
+            let frame = self.analyze_window(&window);
+            self.frames.push(frame);
+            self.pending_start += self.hop_size.max(1);
+            self.compact_pending_if_needed();
+        }
+    }
 
-        let mut frame = vec![0.0f64; channel_count];
-        for (k, c) in buf.iter().take(fft_size / 2).enumerate() {
-            let freq = (k as f64 / (fft_size as f64 / 2.0)) * nyquist;
+    fn is_empty(&self) -> bool {
+        self.frames.is_empty() && self.pending.is_empty()
+    }
+
+    fn finish(mut self) -> MoodbarAnalysis {
+        if self.frames.is_empty() && !self.pending.is_empty() {
+            let mut padded = vec![0.0f32; self.fft_size];
+            let available = self.pending.len().saturating_sub(self.pending_start);
+            let copy_len = available.min(self.fft_size);
+            padded[..copy_len]
+                .copy_from_slice(&self.pending[self.pending_start..self.pending_start + copy_len]);
+            let frame = self.analyze_window(&padded);
+            self.frames.push(frame);
+        }
+
+        let aggregated = aggregate_frames(&self.frames, self.options.frames_per_color.max(1));
+        MoodbarAnalysis {
+            channel_count: self.channel_count,
+            frames: normalize_frames(&aggregated, self.options),
+        }
+    }
+
+    fn analyze_window(&mut self, window: &[f32]) -> Vec<f64> {
+        let mut buf = vec![Complex32::new(0.0, 0.0); self.fft_size];
+        for (i, c) in buf.iter_mut().enumerate().take(self.fft_size) {
+            let sample = window.get(i).copied().unwrap_or(0.0);
+            c.re = sample * self.hann[i];
+        }
+
+        self.fft.process(&mut buf);
+
+        let mut frame = vec![0.0f64; self.channel_count];
+        for (k, c) in buf.iter().take(self.fft_size / 2).enumerate() {
+            let freq = (k as f64 / (self.fft_size as f64 / 2.0)) * self.nyquist;
             let mag = (c.re as f64).hypot(c.im as f64);
-            let signal = match options.detection_mode {
+            let signal = match self.options.detection_mode {
                 DetectionMode::SpectralEnergy => mag,
                 DetectionMode::SpectralFlux => {
-                    let flux = (mag - prev_mag[k]).max(0.0);
-                    prev_mag[k] = mag;
+                    let flux = (mag - self.prev_mag[k]).max(0.0);
+                    self.prev_mag[k] = mag;
                     flux
                 }
             };
-            let idx = band_index(freq, &band_edges_hz);
+            let idx = band_index(freq, &self.band_edges_hz);
             frame[idx] += signal;
         }
-        frames.push(frame);
-        cursor += hop_size.max(1);
+        frame
     }
 
-    let aggregated = aggregate_frames(&frames, options.frames_per_color.max(1));
-    MoodbarAnalysis {
-        channel_count,
-        frames: normalize_frames(&aggregated, options),
+    fn compact_pending_if_needed(&mut self) {
+        let threshold = self.fft_size * 8;
+        if self.pending_start > threshold {
+            self.pending.drain(0..self.pending_start);
+            self.pending_start = 0;
+        }
     }
 }
 
@@ -617,6 +686,32 @@ mod tests {
 
         assert!(baseline.frames.len() > dense.frames.len());
         assert_eq!(dense.frames.len(), 1);
+    }
+
+    #[test]
+    fn streaming_and_batch_pcm_paths_match() {
+        let sample_rate = 44_100;
+        let mut pcm = Vec::new();
+        pcm.extend(sine(120.0, sample_rate, 0.4));
+        pcm.extend(sine(900.0, sample_rate, 0.4));
+        pcm.extend(sine(3300.0, sample_rate, 0.4));
+
+        let options = GenerateOptions::default();
+        let batch = analyze_pcm_mono(sample_rate, &pcm, &options);
+
+        let mut stream = FrameAnalyzer::new(sample_rate, &options);
+        for chunk in pcm.chunks(257) {
+            stream.feed_mono_samples(chunk);
+        }
+        let streamed = stream.finish();
+
+        assert_eq!(batch.channel_count, streamed.channel_count);
+        assert_eq!(batch.frames.len(), streamed.frames.len());
+        for (a, b) in batch.frames.iter().zip(streamed.frames.iter()) {
+            for (x, y) in a.iter().zip(b.iter()) {
+                assert!((x - y).abs() < 1e-9);
+            }
+        }
     }
 
     #[test]
