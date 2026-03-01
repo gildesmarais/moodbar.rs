@@ -46,6 +46,7 @@ scripts/tdd-loop.sh -p moodbar-core
    `python3 rust/scripts/generate_legacy_fixture.py --name tri_band --legacy-bin ./build/moodbar`
 2. Run parity tests:
    `cargo test -p moodbar-core --test legacy_parity`
+   Note: this test is designed to skip when no legacy fixture manifests are present.
 3. Run local quality gate:
    `make check`
 4. Promote Linux CI workflow from `rust/.github/workflows/linux-rust-ci.yml` to repo root `.github/workflows/` when Rust becomes the top-level CI target.
