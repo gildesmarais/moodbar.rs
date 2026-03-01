@@ -113,3 +113,54 @@ fn batch_supports_parallel_jobs_flag() {
     assert!(output_dir.join("nested/c.svg").exists());
     assert!(output_dir.join("d.svg").exists());
 }
+
+#[test]
+fn batch_skips_when_output_is_newer_or_equal() {
+    let temp = unique_temp_dir("skip");
+    let input_dir = temp.join("in");
+    let output_dir = temp.join("out");
+
+    write_test_wav(&input_dir.join("a.wav"));
+    write_test_wav(&input_dir.join("nested/b.wav"));
+
+    let bin = moodbar_bin_path();
+    let first = Command::new(&bin)
+        .arg("--json")
+        .arg("batch")
+        .arg("-i")
+        .arg(&input_dir)
+        .arg("-o")
+        .arg(&output_dir)
+        .arg("--jobs")
+        .arg("2")
+        .arg("--format")
+        .arg("svg")
+        .arg("--output-ext")
+        .arg("svg")
+        .output()
+        .unwrap_or_else(|err| panic!("first batch run using {}: {err}", bin.display()));
+    assert!(first.status.success());
+
+    let second = Command::new(&bin)
+        .arg("--json")
+        .arg("batch")
+        .arg("-i")
+        .arg(&input_dir)
+        .arg("-o")
+        .arg(&output_dir)
+        .arg("--jobs")
+        .arg("2")
+        .arg("--format")
+        .arg("svg")
+        .arg("--output-ext")
+        .arg("svg")
+        .output()
+        .unwrap_or_else(|err| panic!("second batch run using {}: {err}", bin.display()));
+    assert!(second.status.success());
+
+    let stdout = String::from_utf8(second.stdout).expect("utf8 second stdout");
+    assert!(stdout.contains("\"processed\": 2"));
+    assert!(stdout.contains("\"succeeded\": 0"));
+    assert!(stdout.contains("\"skipped\": 2"));
+    assert!(stdout.contains("\"failed\": 0"));
+}

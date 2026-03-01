@@ -2,6 +2,7 @@ use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::SystemTime;
 
 use anyhow::{Context, Result};
 use clap::{Args, Parser, Subcommand, ValueEnum};
@@ -289,11 +290,12 @@ fn run(cli: Cli) -> Result<i32> {
             });
 
             let mut succeeded = 0usize;
-            let skipped = 0usize;
+            let mut skipped = 0usize;
             let mut failed = 0usize;
             for (src, outcome) in candidates.iter().zip(outcomes.into_iter()) {
                 match outcome {
-                    Ok(()) => succeeded += 1,
+                    Ok(BatchItemStatus::Generated) => succeeded += 1,
+                    Ok(BatchItemStatus::Skipped) => skipped += 1,
                     Err(err) => {
                         failed += 1;
                         if cli.json {
@@ -344,14 +346,22 @@ fn build_options(dsp: &DspArgs) -> GenerateOptions {
     }
 }
 
+#[derive(Copy, Clone)]
+enum BatchItemStatus {
+    Generated,
+    Skipped,
+}
+
 fn process_batch_item(
     src: &Path,
     dst: &Path,
     options: &GenerateOptions,
     render: &RenderArgs,
     force: bool,
-) -> Result<()> {
-    ensure_can_write(dst, force)?;
+) -> Result<BatchItemStatus> {
+    if should_skip_unchanged(src, dst, force)? {
+        return Ok(BatchItemStatus::Skipped);
+    }
     let analysis = analyze_path(src, options)
         .with_context(|| format!("decode/generate failed for {}", src.display()))?;
 
@@ -373,7 +383,19 @@ fn process_batch_item(
             write_text(dst, &svg)?;
         }
     }
-    Ok(())
+    Ok(BatchItemStatus::Generated)
+}
+
+fn should_skip_unchanged(src: &Path, dst: &Path, force: bool) -> Result<bool> {
+    if force || !dst.exists() {
+        return Ok(false);
+    }
+
+    let src_meta = fs::metadata(src)?;
+    let dst_meta = fs::metadata(dst)?;
+    let src_mtime = src_meta.modified().unwrap_or(SystemTime::UNIX_EPOCH);
+    let dst_mtime = dst_meta.modified().unwrap_or(SystemTime::UNIX_EPOCH);
+    Ok(dst_mtime >= src_mtime)
 }
 
 fn ensure_can_write(path: &Path, force: bool) -> Result<()> {
