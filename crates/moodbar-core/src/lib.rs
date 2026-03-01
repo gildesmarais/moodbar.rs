@@ -79,6 +79,7 @@ pub struct SvgOptions {
     pub height: u32,
     pub shape: SvgShape,
     pub background: &'static str,
+    pub max_gradient_stops: usize,
 }
 
 impl Default for SvgOptions {
@@ -88,6 +89,7 @@ impl Default for SvgOptions {
             height: 96,
             shape: SvgShape::Strip,
             background: "transparent",
+            max_gradient_stops: 512,
         }
     }
 }
@@ -376,7 +378,8 @@ pub fn render_svg(analysis: &MoodbarAnalysis, options: &SvgOptions) -> String {
     s.push_str(&format!(
         "<defs><linearGradient id=\"{gradient_id}\" x1=\"0\" y1=\"0\" x2=\"{width}\" y2=\"0\" gradientUnits=\"userSpaceOnUse\">"
     ));
-    for (i, frame) in analysis.frames.iter().enumerate() {
+    for i in gradient_stop_indices(analysis.frames.len(), options.max_gradient_stops.max(2)) {
+        let frame = &analysis.frames[i];
         let denom = (analysis.frames.len().saturating_sub(1)).max(1) as f64;
         let offset = (i as f64 / denom) * 100.0;
         let (r, g, b) = frame_to_svg_rgb(frame);
@@ -499,6 +502,29 @@ fn build_bin_to_band(fft_size: usize, nyquist: f64, edges_hz: &[f32]) -> Vec<usi
             band_index(freq, edges_hz)
         })
         .collect()
+}
+
+fn gradient_stop_indices(frame_count: usize, max_stops: usize) -> Vec<usize> {
+    if frame_count == 0 {
+        return Vec::new();
+    }
+    if frame_count <= max_stops {
+        return (0..frame_count).collect();
+    }
+
+    let mut out = Vec::with_capacity(max_stops);
+    let denom = (max_stops - 1) as f64;
+    let max_idx = (frame_count - 1) as f64;
+    for i in 0..max_stops {
+        let idx = ((i as f64 / denom) * max_idx).round() as usize;
+        if out.last().copied() != Some(idx) {
+            out.push(idx);
+        }
+    }
+    if out.last().copied() != Some(frame_count - 1) {
+        out.push(frame_count - 1);
+    }
+    out
 }
 
 fn aggregate_frames(frames: &[Vec<f64>], frames_per_color: usize) -> Vec<Vec<f64>> {
@@ -787,5 +813,29 @@ mod tests {
             let direct = band_index(freq, &edges);
             assert_eq!(*mapped, direct);
         }
+    }
+
+    #[test]
+    fn svg_gradient_stop_count_is_capped() {
+        let frames = (0..5000)
+            .map(|i| {
+                let t = i as f64 / 5000.0;
+                vec![t, 1.0 - t, (0.5 + 0.5 * (t * 10.0).sin()).clamp(0.0, 1.0)]
+            })
+            .collect::<Vec<_>>();
+        let analysis = MoodbarAnalysis {
+            channel_count: 3,
+            frames,
+        };
+        let svg = render_svg(
+            &analysis,
+            &SvgOptions {
+                max_gradient_stops: 256,
+                ..SvgOptions::default()
+            },
+        );
+        let stop_count = svg.matches("<stop ").count();
+        assert!(stop_count <= 256);
+        assert!(stop_count > 1);
     }
 }
