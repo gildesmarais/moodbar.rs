@@ -1,4 +1,4 @@
-# Moodbar Rust Rewrite Engineering Brief
+# Moodbar Engineering Brief
 
 ## Decision Summary
 - `S1A+S1B`: v1 supports single-file and batch generation.

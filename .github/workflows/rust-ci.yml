@@ -1,19 +1,27 @@
-name: rust-linux-ci
+name: rust-ci
 
 on:
   push:
     paths:
-      - 'rust/**'
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "Makefile"
+      - "crates/**"
+      - "tests/**"
+      - ".github/workflows/rust-ci.yml"
   pull_request:
     paths:
-      - 'rust/**'
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "Makefile"
+      - "crates/**"
+      - "tests/**"
+      - ".github/workflows/rust-ci.yml"
 
 jobs:
   linux:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: rust
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,7 +34,7 @@ jobs:
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: rust -> target
+          workspaces: . -> target
 
       - name: Format check
         run: cargo fmt --all -- --check

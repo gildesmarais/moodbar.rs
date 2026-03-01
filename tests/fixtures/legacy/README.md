@@ -11,7 +11,7 @@ Each `*.json` manifest points to:
 Generate a fixture after building the legacy binary:
 
 ```bash
-python3 rust/scripts/generate_legacy_fixture.py \
+python3 scripts/generate_legacy_fixture.py \
   --name tri_band \
   --legacy-bin ./build/moodbar
 ```
