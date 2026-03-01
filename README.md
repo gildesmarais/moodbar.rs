@@ -1,52 +1,71 @@
-# Rust Rewrite (`rust/`)
+# Moodbar (Rust)
 
-This workspace hosts the Rust rewrite of Moodbar with a CLI-first, cross-platform design.
+CLI-first moodbar generator in Rust.
 
-## Crates
-- `crates/moodbar-core`: audio decode + spectral analysis + `.mood` byte generation.
-- `crates/moodbar-cli` (binary name `moodbar`): user-facing commands.
+## Prerequisites
+- Rust toolchain (stable)
+- `make`
 
-## Current CLI (modern contract)
+## Install
 ```bash
+cargo install --path crates/moodbar-cli
+```
+
+## Quick Start
+```bash
+# run the full local quality gate
+make check
+
+# generate legacy raw moodbar bytes (.mood)
 cargo run -p moodbar -- generate -i input.ogg -o output.mood
+
+# generate SVG output
 cargo run -p moodbar -- generate -i input.ogg -o output.svg --format svg --svg-shape waveform
-cargo run -p moodbar -- batch -i ./music -o ./moods
+
+# inspect a moodbar file
 cargo run -p moodbar -- inspect -i output.mood
 ```
 
-Use `--json` for machine-readable results.
-Use `--normalize-mode` and `--deterministic-floor` when tuning deterministic output behavior.
-Use `--detection-mode spectral-flux`, `--frames-per-color 1000`, and `--band-edges-hz 200,600,1200,2400` for algorithm variants.
+For installed usage, replace `cargo run -p moodbar --` with `moodbar`.
 
-## TDD Workflow
-Red/Green/Refactor loop:
-1. Write or update a test first (unit test in `crates/*/src/*.rs` or integration test in `crates/*/tests/`).
-2. Run the smallest target that should fail, then implement the fix.
-3. Refactor with tests green, then run full gate.
-
-Common commands:
+## Advanced Options
+Common tuning flags include `--normalize-mode`, `--deterministic-floor`, `--detection-mode`, `--frames-per-color`, and `--band-edges-hz`.
+Use command help for full details:
 ```bash
-make test-core            # fastest loop for core logic
-make parity               # legacy compatibility check
-make test                 # whole workspace
-make check                # fmt + clippy + tests
-make tdd-core             # auto-rerun core tests on file changes (if cargo-watch installed)
-scripts/tdd-loop.sh -p moodbar-core
+moodbar generate --help
+moodbar batch --help
 ```
 
-## Engineering Constraints from Discovery
-- v1 scope: single-file + batch generation.
-- Compatibility target: preserve existing raw moodbar format semantics (`R G B ...` bytes).
-- Platform target: Linux/macOS required, Windows native where possible.
-- Architecture target: workspace split (`moodbar-core` + `moodbar-cli`).
-- Delivery strategy: production-grade v1 before broad rollout.
+## Developer Workflow
+```bash
+# core crate fast loop
+make test-core
 
-## Next Steps
-1. Generate legacy fixtures:
-   `python3 rust/scripts/generate_legacy_fixture.py --name tri_band --legacy-bin ./build/moodbar`
-2. Run parity tests:
-   `cargo test -p moodbar-core --test legacy_parity`
-   Note: this test is designed to skip when no legacy fixture manifests are present.
-3. Run local quality gate:
-   `make check`
-4. Promote Linux CI workflow from `rust/.github/workflows/linux-rust-ci.yml` to repo root `.github/workflows/` when Rust becomes the top-level CI target.
+# full workspace tests
+make test
+
+# parity harness (skips when fixtures are absent)
+make parity
+
+# fmt + clippy -D warnings + tests
+make check
+
+# optional watch loop
+make tdd-core
+```
+
+## Batch Mode
+```bash
+cargo run -p moodbar -- batch -i ./music -o ./moods --progress
+```
+
+## Repository Layout
+- `crates/moodbar-core`: decode, analysis, normalization, render primitives
+- `crates/moodbar-cli`: `generate`, `batch`, `inspect` commands
+- `tests/fixtures/legacy`: optional parity fixtures
+- `scripts/`: helper scripts
+
+## CI and Releases
+- CI workflow: `.github/workflows/rust-ci.yml`
+- Release artifacts: `.github/workflows/release-build.yml` (Linux + macOS)
+- Artifact naming: `moodbar-<tag>-<target>.tar.gz`
