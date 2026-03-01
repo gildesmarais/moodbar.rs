@@ -1,6 +1,7 @@
 use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::SystemTime;
 
@@ -55,6 +56,8 @@ enum Command {
         output_ext: String,
         #[arg(long, default_value_t = 0, help = "Parallel worker count (0 = auto)")]
         jobs: usize,
+        #[arg(long, help = "Show per-file batch progress on stderr")]
+        progress: bool,
         #[arg(long)]
         force: bool,
     },
@@ -244,6 +247,7 @@ fn run(cli: Cli) -> Result<i32> {
             render,
             output_ext,
             jobs,
+            progress,
             force,
         } => {
             let options = build_options(&dsp);
@@ -276,6 +280,9 @@ fn run(cli: Cli) -> Result<i32> {
                 .build()
                 .context("failed to build rayon thread pool")?;
 
+            let progress_counter = Arc::new(AtomicUsize::new(0));
+            let progress_lock = Arc::new(std::sync::Mutex::new(()));
+
             let outcomes = pool.install(|| {
                 candidates
                     .par_iter()
@@ -283,8 +290,21 @@ fn run(cli: Cli) -> Result<i32> {
                         let rel = src.strip_prefix(&*input_dir).unwrap_or(src);
                         let mut dst = output_dir.join(rel);
                         dst.set_extension(output_ext.as_ref());
-                        process_batch_item(src, &dst, &options, &render, force)
-                            .with_context(|| format!("{} -> {}", src.display(), dst.display()))
+                        let outcome = process_batch_item(src, &dst, &options, &render, force)
+                            .with_context(|| format!("{} -> {}", src.display(), dst.display()));
+
+                        if progress {
+                            let done = progress_counter.fetch_add(1, Ordering::SeqCst) + 1;
+                            let state = match &outcome {
+                                Ok(BatchItemStatus::Generated) => "generated",
+                                Ok(BatchItemStatus::Skipped) => "skipped",
+                                Err(_) => "failed",
+                            };
+                            if let Ok(_guard) = progress_lock.lock() {
+                                eprintln!("[{done}/{processed}] {state} {}", src.display());
+                            }
+                        }
+                        outcome
                     })
                     .collect::<Vec<_>>()
             });

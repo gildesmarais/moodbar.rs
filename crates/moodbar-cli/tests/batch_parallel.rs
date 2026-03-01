@@ -164,3 +164,36 @@ fn batch_skips_when_output_is_newer_or_equal() {
     assert!(stdout.contains("\"skipped\": 2"));
     assert!(stdout.contains("\"failed\": 0"));
 }
+
+#[test]
+fn batch_progress_writes_status_lines() {
+    let temp = unique_temp_dir("progress");
+    let input_dir = temp.join("in");
+    let output_dir = temp.join("out");
+
+    write_test_wav(&input_dir.join("a.wav"));
+    write_test_wav(&input_dir.join("b.wav"));
+
+    let bin = moodbar_bin_path();
+    let out = Command::new(&bin)
+        .arg("--json")
+        .arg("batch")
+        .arg("-i")
+        .arg(&input_dir)
+        .arg("-o")
+        .arg(&output_dir)
+        .arg("--jobs")
+        .arg("2")
+        .arg("--progress")
+        .arg("--format")
+        .arg("svg")
+        .arg("--output-ext")
+        .arg("svg")
+        .output()
+        .unwrap_or_else(|err| panic!("run progress batch using {}: {err}", bin.display()));
+
+    assert!(out.status.success());
+    let stderr = String::from_utf8(out.stderr).expect("utf8 stderr");
+    assert!(stderr.contains("[1/2]") || stderr.contains("[2/2]"));
+    assert!(stderr.contains("generated"));
+}
