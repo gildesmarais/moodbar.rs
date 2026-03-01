@@ -1,5 +1,6 @@
 use std::ffi::OsStr;
 use std::fs;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
@@ -8,8 +9,8 @@ use std::time::SystemTime;
 use anyhow::{Context, Result};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use moodbar_core::{
-    analysis_to_raw_rgb_bytes, analyze_path, render_png, render_svg, DetectionMode,
-    GenerateOptions, NormalizeMode, PngOptions, SvgOptions, SvgShape,
+    analysis_to_raw_rgb_bytes, analyze_path, analyze_pcm_mono, render_png, render_svg,
+    DetectionMode, GenerateOptions, NormalizeMode, PngOptions, SvgOptions, SvgShape,
 };
 use rayon::prelude::*;
 use serde::Serialize;
@@ -31,13 +32,21 @@ enum Command {
     /// Generate a single moodbar file.
     Generate {
         #[arg(short = 'i', long)]
-        input: PathBuf,
+        input: Option<PathBuf>,
         #[arg(short = 'o', long)]
         output: PathBuf,
         #[command(flatten)]
         dsp: DspArgs,
         #[command(flatten)]
         render: RenderArgs,
+        #[arg(long, help = "Read PCM samples from stdin instead of input file path")]
+        stdin: bool,
+        #[arg(long, value_enum, default_value_t = StdinFormat::F32Le)]
+        stdin_format: StdinFormat,
+        #[arg(long, default_value_t = 44_100)]
+        sample_rate: u32,
+        #[arg(long, default_value_t = 1)]
+        channels: usize,
         #[arg(long)]
         force: bool,
     },
@@ -144,6 +153,12 @@ enum SvgShapeArg {
     Waveform,
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq, ValueEnum)]
+enum StdinFormat {
+    F32Le,
+    S16Le,
+}
+
 impl SvgShapeArg {
     fn into_core(self) -> SvgShape {
         match self {
@@ -197,13 +212,33 @@ fn run(cli: Cli) -> Result<i32> {
             output,
             dsp,
             render,
+            stdin,
+            stdin_format,
+            sample_rate,
+            channels,
             force,
         } => {
+            if !stdin && input.is_none() {
+                anyhow::bail!("input path is required unless --stdin is provided");
+            }
+            if stdin && input.is_some() {
+                anyhow::bail!("use either --stdin or --input, not both");
+            }
+            if channels == 0 {
+                anyhow::bail!("--channels must be >= 1");
+            }
             ensure_can_write(&output, force)?;
 
             let options = build_options(&dsp);
-            let analysis = analyze_path(&input, &options)
-                .with_context(|| format!("failed to generate moodbar for {}", input.display()))?;
+            let analysis = if stdin {
+                let mono = read_stdin_pcm_mono(stdin_format, channels)?;
+                analyze_pcm_mono(sample_rate, &mono, &options)
+            } else {
+                let inpath = input.as_ref().expect("validated above");
+                analyze_path(inpath, &options).with_context(|| {
+                    format!("failed to generate moodbar for {}", inpath.display())
+                })?
+            };
 
             let bytes_written = match render.format {
                 OutputFormat::RawRgbV1 => {
@@ -239,7 +274,10 @@ fn run(cli: Cli) -> Result<i32> {
             };
 
             let result = GenerateResult {
-                input: input.display().to_string(),
+                input: input
+                    .as_ref()
+                    .map(|p| p.display().to_string())
+                    .unwrap_or_else(|| "<stdin>".to_string()),
                 output: output.display().to_string(),
                 bytes_written,
                 frames: analysis.frames.len(),
@@ -441,6 +479,53 @@ fn should_skip_unchanged(src: &Path, dst: &Path, force: bool) -> Result<bool> {
     let src_mtime = src_meta.modified().unwrap_or(SystemTime::UNIX_EPOCH);
     let dst_mtime = dst_meta.modified().unwrap_or(SystemTime::UNIX_EPOCH);
     Ok(dst_mtime >= src_mtime)
+}
+
+fn read_stdin_pcm_mono(format: StdinFormat, channels: usize) -> Result<Vec<f32>> {
+    let mut bytes = Vec::new();
+    std::io::stdin().read_to_end(&mut bytes)?;
+    if bytes.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    match format {
+        StdinFormat::F32Le => {
+            if bytes.len() % 4 != 0 {
+                anyhow::bail!("stdin length must be a multiple of 4 bytes for f32le");
+            }
+            let samples = bytes
+                .chunks_exact(4)
+                .map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+                .collect::<Vec<_>>();
+            downmix_to_mono(&samples, channels)
+        }
+        StdinFormat::S16Le => {
+            if bytes.len() % 2 != 0 {
+                anyhow::bail!("stdin length must be a multiple of 2 bytes for s16le");
+            }
+            let samples = bytes
+                .chunks_exact(2)
+                .map(|b| i16::from_le_bytes([b[0], b[1]]) as f32 / i16::MAX as f32)
+                .collect::<Vec<_>>();
+            downmix_to_mono(&samples, channels)
+        }
+    }
+}
+
+fn downmix_to_mono(samples: &[f32], channels: usize) -> Result<Vec<f32>> {
+    if channels == 1 {
+        return Ok(samples.to_vec());
+    }
+    if samples.len() % channels != 0 {
+        anyhow::bail!("sample count is not divisible by channel count");
+    }
+
+    let mut mono = Vec::with_capacity(samples.len() / channels);
+    for frame in samples.chunks_exact(channels) {
+        let sum = frame.iter().copied().sum::<f32>();
+        mono.push(sum / channels as f32);
+    }
+    Ok(mono)
 }
 
 fn ensure_can_write(path: &Path, force: bool) -> Result<()> {
