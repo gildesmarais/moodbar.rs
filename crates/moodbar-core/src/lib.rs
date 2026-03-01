@@ -224,7 +224,10 @@ struct FrameAnalyzer<'a> {
     prev_mag: Vec<f64>,
     pending: Vec<f32>,
     pending_start: usize,
-    frames: Vec<Vec<f64>>,
+    fft_buf: Vec<Complex32>,
+    frame_scratch: Vec<f64>,
+    frames_flat: Vec<f64>,
+    frame_count: usize,
 }
 
 impl<'a> FrameAnalyzer<'a> {
@@ -249,7 +252,10 @@ impl<'a> FrameAnalyzer<'a> {
             prev_mag: vec![0.0; fft_size / 2],
             pending: Vec::with_capacity(fft_size * 2),
             pending_start: 0,
-            frames: Vec::new(),
+            fft_buf: vec![Complex32::new(0.0, 0.0); fft_size],
+            frame_scratch: vec![0.0; channel_count],
+            frames_flat: Vec::new(),
+            frame_count: 0,
         }
     }
 
@@ -260,48 +266,62 @@ impl<'a> FrameAnalyzer<'a> {
 
         while self.pending.len().saturating_sub(self.pending_start) >= self.fft_size {
             let start = self.pending_start;
-            let end = start + self.fft_size;
-            let window = self.pending[start..end].to_vec();
-            let frame = self.analyze_window(&window);
-            self.frames.push(frame);
+            self.analyze_window_from_pending(start);
             self.pending_start += self.hop_size.max(1);
             self.compact_pending_if_needed();
         }
     }
 
     fn is_empty(&self) -> bool {
-        self.frames.is_empty() && self.pending.is_empty()
+        self.frame_count == 0 && self.pending.is_empty()
     }
 
     fn finish(mut self) -> MoodbarAnalysis {
-        if self.frames.is_empty() && !self.pending.is_empty() {
-            let mut padded = vec![0.0f32; self.fft_size];
+        if self.frame_count == 0 && !self.pending.is_empty() {
             let available = self.pending.len().saturating_sub(self.pending_start);
             let copy_len = available.min(self.fft_size);
-            padded[..copy_len]
-                .copy_from_slice(&self.pending[self.pending_start..self.pending_start + copy_len]);
-            let frame = self.analyze_window(&padded);
-            self.frames.push(frame);
+            self.analyze_window_from_pending_padded(copy_len);
         }
 
-        let aggregated = aggregate_frames(&self.frames, self.options.frames_per_color.max(1));
+        let frames = self
+            .frames_flat
+            .chunks(self.channel_count)
+            .map(|chunk| chunk.to_vec())
+            .collect::<Vec<_>>();
+        let aggregated = aggregate_frames(&frames, self.options.frames_per_color.max(1));
         MoodbarAnalysis {
             channel_count: self.channel_count,
             frames: normalize_frames(&aggregated, self.options),
         }
     }
 
-    fn analyze_window(&mut self, window: &[f32]) -> Vec<f64> {
-        let mut buf = vec![Complex32::new(0.0, 0.0); self.fft_size];
-        for (i, c) in buf.iter_mut().enumerate().take(self.fft_size) {
-            let sample = window.get(i).copied().unwrap_or(0.0);
-            c.re = sample * self.hann[i];
+    fn analyze_window_from_pending(&mut self, start: usize) {
+        self.frame_scratch.fill(0.0);
+        for (i, c) in self.fft_buf.iter_mut().enumerate().take(self.fft_size) {
+            c.re = self.pending[start + i] * self.hann[i];
+            c.im = 0.0;
         }
+        self.finish_fft_into_frame();
+    }
 
-        self.fft.process(&mut buf);
+    fn analyze_window_from_pending_padded(&mut self, copy_len: usize) {
+        self.frame_scratch.fill(0.0);
+        for (i, c) in self.fft_buf.iter_mut().enumerate().take(self.fft_size) {
+            let sample = if i < copy_len {
+                self.pending[self.pending_start + i]
+            } else {
+                0.0
+            };
+            c.re = sample * self.hann[i];
+            c.im = 0.0;
+        }
+        self.finish_fft_into_frame();
+    }
 
-        let mut frame = vec![0.0f64; self.channel_count];
-        for (k, c) in buf.iter().take(self.fft_size / 2).enumerate() {
+    fn finish_fft_into_frame(&mut self) {
+        self.fft.process(&mut self.fft_buf);
+
+        for (k, c) in self.fft_buf.iter().take(self.fft_size / 2).enumerate() {
             let freq = (k as f64 / (self.fft_size as f64 / 2.0)) * self.nyquist;
             let mag = (c.re as f64).hypot(c.im as f64);
             let signal = match self.options.detection_mode {
@@ -313,9 +333,10 @@ impl<'a> FrameAnalyzer<'a> {
                 }
             };
             let idx = band_index(freq, &self.band_edges_hz);
-            frame[idx] += signal;
+            self.frame_scratch[idx] += signal;
         }
-        frame
+        self.frames_flat.extend_from_slice(&self.frame_scratch);
+        self.frame_count += 1;
     }
 
     fn compact_pending_if_needed(&mut self) {
