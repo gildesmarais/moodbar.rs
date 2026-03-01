@@ -284,6 +284,24 @@ pub fn render_svg(analysis: &MoodbarAnalysis, options: &SvgOptions) -> String {
         options.background
     ));
 
+    // Build a mood-derived gradient so non-strip shapes still preserve timeline color semantics.
+    let gradient_id = "mood-gradient";
+    s.push_str(&format!(
+        "<defs><linearGradient id=\"{gradient_id}\" x1=\"0\" y1=\"0\" x2=\"{width}\" y2=\"0\" gradientUnits=\"userSpaceOnUse\">"
+    ));
+    for (i, frame) in analysis.frames.iter().enumerate() {
+        let denom = (analysis.frames.len().saturating_sub(1)).max(1) as f64;
+        let offset = (i as f64 / denom) * 100.0;
+        let (r, g, b) = frame_to_rgb(frame);
+        s.push_str(&format!(
+            "<stop offset=\"{offset:.3}%\" stop-color=\"rgb({},{},{})\"/>",
+            scale_to_u8(r),
+            scale_to_u8(g),
+            scale_to_u8(b)
+        ));
+    }
+    s.push_str("</linearGradient></defs>");
+
     match options.shape {
         SvgShape::Strip => {
             for (i, frame) in analysis.frames.iter().enumerate() {
@@ -326,8 +344,8 @@ pub fn render_svg(analysis: &MoodbarAnalysis, options: &SvgOptions) -> String {
             }
             d.push_str(" Z");
             s.push_str(&format!(
-                "<path d=\"{}\" fill=\"rgba(96,182,255,0.4)\" stroke=\"rgb(96,182,255)\" stroke-width=\"1\"/>",
-                d
+                "<path d=\"{}\" fill=\"url(#{})\" fill-opacity=\"0.50\" stroke=\"url(#{})\" stroke-width=\"1\"/>",
+                d, gradient_id, gradient_id
             ));
         }
     }
@@ -603,6 +621,7 @@ mod tests {
         );
         assert!(strip.contains("<svg"));
         assert!(strip.contains("<rect"));
+        assert!(strip.contains("<linearGradient"));
 
         let waveform = render_svg(
             &analysis,
@@ -612,5 +631,6 @@ mod tests {
             },
         );
         assert!(waveform.contains("<path"));
+        assert!(waveform.contains("url(#mood-gradient)"));
     }
 }
