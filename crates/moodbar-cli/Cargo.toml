@@ -17,3 +17,4 @@ moodbar-core = { path = "../moodbar-core" }
 serde.workspace = true
 serde_json.workspace = true
 walkdir.workspace = true
+rayon.workspace = true
