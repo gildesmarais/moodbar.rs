@@ -8,8 +8,8 @@ use std::time::SystemTime;
 use anyhow::{Context, Result};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use moodbar_core::{
-    analysis_to_raw_rgb_bytes, analyze_path, render_svg, DetectionMode, GenerateOptions,
-    NormalizeMode, SvgOptions, SvgShape,
+    analysis_to_raw_rgb_bytes, analyze_path, render_png, render_svg, DetectionMode,
+    GenerateOptions, NormalizeMode, PngOptions, SvgOptions, SvgShape,
 };
 use rayon::prelude::*;
 use serde::Serialize;
@@ -105,6 +105,7 @@ struct RenderArgs {
 enum OutputFormat {
     RawRgbV1,
     Svg,
+    Png,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, ValueEnum)]
@@ -223,6 +224,18 @@ fn run(cli: Cli) -> Result<i32> {
                     write_text(&output, &svg)?;
                     svg.len()
                 }
+                OutputFormat::Png => {
+                    let png = render_png(
+                        &analysis,
+                        &PngOptions {
+                            width: render.svg_width,
+                            height: render.svg_height,
+                            shape: render.svg_shape.into_core(),
+                        },
+                    )?;
+                    write_bytes(&output, &png)?;
+                    png.len()
+                }
             };
 
             let result = GenerateResult {
@@ -234,6 +247,7 @@ fn run(cli: Cli) -> Result<i32> {
                 format: match render.format {
                     OutputFormat::RawRgbV1 => "raw_rgb_v1",
                     OutputFormat::Svg => "svg",
+                    OutputFormat::Png => "png",
                 }
                 .to_string(),
             };
@@ -401,6 +415,17 @@ fn process_batch_item(
                 },
             );
             write_text(dst, &svg)?;
+        }
+        OutputFormat::Png => {
+            let png = render_png(
+                &analysis,
+                &PngOptions {
+                    width: render.svg_width,
+                    height: render.svg_height,
+                    shape: render.svg_shape.into_core(),
+                },
+            )?;
+            write_bytes(dst, &png)?;
         }
     }
     Ok(BatchItemStatus::Generated)

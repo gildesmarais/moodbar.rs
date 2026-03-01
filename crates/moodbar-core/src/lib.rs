@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::path::Path;
 
+use image::{ImageBuffer, ImageEncoder, Rgba};
 use num_complex::Complex32;
 use rustfft::FftPlanner;
 use symphonia::core::audio::SampleBuffer;
@@ -12,6 +13,7 @@ use symphonia::core::meta::MetadataOptions;
 use symphonia::core::probe::Hint;
 use thiserror::Error;
 
+/// Tunable DSP options used by raw and SVG rendering paths.
 #[derive(Debug, Clone)]
 pub struct GenerateOptions {
     pub fft_size: usize,
@@ -49,30 +51,44 @@ impl GenerateOptions {
     }
 }
 
+/// Band normalization strategy.
 #[derive(Debug, Clone, Copy)]
 pub enum NormalizeMode {
     PerChannelPeak,
     GlobalPeak,
 }
 
+/// Signal extraction strategy per FFT bin.
 #[derive(Debug, Clone, Copy)]
 pub enum DetectionMode {
     SpectralEnergy,
     SpectralFlux,
 }
 
+/// Non-fatal decoder diagnostics collected during analysis.
+#[derive(Debug, Clone, Default)]
+pub struct AnalysisDiagnostics {
+    pub decode_errors: usize,
+    pub zero_channel_packets: usize,
+    pub truncated_frames: usize,
+}
+
+/// Renderer-agnostic analysis output.
 #[derive(Debug, Clone)]
 pub struct MoodbarAnalysis {
     pub channel_count: usize,
     pub frames: Vec<Vec<f64>>,
+    pub diagnostics: AnalysisDiagnostics,
 }
 
+/// SVG output shape presets.
 #[derive(Debug, Clone, Copy)]
 pub enum SvgShape {
     Strip,
     Waveform,
 }
 
+/// SVG rendering options.
 #[derive(Debug, Clone)]
 pub struct SvgOptions {
     pub width: u32,
@@ -80,6 +96,24 @@ pub struct SvgOptions {
     pub shape: SvgShape,
     pub background: &'static str,
     pub max_gradient_stops: usize,
+}
+
+/// PNG rendering options.
+#[derive(Debug, Clone)]
+pub struct PngOptions {
+    pub width: u32,
+    pub height: u32,
+    pub shape: SvgShape,
+}
+
+impl Default for PngOptions {
+    fn default() -> Self {
+        Self {
+            width: 1200,
+            height: 96,
+            shape: SvgShape::Strip,
+        }
+    }
 }
 
 impl Default for SvgOptions {
@@ -94,6 +128,7 @@ impl Default for SvgOptions {
     }
 }
 
+/// Errors returned by analysis/decoding APIs.
 #[derive(Debug, Error)]
 pub enum MoodbarError {
     #[error("no playable audio track found")]
@@ -104,10 +139,13 @@ pub enum MoodbarError {
     Io(#[from] std::io::Error),
     #[error("decode error: {0}")]
     Decode(#[from] SymphoniaError),
+    #[error("image error: {0}")]
+    Image(#[from] image::ImageError),
     #[error("invalid options: {0}")]
     InvalidOptions(String),
 }
 
+/// Decode and analyze media into normalized mood frames.
 pub fn analyze_path(
     path: &Path,
     options: &GenerateOptions,
@@ -145,6 +183,7 @@ pub fn analyze_path(
     let mut decoder =
         symphonia::default::get_codecs().make(&track.codec_params, &DecoderOptions::default())?;
     let mut analyzer = FrameAnalyzer::new(sample_rate, options);
+    let mut diagnostics = AnalysisDiagnostics::default();
 
     loop {
         let packet = match format.next_packet() {
@@ -170,16 +209,24 @@ pub fn analyze_path(
                 let interleaved = sample_buf.samples();
 
                 if channels == 0 {
+                    diagnostics.zero_channel_packets += 1;
                     continue;
                 }
 
-                for frame in interleaved.chunks_exact(channels) {
+                for frame in interleaved.chunks(channels) {
+                    if frame.len() != channels {
+                        diagnostics.truncated_frames += 1;
+                        continue;
+                    }
                     let sum = frame.iter().copied().sum::<f32>();
                     let mono = [sum / channels as f32];
                     analyzer.feed_mono_samples(&mono);
                 }
             }
-            Err(SymphoniaError::DecodeError(_)) => continue,
+            Err(SymphoniaError::DecodeError(_)) => {
+                diagnostics.decode_errors += 1;
+                continue;
+            }
             Err(SymphoniaError::IoError(err))
                 if err.kind() == std::io::ErrorKind::UnexpectedEof =>
             {
@@ -193,9 +240,12 @@ pub fn analyze_path(
         return Err(MoodbarError::EmptyAudio);
     }
 
-    Ok(analyzer.finish())
+    let mut analysis = analyzer.finish();
+    analysis.diagnostics = diagnostics;
+    Ok(analysis)
 }
 
+/// Convenience API that returns legacy raw RGB bytes.
 pub fn generate_moodbar_from_path(
     path: &Path,
     options: &GenerateOptions,
@@ -204,6 +254,7 @@ pub fn generate_moodbar_from_path(
     Ok(analysis_to_raw_rgb_bytes(&analysis))
 }
 
+/// Analyze already-decoded mono PCM samples.
 pub fn analyze_pcm_mono(
     sample_rate: u32,
     samples: &[f32],
@@ -292,6 +343,7 @@ impl<'a> FrameAnalyzer<'a> {
         MoodbarAnalysis {
             channel_count: self.channel_count,
             frames: normalize_frames(&aggregated, self.options),
+            diagnostics: AnalysisDiagnostics::default(),
         }
     }
 
@@ -358,13 +410,24 @@ pub fn analysis_to_raw_rgb_bytes(analysis: &MoodbarAnalysis) -> Vec<u8> {
     out
 }
 
+const SVG_WAVEFORM_FILL_OPACITY: f64 = 0.78;
+const SVG_WAVEFORM_STROKE_OPACITY: f64 = 0.95;
+const SVG_WAVEFORM_STROKE_WIDTH: f64 = 1.60;
+const SVG_ESTIMATED_BYTES_PER_FRAME: usize = 96;
+
+/// Render analyzed frames as SVG output.
 pub fn render_svg(analysis: &MoodbarAnalysis, options: &SvgOptions) -> String {
     let width = options.width.max(1);
     let height = options.height.max(1);
     let count = analysis.frames.len().max(1) as f64;
     let step = width as f64 / count;
 
-    let mut s = String::new();
+    let mut s = String::with_capacity(
+        analysis
+            .frames
+            .len()
+            .saturating_mul(SVG_ESTIMATED_BYTES_PER_FRAME),
+    );
     s.push_str(&format!(
         "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 {width} {height}\" width=\"{width}\" height=\"{height}\">"
     ));
@@ -432,14 +495,80 @@ pub fn render_svg(analysis: &MoodbarAnalysis, options: &SvgOptions) -> String {
             }
             d.push_str(" Z");
             s.push_str(&format!(
-                "<path d=\"{}\" fill=\"url(#{})\" fill-opacity=\"0.78\" stroke=\"url(#{})\" stroke-opacity=\"0.95\" stroke-width=\"1.60\" vector-effect=\"non-scaling-stroke\" stroke-linecap=\"round\" stroke-linejoin=\"round\" shape-rendering=\"geometricPrecision\"/>",
-                d, gradient_id, gradient_id
+                "<path d=\"{}\" fill=\"url(#{})\" fill-opacity=\"{:.2}\" stroke=\"url(#{})\" stroke-opacity=\"{:.2}\" stroke-width=\"{:.2}\" vector-effect=\"non-scaling-stroke\" stroke-linecap=\"round\" stroke-linejoin=\"round\" shape-rendering=\"geometricPrecision\"/>",
+                d,
+                gradient_id,
+                SVG_WAVEFORM_FILL_OPACITY,
+                gradient_id,
+                SVG_WAVEFORM_STROKE_OPACITY,
+                SVG_WAVEFORM_STROKE_WIDTH
             ));
         }
     }
 
     s.push_str("</svg>");
     s
+}
+
+/// Render analyzed frames as PNG bytes.
+pub fn render_png(
+    analysis: &MoodbarAnalysis,
+    options: &PngOptions,
+) -> Result<Vec<u8>, MoodbarError> {
+    let width = options.width.max(1);
+    let height = options.height.max(1);
+    let mut img: ImageBuffer<Rgba<u8>, Vec<u8>> =
+        ImageBuffer::from_pixel(width, height, Rgba([0, 0, 0, 0]));
+
+    if analysis.frames.is_empty() {
+        let mut out = Vec::new();
+        let encoder = image::codecs::png::PngEncoder::new(&mut out);
+        encoder.write_image(img.as_raw(), width, height, image::ColorType::Rgba8.into())?;
+        return Ok(out);
+    }
+
+    let len = analysis.frames.len();
+    let frame_at_x = |x: u32| -> usize {
+        (((x as f64 / width as f64) * len as f64).floor() as usize).min(len - 1)
+    };
+
+    match options.shape {
+        SvgShape::Strip => {
+            for x in 0..width {
+                let idx = frame_at_x(x);
+                let (r, g, b) = frame_to_svg_rgb(&analysis.frames[idx]);
+                for y in 0..height {
+                    img.put_pixel(x, y, Rgba([r, g, b, 255]));
+                }
+            }
+        }
+        SvgShape::Waveform => {
+            let mid = height as f64 / 2.0;
+            for x in 0..width {
+                let idx = frame_at_x(x);
+                let frame = &analysis.frames[idx];
+                let energy =
+                    (frame.iter().sum::<f64>() / frame.len().max(1) as f64).clamp(0.0, 1.0);
+                let amp = energy * mid * 0.95;
+                let y_top = (mid - amp).max(0.0).floor() as u32;
+                let y_bottom = (mid + amp).min((height - 1) as f64).ceil() as u32;
+                let (r, g, b) = frame_to_svg_rgb(frame);
+                for y in y_top..=y_bottom {
+                    let alpha = if y == y_top || y == y_bottom {
+                        255
+                    } else {
+                        210
+                    };
+                    img.put_pixel(x, y, Rgba([r, g, b, alpha]));
+                }
+            }
+        }
+    }
+
+    let mut out = Vec::new();
+    let encoder = image::codecs::png::PngEncoder::new(&mut out);
+    encoder.write_image(img.as_raw(), width, height, image::ColorType::Rgba8.into())?;
+    Ok(out)
 }
 
 fn validate_options(options: &GenerateOptions) -> Result<(), MoodbarError> {
@@ -742,6 +871,84 @@ mod tests {
     }
 
     #[test]
+    fn spectral_flux_reduces_steady_state_energy() {
+        let sample_rate = 44_100;
+        let pcm = sine(440.0, sample_rate, 1.0);
+
+        let energy = analyze_pcm_mono(
+            sample_rate,
+            &pcm,
+            &GenerateOptions {
+                detection_mode: DetectionMode::SpectralEnergy,
+                ..GenerateOptions::default()
+            },
+        );
+        let flux = analyze_pcm_mono(
+            sample_rate,
+            &pcm,
+            &GenerateOptions {
+                detection_mode: DetectionMode::SpectralFlux,
+                ..GenerateOptions::default()
+            },
+        );
+
+        let energy_sum: f64 = energy.frames.iter().flatten().sum();
+        let flux_sum: f64 = flux.frames.iter().flatten().sum();
+        assert!(flux_sum < energy_sum);
+    }
+
+    #[test]
+    fn global_peak_normalization_caps_all_channels_uniformly() {
+        let sample_rate = 44_100;
+        let mut pcm = Vec::new();
+        pcm.extend(sine(100.0, sample_rate, 0.3));
+        pcm.extend(sine(3000.0, sample_rate, 0.3));
+
+        let per_channel = analyze_pcm_mono(
+            sample_rate,
+            &pcm,
+            &GenerateOptions {
+                normalize_mode: NormalizeMode::PerChannelPeak,
+                ..GenerateOptions::default()
+            },
+        );
+        let global = analyze_pcm_mono(
+            sample_rate,
+            &pcm,
+            &GenerateOptions {
+                normalize_mode: NormalizeMode::GlobalPeak,
+                ..GenerateOptions::default()
+            },
+        );
+
+        let max_per_channel = |frames: &Vec<Vec<f64>>, idx: usize| {
+            frames.iter().map(|f| f[idx]).fold(0.0f64, f64::max)
+        };
+        let max_overall = |frames: &Vec<Vec<f64>>| {
+            frames
+                .iter()
+                .flat_map(|f| f.iter().copied())
+                .fold(0.0f64, f64::max)
+        };
+        assert!((max_per_channel(&per_channel.frames, 0) - 1.0).abs() < 1e-9);
+        assert!((max_per_channel(&per_channel.frames, 2) - 1.0).abs() < 1e-9);
+        assert!((max_overall(&global.frames) - 1.0).abs() < 1e-9);
+        assert!(
+            max_per_channel(&global.frames, 0) < 1.0 || max_per_channel(&global.frames, 2) < 1.0
+        );
+    }
+
+    #[test]
+    fn invalid_band_edges_fail_fast_before_io() {
+        let options = GenerateOptions {
+            band_edges_hz: vec![2000.0, 500.0],
+            ..GenerateOptions::default()
+        };
+        let res = analyze_path(Path::new("definitely-not-used.wav"), &options);
+        assert!(matches!(res, Err(MoodbarError::InvalidOptions(_))));
+    }
+
+    #[test]
     fn streaming_and_batch_pcm_paths_match() {
         let sample_rate = 44_100;
         let mut pcm = Vec::new();
@@ -776,6 +983,7 @@ mod tests {
                 vec![0.0, 1.0, 0.2],
                 vec![0.0, 0.1, 1.0],
             ],
+            diagnostics: AnalysisDiagnostics::default(),
         };
 
         let strip = render_svg(
@@ -826,6 +1034,7 @@ mod tests {
         let analysis = MoodbarAnalysis {
             channel_count: 3,
             frames,
+            diagnostics: AnalysisDiagnostics::default(),
         };
         let svg = render_svg(
             &analysis,
@@ -837,5 +1046,28 @@ mod tests {
         let stop_count = svg.matches("<stop ").count();
         assert!(stop_count <= 256);
         assert!(stop_count > 1);
+    }
+
+    #[test]
+    fn png_render_produces_valid_png_signature() {
+        let analysis = MoodbarAnalysis {
+            channel_count: 3,
+            frames: vec![
+                vec![1.0, 0.0, 0.0],
+                vec![0.0, 1.0, 0.0],
+                vec![0.0, 0.0, 1.0],
+            ],
+            diagnostics: AnalysisDiagnostics::default(),
+        };
+        let png = render_png(
+            &analysis,
+            &PngOptions {
+                width: 64,
+                height: 24,
+                shape: SvgShape::Waveform,
+            },
+        )
+        .expect("render png");
+        assert!(png.starts_with(b"\x89PNG\r\n\x1a\n"));
     }
 }

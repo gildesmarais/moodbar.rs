@@ -11,6 +11,7 @@ num-complex.workspace = true
 rustfft.workspace = true
 symphonia.workspace = true
 thiserror.workspace = true
+image.workspace = true
 
 [dev-dependencies]
 anyhow.workspace = true
