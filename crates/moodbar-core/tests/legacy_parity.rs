@@ -2,7 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
-use moodbar_core::{generate_moodbar_from_path, GenerateOptions, NormalizeMode};
+use moodbar_core::{generate_moodbar_from_path, DetectionMode, GenerateOptions, NormalizeMode};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -128,6 +128,9 @@ fn run_fixture(manifest_path: &Path) -> Result<()> {
         mid_cut_hz: fixture.options.mid_cut_hz,
         normalize_mode: fixture.options.normalize_mode.to_core(),
         deterministic_floor: fixture.options.deterministic_floor,
+        detection_mode: DetectionMode::SpectralEnergy,
+        frames_per_color: 1,
+        band_edges_hz: vec![fixture.options.low_cut_hz, fixture.options.mid_cut_hz],
     };
 
     let actual = generate_moodbar_from_path(&input_audio, &options)

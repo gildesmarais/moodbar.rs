@@ -20,11 +20,12 @@
 - `moodbar-core`
   - Decode audio to mono PCM (`f32`) with Symphonia.
   - Analyze windowed FFT frames with RustFFT.
-  - Map low/mid/high bands to RGB and normalize into raw moodbar bytes.
-  - Expose stable API that can support future output variants.
+  - Separate analysis output (`MoodbarAnalysis`) from renderers.
+  - Support configurable band edges (3+ colors), detection modes, and frame aggregation for coarse color buckets.
+  - Expose renderers for raw RGB bytes and SVG (strip + waveform shapes).
 - `moodbar-cli`
   - Commands: `generate`, `batch`, `inspect`.
-  - Shared options for FFT size and band cutoffs.
+  - Shared options for FFT size, detection mode, band edges, aggregation density, and output format (`raw_rgb_v1`, `svg`).
   - Optional JSON output for automation.
 
 ## Risks

@@ -9,12 +9,30 @@ This workspace hosts the Rust rewrite of Moodbar with a CLI-first, cross-platfor
 ## Current CLI (modern contract)
 ```bash
 cargo run -p moodbar -- generate -i input.ogg -o output.mood
+cargo run -p moodbar -- generate -i input.ogg -o output.svg --format svg --svg-shape waveform
 cargo run -p moodbar -- batch -i ./music -o ./moods
 cargo run -p moodbar -- inspect -i output.mood
 ```
 
 Use `--json` for machine-readable results.
 Use `--normalize-mode` and `--deterministic-floor` when tuning deterministic output behavior.
+Use `--detection-mode spectral-flux`, `--frames-per-color 1000`, and `--band-edges-hz 200,600,1200,2400` for algorithm variants.
+
+## TDD Workflow
+Red/Green/Refactor loop:
+1. Write or update a test first (unit test in `crates/*/src/*.rs` or integration test in `crates/*/tests/`).
+2. Run the smallest target that should fail, then implement the fix.
+3. Refactor with tests green, then run full gate.
+
+Common commands:
+```bash
+make test-core            # fastest loop for core logic
+make parity               # legacy compatibility check
+make test                 # whole workspace
+make check                # fmt + clippy + tests
+make tdd-core             # auto-rerun core tests on file changes (if cargo-watch installed)
+scripts/tdd-loop.sh -p moodbar-core
+```
 
 ## Engineering Constraints from Discovery
 - v1 scope: single-file + batch generation.
@@ -29,5 +47,5 @@ Use `--normalize-mode` and `--deterministic-floor` when tuning deterministic out
 2. Run parity tests:
    `cargo test -p moodbar-core --test legacy_parity`
 3. Run local quality gate:
-   `cargo fmt --all -- --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`
+   `make check`
 4. Promote Linux CI workflow from `rust/.github/workflows/linux-rust-ci.yml` to repo root `.github/workflows/` when Rust becomes the top-level CI target.

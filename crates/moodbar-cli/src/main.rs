@@ -4,7 +4,10 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand, ValueEnum};
-use moodbar_core::{generate_moodbar_from_path, GenerateOptions, NormalizeMode};
+use moodbar_core::{
+    analysis_to_raw_rgb_bytes, analyze_path, render_svg, DetectionMode, GenerateOptions,
+    NormalizeMode, SvgOptions, SvgShape,
+};
 use serde::Serialize;
 use walkdir::WalkDir;
 
@@ -37,10 +40,22 @@ enum Command {
         normalize_mode: NormalizeModeArg,
         #[arg(long, default_value_t = 1e-12)]
         deterministic_floor: f64,
+        #[arg(long, value_enum, default_value_t = DetectionModeArg::SpectralEnergy)]
+        detection_mode: DetectionModeArg,
+        #[arg(long, default_value_t = 1)]
+        frames_per_color: usize,
+        #[arg(long, value_delimiter = ',')]
+        band_edges_hz: Vec<f32>,
         #[arg(long)]
         force: bool,
         #[arg(long, value_enum, default_value_t = OutputFormat::RawRgbV1)]
         format: OutputFormat,
+        #[arg(long, value_enum, default_value_t = SvgShapeArg::Strip)]
+        svg_shape: SvgShapeArg,
+        #[arg(long, default_value_t = 1200)]
+        svg_width: u32,
+        #[arg(long, default_value_t = 96)]
+        svg_height: u32,
     },
 
     /// Recursively generate moodbar files from a directory.
@@ -59,10 +74,24 @@ enum Command {
         normalize_mode: NormalizeModeArg,
         #[arg(long, default_value_t = 1e-12)]
         deterministic_floor: f64,
+        #[arg(long, value_enum, default_value_t = DetectionModeArg::SpectralEnergy)]
+        detection_mode: DetectionModeArg,
+        #[arg(long, default_value_t = 1)]
+        frames_per_color: usize,
+        #[arg(long, value_delimiter = ',')]
+        band_edges_hz: Vec<f32>,
         #[arg(long, default_value = "mood")]
         output_ext: String,
         #[arg(long)]
         force: bool,
+        #[arg(long, value_enum, default_value_t = OutputFormat::RawRgbV1)]
+        format: OutputFormat,
+        #[arg(long, value_enum, default_value_t = SvgShapeArg::Strip)]
+        svg_shape: SvgShapeArg,
+        #[arg(long, default_value_t = 1200)]
+        svg_width: u32,
+        #[arg(long, default_value_t = 96)]
+        svg_height: u32,
     },
 
     /// Print basic information about an existing moodbar file.
@@ -75,6 +104,7 @@ enum Command {
 #[derive(Copy, Clone, Debug, Eq, PartialEq, ValueEnum)]
 enum OutputFormat {
     RawRgbV1,
+    Svg,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, ValueEnum)]
@@ -92,12 +122,44 @@ impl NormalizeModeArg {
     }
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq, ValueEnum)]
+enum DetectionModeArg {
+    SpectralEnergy,
+    SpectralFlux,
+}
+
+impl DetectionModeArg {
+    fn into_core(self) -> DetectionMode {
+        match self {
+            DetectionModeArg::SpectralEnergy => DetectionMode::SpectralEnergy,
+            DetectionModeArg::SpectralFlux => DetectionMode::SpectralFlux,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, ValueEnum)]
+enum SvgShapeArg {
+    Strip,
+    Waveform,
+}
+
+impl SvgShapeArg {
+    fn into_core(self) -> SvgShape {
+        match self {
+            SvgShapeArg::Strip => SvgShape::Strip,
+            SvgShapeArg::Waveform => SvgShape::Waveform,
+        }
+    }
+}
+
 #[derive(Serialize)]
 struct GenerateResult {
     input: String,
     output: String,
     bytes_written: usize,
     frames: usize,
+    channels: usize,
+    format: String,
 }
 
 #[derive(Serialize)]
@@ -136,32 +198,62 @@ fn run(cli: Cli) -> Result<i32> {
             mid_cut_hz,
             normalize_mode,
             deterministic_floor,
+            detection_mode,
+            frames_per_color,
+            band_edges_hz,
             force,
             format,
+            svg_shape,
+            svg_width,
+            svg_height,
         } => {
-            let _ = format;
             ensure_can_write(&output, force)?;
 
-            let options = GenerateOptions {
+            let options = build_options(
                 fft_size,
                 low_cut_hz,
                 mid_cut_hz,
-                normalize_mode: normalize_mode.into_core(),
+                normalize_mode,
                 deterministic_floor,
-            };
-            let bytes = generate_moodbar_from_path(&input, &options)
+                detection_mode,
+                frames_per_color,
+                band_edges_hz,
+            );
+            let analysis = analyze_path(&input, &options)
                 .with_context(|| format!("failed to generate moodbar for {}", input.display()))?;
 
-            if let Some(parent) = output.parent() {
-                fs::create_dir_all(parent)?;
-            }
-            fs::write(&output, &bytes)?;
+            let bytes_written = match format {
+                OutputFormat::RawRgbV1 => {
+                    let bytes = analysis_to_raw_rgb_bytes(&analysis);
+                    write_bytes(&output, &bytes)?;
+                    bytes.len()
+                }
+                OutputFormat::Svg => {
+                    let svg = render_svg(
+                        &analysis,
+                        &SvgOptions {
+                            width: svg_width,
+                            height: svg_height,
+                            shape: svg_shape.into_core(),
+                            ..SvgOptions::default()
+                        },
+                    );
+                    write_text(&output, &svg)?;
+                    svg.len()
+                }
+            };
 
             let result = GenerateResult {
                 input: input.display().to_string(),
                 output: output.display().to_string(),
-                bytes_written: bytes.len(),
-                frames: bytes.len() / 3,
+                bytes_written,
+                frames: analysis.frames.len(),
+                channels: analysis.channel_count,
+                format: match format {
+                    OutputFormat::RawRgbV1 => "raw_rgb_v1",
+                    OutputFormat::Svg => "svg",
+                }
+                .to_string(),
             };
             print_result(cli.json, &result)?;
             Ok(0)
@@ -174,16 +266,26 @@ fn run(cli: Cli) -> Result<i32> {
             mid_cut_hz,
             normalize_mode,
             deterministic_floor,
+            detection_mode,
+            frames_per_color,
+            band_edges_hz,
             output_ext,
             force,
+            format,
+            svg_shape,
+            svg_width,
+            svg_height,
         } => {
-            let options = GenerateOptions {
+            let options = build_options(
                 fft_size,
                 low_cut_hz,
                 mid_cut_hz,
-                normalize_mode: normalize_mode.into_core(),
+                normalize_mode,
                 deterministic_floor,
-            };
+                detection_mode,
+                frames_per_color,
+                band_edges_hz,
+            );
 
             let mut processed = 0usize;
             let mut succeeded = 0usize;
@@ -207,12 +309,27 @@ fn run(cli: Cli) -> Result<i32> {
 
                 let op = || -> Result<()> {
                     ensure_can_write(&dst, force)?;
-                    let bytes = generate_moodbar_from_path(src, &options)
+                    let analysis = analyze_path(src, &options)
                         .with_context(|| format!("decode/generate failed for {}", src.display()))?;
-                    if let Some(parent) = dst.parent() {
-                        fs::create_dir_all(parent)?;
+
+                    match format {
+                        OutputFormat::RawRgbV1 => {
+                            let bytes = analysis_to_raw_rgb_bytes(&analysis);
+                            write_bytes(&dst, &bytes)?;
+                        }
+                        OutputFormat::Svg => {
+                            let svg = render_svg(
+                                &analysis,
+                                &SvgOptions {
+                                    width: svg_width,
+                                    height: svg_height,
+                                    shape: svg_shape.into_core(),
+                                    ..SvgOptions::default()
+                                },
+                            );
+                            write_text(&dst, &svg)?;
+                        }
                     }
-                    fs::write(&dst, &bytes)?;
                     Ok(())
                 };
 
@@ -254,10 +371,49 @@ fn run(cli: Cli) -> Result<i32> {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
+fn build_options(
+    fft_size: usize,
+    low_cut_hz: f32,
+    mid_cut_hz: f32,
+    normalize_mode: NormalizeModeArg,
+    deterministic_floor: f64,
+    detection_mode: DetectionModeArg,
+    frames_per_color: usize,
+    band_edges_hz: Vec<f32>,
+) -> GenerateOptions {
+    GenerateOptions {
+        fft_size,
+        low_cut_hz,
+        mid_cut_hz,
+        normalize_mode: normalize_mode.into_core(),
+        deterministic_floor,
+        detection_mode: detection_mode.into_core(),
+        frames_per_color,
+        band_edges_hz,
+    }
+}
+
 fn ensure_can_write(path: &Path, force: bool) -> Result<()> {
     if path.exists() && !force {
         anyhow::bail!("{} exists; pass --force to overwrite", path.display());
     }
+    Ok(())
+}
+
+fn write_bytes(path: &Path, bytes: &[u8]) -> Result<()> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(path, bytes)?;
+    Ok(())
+}
+
+fn write_text(path: &Path, text: &str) -> Result<()> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(path, text.as_bytes())?;
     Ok(())
 }
 
