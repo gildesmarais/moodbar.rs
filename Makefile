@@ -1,10 +1,12 @@
-.PHONY: help test test-core test-cli parity fmt lint check tdd tdd-core ci
+.PHONY: help test test-core test-cli parity fmt lint check tdd tdd-core ci wasm wasm-docs
 
 help:
 	@echo "Targets:"
 	@echo "  make test       - run all tests"
 	@echo "  make test-core  - run moodbar-core tests"
 	@echo "  make parity     - run legacy parity test"
+	@echo "  make wasm       - build the wasm package (requires wasm-pack)"
+	@echo "  make wasm-docs  - build wasm assets for GitHub Pages under docs/assets/"
 	@echo "  make fmt        - check formatting"
 	@echo "  make lint       - run clippy with warnings as errors"
 	@echo "  make check      - fmt + lint + test"
@@ -33,6 +35,12 @@ lint:
 check: fmt lint test
 
 ci: check
+
+wasm:
+	wasm-pack build crates/moodbar-wasm --release --target bundler --out-dir ../../packages/moodbar-wasm
+
+wasm-docs:
+	wasm-pack build crates/moodbar-wasm --release --target web --out-dir ../../docs/assets/moodbar-wasm
 
 # TDD loop: automatically reruns tests when files change if cargo-watch is installed.
 tdd:

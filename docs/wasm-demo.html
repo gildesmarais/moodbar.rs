@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Moodbar WASM Demo</title>
+    <link rel="stylesheet" href="./assets/ui.css" />
+  </head>
+  <body class="page-demo">
+    <main>
+      <span class="topline">MOODBAR.RS / WASM DEMO</span>
+      <h1>Upload audio. Render moodbar. Save PNG.</h1>
+      <p class="lede">
+        Turn a track into a moodbar directly in your browser. Built for audio
+        developers and open-source contributors exploring a modern moodbar
+        comeback.
+      </p>
+
+      <div class="meta-links">
+        <a href="./index.html">Back to homepage</a> ·
+        <a href="https://github.com/gildesmarais/moodbar.rs">View source</a>
+      </div>
+
+      <section class="panel">
+        <div class="panel-grid">
+          <div class="subpanel">
+            <label for="audioFile">Audio file</label>
+            <input id="audioFile" type="file" accept="audio/*" />
+            <div id="dropZone" aria-label="Drop audio files here">
+              Drop audio here to replace file selection.
+            </div>
+            <div id="selectedFile"></div>
+          </div>
+
+          <div class="subpanel">
+            <label for="shape">Shape</label>
+            <select id="shape">
+              <option value="Strip">Strip</option>
+              <option value="Waveform">Waveform</option>
+            </select>
+
+            <details>
+              <summary>Advanced size options</summary>
+              <div class="advanced-grid">
+                <div>
+                  <label for="width">Width</label>
+                  <input id="width" type="number" min="64" value="900" />
+                </div>
+                <div>
+                  <label for="height">Height</label>
+                  <input id="height" type="number" min="24" value="96" />
+                </div>
+              </div>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div id="status"></div>
+        <div id="output"></div>
+      </section>
+
+      <section class="section">
+        <div class="action-buttons">
+          <button id="runButton" class="btn primary">Analyze + Render</button>
+          <button id="savePngButton" class="btn" disabled>Save PNG</button>
+        </div>
+      </section>
+    </main>
+
+    <script type="module">
+      const statusEl = document.getElementById("status");
+      const outputEl = document.getElementById("output");
+      const runButton = document.getElementById("runButton");
+      const savePngButton = document.getElementById("savePngButton");
+      const audioFileInput = document.getElementById("audioFile");
+      const dropZone = document.getElementById("dropZone");
+      const selectedFileEl = document.getElementById("selectedFile");
+      const widthInput = document.getElementById("width");
+      const heightInput = document.getElementById("height");
+      const shapeSelect = document.getElementById("shape");
+
+      let initialized = false;
+      let wasmInit;
+      let wasmAnalyze;
+      let wasmSvg;
+      let wasmPng;
+      let selectedFile;
+      let latestAnalysis;
+      const TARGET_SAMPLE_RATE = 11_025;
+
+      function setStatus(message, isError = false) {
+        statusEl.textContent = message;
+        statusEl.style.color = isError ? "#ff5f57" : "#ff8800";
+      }
+
+      function readWidth() {
+        return Number(widthInput.value) || 900;
+      }
+
+      function readHeight() {
+        return Number(heightInput.value) || 96;
+      }
+
+      function setSelectedFile(file) {
+        selectedFile = file;
+        selectedFileEl.textContent = file ? `Selected: ${file.name}` : "";
+      }
+
+      function getSelectedFile() {
+        return selectedFile || audioFileInput.files?.[0] || null;
+      }
+
+      function wireDropZone() {
+        const stop = (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        };
+
+        ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
+          dropZone.addEventListener(eventName, stop);
+        });
+
+        ["dragenter", "dragover"].forEach((eventName) => {
+          dropZone.addEventListener(eventName, () => {
+            dropZone.classList.add("active");
+          });
+        });
+
+        ["dragleave", "drop"].forEach((eventName) => {
+          dropZone.addEventListener(eventName, () => {
+            dropZone.classList.remove("active");
+          });
+        });
+
+        dropZone.addEventListener("drop", (event) => {
+          const file = event.dataTransfer?.files?.[0];
+          if (!file) {
+            return;
+          }
+
+          setSelectedFile(file);
+
+          try {
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            audioFileInput.files = dt.files;
+          } catch {
+            // Ignore; selectedFile fallback still works.
+          }
+        });
+      }
+
+      function releaseAnalysis() {
+        if (latestAnalysis && typeof latestAnalysis.free === "function") {
+          latestAnalysis.free();
+        }
+        latestAnalysis = null;
+      }
+
+      async function ensureWasmInit() {
+        if (initialized) {
+          return;
+        }
+        setStatus("Loading WASM module...");
+        const candidates = [
+          "../packages/moodbar-wasm/moodbar_wasm.js",
+          "./assets/moodbar-wasm/moodbar_wasm.js",
+        ];
+
+        let lastError;
+        for (const url of candidates) {
+          try {
+            const mod = await import(url);
+            wasmInit = mod.default;
+            wasmAnalyze = mod.analyze;
+            wasmSvg = mod.svg;
+            wasmPng = mod.png;
+            break;
+          } catch (error) {
+            lastError = error;
+          }
+        }
+
+        if (!wasmInit || !wasmAnalyze || !wasmSvg || !wasmPng) {
+          throw new Error(
+            `WASM module not found. Build locally with make wasm or publish docs/assets/moodbar-wasm. ${lastError ? `Last error: ${String(lastError)}` : ""}`,
+          );
+        }
+
+        await wasmInit();
+        initialized = true;
+      }
+
+      async function decodeMonoPcm(file) {
+        const arrayBuffer = await file.arrayBuffer();
+        const audioCtx = new AudioContext();
+        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+        await audioCtx.close();
+
+        const offlineLength = Math.max(
+          1,
+          Math.floor(audioBuffer.duration * TARGET_SAMPLE_RATE),
+        );
+        const offline = new OfflineAudioContext(
+          1,
+          offlineLength,
+          TARGET_SAMPLE_RATE,
+        );
+        const source = offline.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(offline.destination);
+        source.start(0);
+
+        const monoBuffer = await offline.startRendering();
+        const pcm = monoBuffer.getChannelData(0).slice();
+
+        return {
+          sampleRate: monoBuffer.sampleRate,
+          pcm,
+          duration: audioBuffer.duration,
+        };
+      }
+
+      async function runDemo() {
+        const file = getSelectedFile();
+        if (!file) {
+          setStatus("Choose or drop an audio file first.", true);
+          return;
+        }
+
+        runButton.disabled = true;
+        savePngButton.disabled = true;
+        outputEl.innerHTML = "";
+
+        try {
+          await ensureWasmInit();
+          setStatus("Decoding audio...");
+          const { sampleRate, pcm, duration } = await decodeMonoPcm(file);
+
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+
+          setStatus("Analyzing and rendering...");
+          releaseAnalysis();
+          const analysis = wasmAnalyze(pcm, sampleRate);
+          latestAnalysis = analysis;
+
+          const svgMarkup = wasmSvg(analysis, {
+            width: readWidth(),
+            height: readHeight(),
+            shape: shapeSelect.value,
+            background: "transparent",
+          });
+
+          outputEl.innerHTML = svgMarkup;
+          setStatus(
+            `Done: ${analysis.frame_count()} frames, ${analysis.channel_count()} channels. (${duration.toFixed(1)}s at ${TARGET_SAMPLE_RATE} Hz mono)`,
+          );
+          savePngButton.disabled = false;
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          setStatus(`Failed: ${message}`, true);
+          releaseAnalysis();
+        } finally {
+          runButton.disabled = false;
+        }
+      }
+
+      function downloadPng() {
+        if (!latestAnalysis) {
+          setStatus("Analyze a file first, then save PNG.", true);
+          return;
+        }
+
+        try {
+          const pngBytes = wasmPng(latestAnalysis, readWidth(), readHeight());
+          const blob = new Blob([pngBytes], { type: "image/png" });
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          const stem = (getSelectedFile()?.name || "moodbar").replace(
+            /\.[^/.]+$/,
+            "",
+          );
+          link.download = `${stem}.png`;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          URL.revokeObjectURL(link.href);
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          setStatus(`PNG export failed: ${message}`, true);
+        }
+      }
+
+      audioFileInput.addEventListener("change", () => {
+        setSelectedFile(audioFileInput.files?.[0] || null);
+      });
+
+      runButton.addEventListener("click", () => {
+        void runDemo();
+      });
+
+      savePngButton.addEventListener("click", downloadPng);
+
+      wireDropZone();
+      setStatus("Ready.");
+    </script>
+  </body>
+</html>

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Moodbar.rs | Cross-Platform Music Visualization Toolkit</title>
+    <meta
+      name="description"
+      content="Moodbar.rs is the cross-platform moodbar comeback for audio developers and OSS contributors."
+    />
+    <link rel="stylesheet" href="./assets/ui.css" />
+  </head>
+  <body class="page-home">
+    <main>
+      <span class="topline">MOODBAR.RS / CROSS-PLATFORM COMEBACK</span>
+      <h1>Moodbars are back.</h1>
+      <p class="lede">
+        Built for audio developers and OSS contributors. One Rust core. CLI +
+        Web now. Native bindings next.
+      </p>
+
+      <div class="cta">
+        <a class="btn primary" href="./wasm-demo.html">Try Browser Demo</a>
+        <a class="btn" href="https://github.com/gildesmarais/moodbar.rs"
+          >View Source</a
+        >
+      </div>
+
+      <section class="bullets">
+        <ul>
+          <li>Legacy-compatible raw moodbar output.</li>
+          <li>Modern SVG and PNG rendering paths.</li>
+          <li>WASM bindings for browser-first workflows.</li>
+          <li>Amarok-era idea, portable and hackable.</li>
+        </ul>
+      </section>
+
+      <section class="section history">
+        <h2>Historical Context</h2>
+        <p>
+          Moodbars started as color timelines for tracks and playlists in the
+          Amarok ecosystem. If you are new to it, these references explain the
+          original idea:
+        </p>
+        <ul>
+          <li>
+            <a href="https://en.wikipedia.org/wiki/Moodbar"
+              >Wikipedia: Moodbar</a
+            >
+          </li>
+          <li>
+            <a href="https://userbase.kde.org/Amarok/Manual/Various/Moodbar"
+              >KDE Amarok manual: Moodbar</a
+            >
+          </li>
+        </ul>
+      </section>
+
+      <section class="section example">
+        <h2>What A Moodbar Looks Like</h2>
+        <figure>
+          <img
+            src="./assets/out.png"
+            alt="Example moodbar strip rendered as a horizontal color timeline"
+          />
+          <figcaption>Example moodbar output from this project.</figcaption>
+        </figure>
+      </section>
+
+      <section class="section">
+        <pre><code># CLI
+cargo run -p moodbar -- generate -i input.ogg -o output.svg --format svg
+
+# Browser demo
+make wasm-docs
+python3 -m http.server
+# open http://localhost:8000/docs/wasm-demo.html</code></pre>
+      </section>
+
+      <footer>
+        This site is served from <code>docs/</code> via GitHub Pages.
+      </footer>
+    </main>
+  </body>
+</html>
