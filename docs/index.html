@@ -6,7 +6,7 @@
     <title>Moodbar.rs | Cross-Platform Music Visualization Toolkit</title>
     <meta
       name="description"
-      content="Moodbar.rs is a cross-platform music visualization toolkit in Rust with CLI, core library, and WASM browser demo."
+      content="Moodbar.rs is the cross-platform moodbar comeback for audio developers and OSS contributors."
     />
     <style>
       :root {
@@ -35,7 +35,7 @@
       }
 
       main {
-        max-width: 1040px;
+        max-width: 980px;
         margin: 0 auto;
         padding: 1.5rem 1rem 4rem;
       }
@@ -50,23 +50,22 @@
       }
 
       h1 {
-        font-size: clamp(2rem, 4.8vw, 4rem);
-        line-height: 1.05;
-        margin: 1rem 0 1rem;
-        max-width: 16ch;
+        font-size: clamp(2rem, 5vw, 4rem);
+        line-height: 1.03;
+        margin: 1rem 0 0.7rem;
+        max-width: 14ch;
       }
 
       .lede {
         color: var(--muted);
-        max-width: 70ch;
-        font-size: 1.08rem;
+        max-width: 55ch;
       }
 
       .cta {
         display: flex;
         flex-wrap: wrap;
         gap: 0.7rem;
-        margin: 1.4rem 0 1.6rem;
+        margin: 1.3rem 0 1.4rem;
       }
 
       .btn {
@@ -85,33 +84,23 @@
         font-weight: 700;
       }
 
-      .grid {
-        display: grid;
-        gap: 0.9rem;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        margin-top: 1rem;
+      .bullets {
+        border-top: 1px solid var(--line);
+        margin-top: 1.2rem;
+        padding-top: 1rem;
       }
 
-      .card {
-        border: 1px solid var(--line);
-        padding: 1rem;
-      }
-
-      .card h2 {
-        margin-top: 0;
-        font-size: 1rem;
-        color: var(--accent);
+      .bullets ul {
+        margin: 0;
+        padding-left: 1rem;
+        color: var(--muted);
+        line-height: 1.6;
       }
 
       .section {
-        margin-top: 2rem;
+        margin-top: 1.4rem;
         border-top: 1px solid var(--line);
-        padding-top: 1.25rem;
-      }
-
-      .section h3 {
-        margin: 0 0 0.55rem;
-        font-size: 1.1rem;
+        padding-top: 1rem;
       }
 
       pre {
@@ -125,19 +114,8 @@
         font-size: 0.9rem;
       }
 
-      ul {
-        margin: 0.2rem 0 0;
-        color: var(--muted);
-      }
-
-      .nostalgia {
-        color: var(--accent);
-        font-family: "IBM Plex Mono", monospace;
-        margin-top: 1rem;
-      }
-
       footer {
-        margin-top: 2rem;
+        margin-top: 1.7rem;
         padding-top: 1rem;
         border-top: 1px solid var(--line);
         color: var(--muted);
@@ -148,87 +126,38 @@
   <body>
     <main>
       <span class="topline">MOODBAR.RS / CROSS-PLATFORM COMEBACK</span>
-      <h1>Music visualization toolkit for the moodbar format.</h1>
+      <h1>Moodbars are back.</h1>
       <p class="lede">
-        Moodbar is back with a cross-platform approach: one Rust analysis core,
-        multiple output targets (CLI today, WASM now, native bindings next). The
-        original moodbar idea from the Amarok era returns as a modern,
-        composable toolkit.
+        Built for audio developers and OSS contributors. One Rust core. CLI +
+        Web now. Native bindings next.
       </p>
 
       <div class="cta">
         <a class="btn primary" href="./wasm-demo.html">Try Browser Demo</a>
-        <a class="btn" href="https://github.com/gildesmarais/moodbar.rs"
-          >View Source</a
-        >
+        <a class="btn" href="https://github.com/gildesmarais/moodbar.rs">View Source</a>
         <a class="btn" href="./plans/wasm-and-native-plan.md">Read WASM Plan</a>
       </div>
 
-      <div class="grid">
-        <article class="card">
-          <h2>Core Promise</h2>
-          <p>
-            Decode and analyze once. Render everywhere: raw RGB bytes, SVG, PNG,
-            and JS bindings.
-          </p>
-        </article>
-        <article class="card">
-          <h2>Audience</h2>
-          <p>
-            Audio developers and OSS contributors building visual music tools
-            across platforms.
-          </p>
-        </article>
-        <article class="card">
-          <h2>Compatibility</h2>
-          <p>
-            Preserves legacy raw moodbar output while extending into modern
-            rendering and APIs.
-          </p>
-        </article>
-      </div>
-
-      <section class="section">
-        <h3>Quick Start (CLI)</h3>
-        <pre><code>cargo run -p moodbar -- generate -i input.ogg -o output.svg --format svg</code></pre>
-      </section>
-
-      <section class="section">
-        <h3>Quick Start (WASM Demo)</h3>
-        <pre><code>make wasm
-python3 -m http.server
-# open http://localhost:8000/docs/wasm-demo.html</code></pre>
-        <pre><code># for GitHub Pages deployment assets
-make wasm-docs</code></pre>
-      </section>
-
-      <section class="section">
-        <h3>Architecture</h3>
+      <section class="bullets">
         <ul>
-          <li>
-            <code>crates/moodbar-core</code>: DSP analysis, normalization,
-            rendering primitives.
-          </li>
-          <li>
-            <code>crates/moodbar-cli</code>: automation-friendly commands for
-            generate/batch/inspect.
-          </li>
-          <li>
-            <code>crates/moodbar-wasm</code>: browser/Node bindings via
-            <code>wasm-bindgen</code>.
-          </li>
+          <li>Legacy-compatible raw moodbar output.</li>
+          <li>Modern SVG and PNG rendering paths.</li>
+          <li>WASM bindings for browser-first workflows.</li>
+          <li>Amarok-era idea, portable and hackable.</li>
         </ul>
       </section>
 
-      <p class="nostalgia">
-        Back when Amarok painted songs as color timelines, moodbars felt like
-        musical fingerprints. This project keeps that spirit, but makes it
-        portable and hackable.
-      </p>
+      <section class="section">
+        <pre><code># CLI
+cargo run -p moodbar -- generate -i input.ogg -o output.svg --format svg
 
-      <footer>
-        This site is served from <code>docs/</code> via GitHub Pages.
-      </footer>
+# Browser demo
+make wasm-docs
+python3 -m http.server
+# open http://localhost:8000/docs/wasm-demo.html</code></pre>
+      </section>
+
+      <footer>This site is served from <code>docs/</code> via GitHub Pages.</footer>
     </main>
   </body>
 </html>
