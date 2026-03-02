@@ -62,8 +62,16 @@ cargo run -p moodbar -- batch -i ./music -o ./moods --progress
 ## Repository Layout
 - `crates/moodbar-core`: decode, analysis, normalization, render primitives
 - `crates/moodbar-cli`: `generate`, `batch`, `inspect` commands
+- `crates/moodbar-wasm`: WebAssembly JS bindings for browser/Node usage
 - `tests/fixtures/legacy`: optional parity fixtures
 - `scripts/`: helper scripts
+
+## WASM Demo (Browser)
+```bash
+make wasm
+python3 -m http.server
+# open http://localhost:8000/docs/wasm-demo.html
+```
 
 ## CI and Releases
 - CI workflow: `.github/workflows/rust-ci.yml`

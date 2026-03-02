@@ -6,12 +6,17 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 
+[features]
+default = ["decode", "png"]
+decode = ["dep:symphonia"]
+png = ["dep:image"]
+
 [dependencies]
 num-complex.workspace = true
 rustfft.workspace = true
-symphonia.workspace = true
 thiserror.workspace = true
-image.workspace = true
+symphonia = { workspace = true, optional = true }
+image = { workspace = true, optional = true }
 
 [dev-dependencies]
 anyhow.workspace = true

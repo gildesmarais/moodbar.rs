@@ -1,15 +1,25 @@
+#[cfg(feature = "decode")]
 use std::fs::File;
+#[cfg(feature = "decode")]
 use std::path::Path;
 
+#[cfg(feature = "png")]
 use image::{ImageBuffer, ImageEncoder, Rgba};
 use num_complex::Complex32;
 use rustfft::FftPlanner;
+#[cfg(feature = "decode")]
 use symphonia::core::audio::SampleBuffer;
+#[cfg(feature = "decode")]
 use symphonia::core::codecs::DecoderOptions;
+#[cfg(feature = "decode")]
 use symphonia::core::errors::Error as SymphoniaError;
+#[cfg(feature = "decode")]
 use symphonia::core::formats::FormatOptions;
+#[cfg(feature = "decode")]
 use symphonia::core::io::MediaSourceStream;
+#[cfg(feature = "decode")]
 use symphonia::core::meta::MetadataOptions;
+#[cfg(feature = "decode")]
 use symphonia::core::probe::Hint;
 use thiserror::Error;
 
@@ -99,6 +109,7 @@ pub struct SvgOptions {
 }
 
 /// PNG rendering options.
+#[cfg(feature = "png")]
 #[derive(Debug, Clone)]
 pub struct PngOptions {
     pub width: u32,
@@ -106,6 +117,7 @@ pub struct PngOptions {
     pub shape: SvgShape,
 }
 
+#[cfg(feature = "png")]
 impl Default for PngOptions {
     fn default() -> Self {
         Self {
@@ -131,14 +143,19 @@ impl Default for SvgOptions {
 /// Errors returned by analysis/decoding APIs.
 #[derive(Debug, Error)]
 pub enum MoodbarError {
+    #[cfg(feature = "decode")]
     #[error("no playable audio track found")]
     NoAudioTrack,
+    #[cfg(feature = "decode")]
     #[error("decoded stream has no samples")]
     EmptyAudio,
+    #[cfg(feature = "decode")]
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
+    #[cfg(feature = "decode")]
     #[error("decode error: {0}")]
     Decode(#[from] SymphoniaError),
+    #[cfg(feature = "png")]
     #[error("image error: {0}")]
     Image(#[from] image::ImageError),
     #[error("invalid options: {0}")]
@@ -146,6 +163,7 @@ pub enum MoodbarError {
 }
 
 /// Decode and analyze media into normalized mood frames.
+#[cfg(feature = "decode")]
 pub fn analyze_path(
     path: &Path,
     options: &GenerateOptions,
@@ -246,6 +264,7 @@ pub fn analyze_path(
 }
 
 /// Convenience API that returns legacy raw RGB bytes.
+#[cfg(feature = "decode")]
 pub fn generate_moodbar_from_path(
     path: &Path,
     options: &GenerateOptions,
@@ -323,6 +342,7 @@ impl<'a> FrameAnalyzer<'a> {
         }
     }
 
+    #[cfg(feature = "decode")]
     fn is_empty(&self) -> bool {
         self.frame_count == 0 && self.pending.is_empty()
     }
@@ -511,6 +531,7 @@ pub fn render_svg(analysis: &MoodbarAnalysis, options: &SvgOptions) -> String {
 }
 
 /// Render analyzed frames as PNG bytes.
+#[cfg(feature = "png")]
 pub fn render_png(
     analysis: &MoodbarAnalysis,
     options: &PngOptions,
@@ -571,6 +592,7 @@ pub fn render_png(
     Ok(out)
 }
 
+#[cfg(feature = "decode")]
 fn validate_options(options: &GenerateOptions) -> Result<(), MoodbarError> {
     if !options.fft_size.is_power_of_two() || options.fft_size < 64 {
         return Err(MoodbarError::InvalidOptions(
@@ -938,6 +960,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "decode")]
     #[test]
     fn invalid_band_edges_fail_fast_before_io() {
         let options = GenerateOptions {
@@ -1048,6 +1071,7 @@ mod tests {
         assert!(stop_count > 1);
     }
 
+    #[cfg(feature = "png")]
     #[test]
     fn png_render_produces_valid_png_signature() {
         let analysis = MoodbarAnalysis {

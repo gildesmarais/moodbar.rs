@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Moodbar WASM Demo</title>
+    <style>
+      :root {
+        --bg: #000000;
+        --text: #ffffff;
+        --muted: #b7b7b7;
+        --line: #2a2a2a;
+        --accent: #ff8800;
+        --error: #ff5f57;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "IBM Plex Sans", "Helvetica Neue", sans-serif;
+      }
+
+      a {
+        color: var(--accent);
+      }
+
+      main {
+        max-width: 1040px;
+        margin: 0 auto;
+        padding: 1.5rem 1rem 4rem;
+      }
+
+      .topline {
+        border: 2px solid var(--accent);
+        padding: 0.5rem 0.7rem;
+        display: inline-block;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 0.8rem;
+        letter-spacing: 0.06em;
+      }
+
+      h1 {
+        font-size: clamp(2rem, 4.8vw, 4rem);
+        line-height: 1.05;
+        margin: 1rem 0 1rem;
+        max-width: 18ch;
+      }
+
+      .lede {
+        color: var(--muted);
+        max-width: 72ch;
+        font-size: 1.02rem;
+      }
+
+      .cta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.7rem;
+        margin: 1.2rem 0 1.2rem;
+      }
+
+      .btn {
+        border: 2px solid var(--accent);
+        color: var(--text);
+        background: transparent;
+        padding: 0.7rem 1rem;
+        text-decoration: none;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 0.9rem;
+        cursor: pointer;
+      }
+
+      .btn.primary {
+        background: var(--accent);
+        color: #000;
+        font-weight: 700;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        padding: 1rem;
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 0.75rem;
+        align-items: end;
+      }
+
+      label {
+        display: block;
+        font-size: 0.9rem;
+        color: var(--muted);
+        margin-bottom: 0.3rem;
+      }
+
+      input,
+      select {
+        width: 100%;
+        border: 1px solid var(--line);
+        padding: 0.6rem 0.65rem;
+        font: inherit;
+        color: var(--text);
+        background: #070707;
+      }
+
+      #runButton {
+        width: 100%;
+      }
+
+      #runButton:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .section {
+        margin-top: 1rem;
+        border-top: 1px solid var(--line);
+        padding-top: 1rem;
+      }
+
+      #status {
+        min-height: 1.4rem;
+        font-family: "IBM Plex Mono", monospace;
+        margin-bottom: 0.55rem;
+      }
+
+      #output {
+        min-height: 92px;
+        border: 1px dashed var(--line);
+        padding: 0.75rem;
+        background: #050505;
+      }
+
+      code {
+        background: #0e0e0e;
+        border: 1px solid var(--line);
+        padding: 0.1rem 0.3rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <span class="topline">MOODBAR.RS / WASM DEMO</span>
+      <h1>Analyze audio in-browser and render a moodbar SVG.</h1>
+      <p class="lede">
+        This demo uses the Rust analysis core compiled to WebAssembly. Pipeline:
+        decode with Web Audio API, mix to mono PCM, run <code>analyze()</code>,
+        render with <code>svg()</code>. Supported module locations:
+        <code>../packages/moodbar-wasm/</code> (local repo root) and
+        <code>./assets/moodbar-wasm/</code> (GitHub Pages). Audio is analyzed at
+        11,025 Hz mono for better responsiveness on large files.
+      </p>
+
+      <div class="cta">
+        <a class="btn" href="./index.html">Back To Homepage</a>
+        <a class="btn" href="https://github.com/gildesmarais/moodbar.rs"
+          >View Source</a
+        >
+      </div>
+
+      <section class="panel">
+        <div class="controls">
+          <div>
+            <label for="audioFile">Audio file</label>
+            <input id="audioFile" type="file" accept="audio/*" />
+          </div>
+          <div>
+            <label for="shape">Shape</label>
+            <select id="shape">
+              <option value="Strip">Strip</option>
+              <option value="Waveform">Waveform</option>
+            </select>
+          </div>
+          <div>
+            <label for="width">Width</label>
+            <input id="width" type="number" min="64" value="900" />
+          </div>
+          <div>
+            <label for="height">Height</label>
+            <input id="height" type="number" min="24" value="96" />
+          </div>
+          <div>
+            <label for="runButton">Render</label>
+            <button id="runButton" class="btn primary">Analyze + Render</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div id="status"></div>
+        <div id="output"></div>
+      </section>
+    </main>
+
+    <script type="module">
+      const statusEl = document.getElementById("status");
+      const outputEl = document.getElementById("output");
+      const runButton = document.getElementById("runButton");
+      const audioFileInput = document.getElementById("audioFile");
+      const widthInput = document.getElementById("width");
+      const heightInput = document.getElementById("height");
+      const shapeSelect = document.getElementById("shape");
+
+      let initialized = false;
+      let wasmInit;
+      let wasmAnalyze;
+      let wasmSvg;
+      const TARGET_SAMPLE_RATE = 11_025;
+
+      function setStatus(message, isError = false) {
+        statusEl.textContent = message;
+        statusEl.style.color = isError ? "#ff5f57" : "#ff8800";
+      }
+
+      async function ensureWasmInit() {
+        if (initialized) {
+          return;
+        }
+        setStatus("Loading WASM module...");
+        const candidates = [
+          "../packages/moodbar-wasm/moodbar_wasm.js",
+          "./assets/moodbar-wasm/moodbar_wasm.js",
+        ];
+
+        let lastError;
+        for (const url of candidates) {
+          try {
+            const mod = await import(url);
+            wasmInit = mod.default;
+            wasmAnalyze = mod.analyze;
+            wasmSvg = mod.svg;
+            break;
+          } catch (error) {
+            lastError = error;
+          }
+        }
+
+        if (!wasmInit || !wasmAnalyze || !wasmSvg) {
+          throw new Error(
+            `WASM module not found. Build locally with make wasm or publish docs/assets/moodbar-wasm. ${lastError ? `Last error: ${String(lastError)}` : ""}`,
+          );
+        }
+
+        await wasmInit();
+        initialized = true;
+      }
+
+      async function decodeMonoPcm(file) {
+        const arrayBuffer = await file.arrayBuffer();
+        const audioCtx = new AudioContext();
+        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+        await audioCtx.close();
+
+        const offlineLength = Math.max(
+          1,
+          Math.floor(audioBuffer.duration * TARGET_SAMPLE_RATE),
+        );
+        const offline = new OfflineAudioContext(
+          1,
+          offlineLength,
+          TARGET_SAMPLE_RATE,
+        );
+        const source = offline.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(offline.destination);
+        source.start(0);
+
+        const monoBuffer = await offline.startRendering();
+        const pcm = monoBuffer.getChannelData(0).slice();
+
+        return {
+          sampleRate: monoBuffer.sampleRate,
+          pcm,
+          duration: audioBuffer.duration,
+        };
+      }
+
+      async function runDemo() {
+        const file = audioFileInput.files?.[0];
+        if (!file) {
+          setStatus("Choose an audio file first.", true);
+          return;
+        }
+
+        runButton.disabled = true;
+        outputEl.innerHTML = "";
+
+        try {
+          await ensureWasmInit();
+          setStatus("Decoding audio...");
+          const { sampleRate, pcm, duration } = await decodeMonoPcm(file);
+
+          // Let the browser paint status before CPU-heavy WASM work.
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+
+          setStatus("Analyzing and rendering...");
+          const analysis = wasmAnalyze(pcm, sampleRate);
+
+          const svgMarkup = wasmSvg(analysis, {
+            width: Number(widthInput.value) || 900,
+            height: Number(heightInput.value) || 96,
+            shape: shapeSelect.value,
+            background: "transparent",
+          });
+
+          outputEl.innerHTML = svgMarkup;
+          setStatus(
+            `Done: ${analysis.frame_count()} frames, ${analysis.channel_count()} channels. (${duration.toFixed(1)}s at ${TARGET_SAMPLE_RATE} Hz mono)`,
+          );
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          setStatus(`Failed: ${message}`, true);
+        } finally {
+          runButton.disabled = false;
+        }
+      }
+
+      runButton.addEventListener("click", () => {
+        void runDemo();
+      });
+
+      setStatus("Ready.");
+    </script>
+  </body>
+</html>

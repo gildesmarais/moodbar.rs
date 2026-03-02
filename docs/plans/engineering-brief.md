@@ -1,6 +1,7 @@
 # Moodbar Engineering Brief
 
 ## Decision Summary
+
 - `S1A+S1B`: v1 supports single-file and batch generation.
 - `S2A`: target byte-compatible moodbar output where feasible.
 - `C1C`: modern CLI with subcommands.
@@ -17,6 +18,7 @@
 - `D3A`: Linux CI first.
 
 ## Proposed Architecture
+
 - `moodbar-core`
   - Decode audio to mono PCM (`f32`) with Symphonia.
   - Analyze windowed FFT frames with RustFFT.
@@ -29,10 +31,12 @@
   - Optional JSON output for automation.
 
 ## Risks
+
 - Exact parity with legacy C++/GStreamer may differ due to decoder and floating-point differences.
 - Determinism across platforms may require tighter numeric controls and golden fixtures.
 
 ## Milestones
+
 1. Parity baseline: fixture corpus + comparison harness.
 2. Determinism hardening: numeric normalization and tolerance policy.
 3. Performance pass: streaming decode path and memory optimizations.

@@ -18,7 +18,7 @@ Core design choices:
 - `crates/moodbar-cli/src/main.rs`: `generate`, `batch`, `inspect` commands.
 - `crates/moodbar-cli/tests/svg_golden.rs`: CLI integration/golden tests.
 - `scripts/`: helper tooling (fixture generation, TDD helpers).
-- `docs/engineering-brief.md`: rationale and roadmap context.
+- `docs/plans/engineering-brief.md`: rationale and roadmap context.
 
 ## Algorithm and Performance Principles
 - Streaming decode into frame analysis (avoid whole-track sample buffering).

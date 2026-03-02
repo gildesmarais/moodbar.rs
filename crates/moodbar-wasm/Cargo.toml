@@ -1,0 +1,23 @@
+[package]
+name = "moodbar-wasm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "WebAssembly bindings for moodbar audio visualization"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+moodbar-core = { path = "../moodbar-core", default-features = false, features = ["png"] }
+serde.workspace = true
+serde-wasm-bindgen.workspace = true
+wasm-bindgen.workspace = true
+
+[dev-dependencies]
+wasm-bindgen-test.workspace = true
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
