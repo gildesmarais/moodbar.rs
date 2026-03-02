@@ -8,122 +8,9 @@
       name="description"
       content="Moodbar.rs is the cross-platform moodbar comeback for audio developers and OSS contributors."
     />
-    <style>
-      :root {
-        --bg: #000000;
-        --text: #ffffff;
-        --muted: #b7b7b7;
-        --line: #2a2a2a;
-        --accent: #ff8800;
-      }
-
-      * {
-        box-sizing: border-box;
-      }
-
-      html,
-      body {
-        margin: 0;
-        padding: 0;
-        background: var(--bg);
-        color: var(--text);
-        font-family: "IBM Plex Sans", "Helvetica Neue", sans-serif;
-      }
-
-      a {
-        color: var(--accent);
-      }
-
-      main {
-        max-width: 980px;
-        margin: 0 auto;
-        padding: 1.5rem 1rem 4rem;
-      }
-
-      .topline {
-        border: 2px solid var(--accent);
-        padding: 0.5rem 0.7rem;
-        display: inline-block;
-        font-family: "IBM Plex Mono", monospace;
-        font-size: 0.8rem;
-        letter-spacing: 0.06em;
-      }
-
-      h1 {
-        font-size: clamp(2rem, 5vw, 4rem);
-        line-height: 1.03;
-        margin: 1rem 0 0.7rem;
-        max-width: 14ch;
-      }
-
-      .lede {
-        color: var(--muted);
-        max-width: 55ch;
-      }
-
-      .cta {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.7rem;
-        margin: 1.3rem 0 1.4rem;
-      }
-
-      .btn {
-        border: 2px solid var(--accent);
-        color: var(--text);
-        background: transparent;
-        padding: 0.7rem 1rem;
-        text-decoration: none;
-        font-family: "IBM Plex Mono", monospace;
-        font-size: 0.9rem;
-      }
-
-      .btn.primary {
-        background: var(--accent);
-        color: #000;
-        font-weight: 700;
-      }
-
-      .bullets {
-        border-top: 1px solid var(--line);
-        margin-top: 1.2rem;
-        padding-top: 1rem;
-      }
-
-      .bullets ul {
-        margin: 0;
-        padding-left: 1rem;
-        color: var(--muted);
-        line-height: 1.6;
-      }
-
-      .section {
-        margin-top: 1.4rem;
-        border-top: 1px solid var(--line);
-        padding-top: 1rem;
-      }
-
-      pre {
-        margin: 0;
-        padding: 0.9rem;
-        border: 1px solid var(--line);
-        overflow-x: auto;
-        background: #070707;
-        color: #eaeaea;
-        font-family: "IBM Plex Mono", monospace;
-        font-size: 0.9rem;
-      }
-
-      footer {
-        margin-top: 1.7rem;
-        padding-top: 1rem;
-        border-top: 1px solid var(--line);
-        color: var(--muted);
-        font-size: 0.9rem;
-      }
-    </style>
+    <link rel="stylesheet" href="./assets/ui.css" />
   </head>
-  <body>
+  <body class="page-home">
     <main>
       <span class="topline">MOODBAR.RS / CROSS-PLATFORM COMEBACK</span>
       <h1>Moodbars are back.</h1>
@@ -134,8 +21,9 @@
 
       <div class="cta">
         <a class="btn primary" href="./wasm-demo.html">Try Browser Demo</a>
-        <a class="btn" href="https://github.com/gildesmarais/moodbar.rs">View Source</a>
-        <a class="btn" href="./plans/wasm-and-native-plan.md">Read WASM Plan</a>
+        <a class="btn" href="https://github.com/gildesmarais/moodbar.rs"
+          >View Source</a
+        >
       </div>
 
       <section class="bullets">
@@ -145,6 +33,38 @@
           <li>WASM bindings for browser-first workflows.</li>
           <li>Amarok-era idea, portable and hackable.</li>
         </ul>
+      </section>
+
+      <section class="section history">
+        <h2>Historical Context</h2>
+        <p>
+          Moodbars started as color timelines for tracks and playlists in the
+          Amarok ecosystem. If you are new to it, these references explain the
+          original idea:
+        </p>
+        <ul>
+          <li>
+            <a href="https://en.wikipedia.org/wiki/Moodbar"
+              >Wikipedia: Moodbar</a
+            >
+          </li>
+          <li>
+            <a href="https://userbase.kde.org/Amarok/Manual/Various/Moodbar"
+              >KDE Amarok manual: Moodbar</a
+            >
+          </li>
+        </ul>
+      </section>
+
+      <section class="section example">
+        <h2>What A Moodbar Looks Like</h2>
+        <figure>
+          <img
+            src="./assets/out.png"
+            alt="Example moodbar strip rendered as a horizontal color timeline"
+          />
+          <figcaption>Example moodbar output from this project.</figcaption>
+        </figure>
       </section>
 
       <section class="section">
@@ -157,7 +77,9 @@ python3 -m http.server
 # open http://localhost:8000/docs/wasm-demo.html</code></pre>
       </section>
 
-      <footer>This site is served from <code>docs/</code> via GitHub Pages.</footer>
+      <footer>
+        This site is served from <code>docs/</code> via GitHub Pages.
+      </footer>
     </main>
   </body>
 </html>

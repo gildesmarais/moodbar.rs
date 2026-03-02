@@ -4,219 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Moodbar WASM Demo</title>
-    <style>
-      :root {
-        --bg: #000000;
-        --text: #ffffff;
-        --muted: #b7b7b7;
-        --line: #2a2a2a;
-        --accent: #ff8800;
-        --error: #ff5f57;
-      }
-
-      * {
-        box-sizing: border-box;
-      }
-
-      html,
-      body {
-        margin: 0;
-        padding: 0;
-        background: var(--bg);
-        color: var(--text);
-        font-family: "IBM Plex Sans", "Helvetica Neue", sans-serif;
-      }
-
-      a {
-        color: var(--accent);
-      }
-
-      main {
-        max-width: 940px;
-        margin: 0 auto;
-        padding: 1.1rem 0.9rem 2.4rem;
-      }
-
-      .topline {
-        border: 2px solid var(--accent);
-        padding: 0.5rem 0.7rem;
-        display: inline-block;
-        font-family: "IBM Plex Mono", monospace;
-        font-size: 0.8rem;
-        letter-spacing: 0.06em;
-      }
-
-      h1 {
-        font-size: clamp(2rem, 4.8vw, 4rem);
-        line-height: 1.05;
-        margin: 0.7rem 0 0.7rem;
-        max-width: 18ch;
-      }
-
-      .lede {
-        color: var(--muted);
-        max-width: 68ch;
-      }
-
-      .cta {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.7rem;
-        margin: 0.85rem 0 0.9rem;
-      }
-
-      .btn {
-        border: 2px solid var(--accent);
-        color: var(--text);
-        background: transparent;
-        padding: 0.7rem 1rem;
-        text-decoration: none;
-        font-family: "IBM Plex Mono", monospace;
-        font-size: 0.9rem;
-        cursor: pointer;
-        min-height: 42px;
-      }
-
-      .btn.primary {
-        background: var(--accent);
-        color: #000;
-        font-weight: 700;
-      }
-
-      .btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-
-      .panel {
-        border: 1px solid var(--line);
-        padding: 0.75rem;
-      }
-
-      .panel-grid {
-        display: grid;
-        gap: 0.75rem;
-        grid-template-columns: 1.55fr 1fr;
-      }
-
-      .subpanel {
-        border: 1px solid var(--line);
-        padding: 0.7rem;
-      }
-
-      .row {
-        display: flex;
-        gap: 0.7rem;
-        flex-wrap: wrap;
-      }
-
-      label {
-        display: block;
-        font-size: 0.9rem;
-        color: var(--muted);
-        margin-bottom: 0.3rem;
-      }
-
-      input,
-      select {
-        width: 100%;
-        border: 1px solid var(--line);
-        padding: 0.6rem 0.65rem;
-        font: inherit;
-        color: var(--text);
-        background: #070707;
-      }
-
-      #dropZone {
-        border: 2px dashed var(--line);
-        padding: 0.75rem;
-        margin: 0.55rem 0;
-        font-family: "IBM Plex Mono", monospace;
-        color: var(--muted);
-      }
-
-      #dropZone.active {
-        border-color: var(--accent);
-        color: var(--accent);
-        background: #090603;
-      }
-
-      #selectedFile {
-        color: var(--accent);
-        font-family: "IBM Plex Mono", monospace;
-        min-height: 1.1rem;
-        font-size: 0.88rem;
-      }
-
-      details {
-        margin-top: 0.55rem;
-        border-top: 1px solid var(--line);
-        padding-top: 0.55rem;
-      }
-
-      summary {
-        cursor: pointer;
-        color: var(--muted);
-      }
-
-      .advanced-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 0.7rem;
-        margin-top: 0.7rem;
-      }
-
-      .section {
-        margin-top: 0.8rem;
-        border-top: 1px solid var(--line);
-        padding-top: 0.75rem;
-      }
-
-      #status {
-        min-height: 1.4rem;
-        font-family: "IBM Plex Mono", monospace;
-        margin-bottom: 0.55rem;
-      }
-
-      #output {
-        min-height: 80px;
-        border: 1px dashed var(--line);
-        padding: 0.6rem;
-        background: #050505;
-      }
-
-      .action-buttons {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.55rem;
-        margin-top: 0.55rem;
-      }
-
-      .action-buttons .btn {
-        flex: 1 1 180px;
-      }
-
-      @media (max-width: 820px) {
-        .panel-grid {
-          grid-template-columns: 1fr;
-        }
-      }
-    </style>
+    <link rel="stylesheet" href="./assets/ui.css" />
   </head>
-  <body>
+  <body class="page-demo">
     <main>
       <span class="topline">MOODBAR.RS / WASM DEMO</span>
       <h1>Upload audio. Render moodbar. Save PNG.</h1>
       <p class="lede">
-        Browser pipeline: decode with Web Audio API, analyze with Rust WASM,
-        render SVG/PNG. Module paths supported: local
-        <code>../packages/moodbar-wasm/</code> and Pages
-        <code>./assets/moodbar-wasm/</code>.
+        Turn a track into a moodbar directly in your browser. Built for audio
+        developers and open-source contributors exploring a modern moodbar
+        comeback.
       </p>
 
-      <div class="cta">
-        <a class="btn" href="./index.html">Back To Homepage</a>
-        <a class="btn" href="https://github.com/gildesmarais/moodbar.rs">View Source</a>
+      <div class="meta-links">
+        <a href="./index.html">Back to homepage</a> ·
+        <a href="https://github.com/gildesmarais/moodbar.rs">View source</a>
       </div>
 
       <section class="panel">
@@ -224,7 +26,9 @@
           <div class="subpanel">
             <label for="audioFile">Audio file</label>
             <input id="audioFile" type="file" accept="audio/*" />
-            <div id="dropZone" aria-label="Drop audio files here">Drop audio here to replace file selection.</div>
+            <div id="dropZone" aria-label="Drop audio files here">
+              Drop audio here to replace file selection.
+            </div>
             <div id="selectedFile"></div>
           </div>
 
@@ -234,10 +38,6 @@
               <option value="Strip">Strip</option>
               <option value="Waveform">Waveform</option>
             </select>
-            <div class="action-buttons">
-              <button id="runButton" class="btn primary">Analyze + Render</button>
-              <button id="savePngButton" class="btn" disabled>Save PNG</button>
-            </div>
 
             <details>
               <summary>Advanced size options</summary>
@@ -259,6 +59,13 @@
       <section class="section">
         <div id="status"></div>
         <div id="output"></div>
+      </section>
+
+      <section class="section">
+        <div class="action-buttons">
+          <button id="runButton" class="btn primary">Analyze + Render</button>
+          <button id="savePngButton" class="btn" disabled>Save PNG</button>
+        </div>
       </section>
     </main>
 
@@ -335,7 +142,6 @@
 
           setSelectedFile(file);
 
-          // Keep native file input in sync when the browser allows it.
           try {
             const dt = new DataTransfer();
             dt.items.add(file);
@@ -397,7 +203,11 @@
           1,
           Math.floor(audioBuffer.duration * TARGET_SAMPLE_RATE),
         );
-        const offline = new OfflineAudioContext(1, offlineLength, TARGET_SAMPLE_RATE);
+        const offline = new OfflineAudioContext(
+          1,
+          offlineLength,
+          TARGET_SAMPLE_RATE,
+        );
         const source = offline.createBufferSource();
         source.buffer = audioBuffer;
         source.connect(offline.destination);
@@ -449,7 +259,8 @@
           );
           savePngButton.disabled = false;
         } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
+          const message =
+            error instanceof Error ? error.message : String(error);
           setStatus(`Failed: ${message}`, true);
           releaseAnalysis();
         } finally {
@@ -468,14 +279,18 @@
           const blob = new Blob([pngBytes], { type: "image/png" });
           const link = document.createElement("a");
           link.href = URL.createObjectURL(blob);
-          const stem = (getSelectedFile()?.name || "moodbar").replace(/\.[^/.]+$/, "");
+          const stem = (getSelectedFile()?.name || "moodbar").replace(
+            /\.[^/.]+$/,
+            "",
+          );
           link.download = `${stem}.png`;
           document.body.appendChild(link);
           link.click();
           link.remove();
           URL.revokeObjectURL(link.href);
         } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
+          const message =
+            error instanceof Error ? error.message : String(error);
           setStatus(`PNG export failed: ${message}`, true);
         }
       }
