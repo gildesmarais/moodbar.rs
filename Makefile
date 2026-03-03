@@ -37,7 +37,7 @@ check: fmt lint test
 ci: check
 
 wasm:
-	wasm-pack build crates/moodbar-wasm --release --target bundler --out-dir ../../packages/moodbar-wasm
+	wasm-pack build crates/moodbar-wasm --release --target bundler --out-dir ../../packages/moodbar-wasm --package-name @moodbar/wasm
 
 wasm-docs:
 	wasm-pack build crates/moodbar-wasm --release --target web --out-dir ../../docs/assets/moodbar-wasm
