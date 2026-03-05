@@ -3,6 +3,7 @@
 WASM_NPM_PACKAGE_DIR := crates/moodbar-wasm/pkg
 WASM_NPM_TEMPLATE := crates/moodbar-wasm/package.npm.json
 WASM_NPM_README := crates/moodbar-wasm/README.npm.md
+WASM_DEMO_PACKAGE_DIR := packages/moodbar-wasm
 NPM_CACHE_DIR ?= .npm-cache
 
 help:
@@ -10,7 +11,7 @@ help:
 	@echo "  make test       - run all tests"
 	@echo "  make test-core  - run moodbar-core tests"
 	@echo "  make parity     - run legacy parity test"
-	@echo "  make wasm       - build the wasm package (requires wasm-pack)"
+	@echo "  make wasm       - build the wasm package (requires wasm-pack and node)"
 	@echo "  make publish-check-wasm - build and validate npm package contents"
 	@echo "  make wasm-docs  - build wasm assets for GitHub Pages under docs/assets/"
 	@echo "  make fmt        - check formatting"
@@ -48,6 +49,8 @@ wasm:
 		--package-dir $(WASM_NPM_PACKAGE_DIR) \
 		--template $(WASM_NPM_TEMPLATE) \
 		--readme $(WASM_NPM_README)
+	mkdir -p $(WASM_DEMO_PACKAGE_DIR)
+	cp -R $(WASM_NPM_PACKAGE_DIR)/. $(WASM_DEMO_PACKAGE_DIR)/
 
 publish-check-wasm: wasm
 	node scripts/verify-npm-package.mjs \

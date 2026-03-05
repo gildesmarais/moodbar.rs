@@ -16,6 +16,7 @@
     "moodbar_wasm_bg.wasm",
     "moodbar_wasm.js",
     "moodbar_wasm_bg.js",
+    "moodbar_wasm_bg.wasm.d.ts",
     "moodbar_wasm.d.ts",
     "LICENSE-MIT",
     "LICENSE-APACHE"

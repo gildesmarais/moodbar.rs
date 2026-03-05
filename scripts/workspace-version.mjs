@@ -4,13 +4,28 @@ import fs from "node:fs";
 
 export function readWorkspaceVersion(cargoTomlPath = "Cargo.toml") {
   const cargoToml = fs.readFileSync(cargoTomlPath, "utf8");
-  const sectionMatch = cargoToml.match(/\[workspace\.package\]([\s\S]*?)(\n\[|$)/);
-  if (!sectionMatch) {
+  const lines = cargoToml.split(/\r?\n/);
+  const sectionHeader = "[workspace.package]";
+  const startIndex = lines.findIndex((line) => line.trim() === sectionHeader);
+  if (startIndex < 0) {
     throw new Error(`Could not find [workspace.package] in ${cargoTomlPath}`);
   }
-  const versionMatch = sectionMatch[1].match(/\bversion\s*=\s*"([^"]+)"/);
+
+  const sectionLines = [];
+  for (let i = startIndex + 1; i < lines.length; i += 1) {
+    const line = lines[i];
+    if (/^\s*\[[^\]]+\]\s*$/.test(line)) {
+      break;
+    }
+    sectionLines.push(line);
+  }
+
+  const sectionBody = sectionLines.join("\n");
+  const versionMatch = sectionBody.match(/\bversion\s*=\s*"([^"]+)"/);
   if (!versionMatch) {
-    throw new Error(`Could not find workspace.package.version in ${cargoTomlPath}`);
+    throw new Error(
+      `Could not find workspace.package.version in ${cargoTomlPath}`,
+    );
   }
   return versionMatch[1];
 }

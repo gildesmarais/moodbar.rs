@@ -1,0 +1,57 @@
+name: wasm-ci
+
+on:
+  push:
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "Makefile"
+      - "crates/moodbar-core/**"
+      - "crates/moodbar-wasm/**"
+      - "scripts/**"
+      - ".github/workflows/wasm-ci.yml"
+  pull_request:
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "Makefile"
+      - "crates/moodbar-core/**"
+      - "crates/moodbar-wasm/**"
+      - "scripts/**"
+      - ".github/workflows/wasm-ci.yml"
+
+jobs:
+  package-check:
+    runs-on: ubuntu-latest
+    env:
+      WASM_PACK_VERSION: "0.13.1"
+      NODE_VERSION: "22.14.0"
+      NPM_VERSION: "11.5.1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: . -> target
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack --version ${WASM_PACK_VERSION} --locked
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Pin npm
+        run: npm install -g npm@${NPM_VERSION}
+
+      - name: Validate publishable WASM package
+        run: make publish-check-wasm

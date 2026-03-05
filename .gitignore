@@ -1,3 +1,4 @@
 /target/
 /crates/moodbar-wasm/pkg/
+/packages/moodbar-wasm/
 /.npm-cache/

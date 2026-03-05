@@ -58,7 +58,7 @@ jobs:
       - name: Build and validate WASM package
         run: make publish-check-wasm
 
-      # Provenance is generated automatically via trusted publishing — no token needed.
+      # Trusted publishing handles auth; --provenance emits npm attestation.
       # Requires this package to be configured as a trusted publisher on npmjs.com first.
       - name: Publish to npm
-        run: npm publish ./crates/moodbar-wasm/pkg --access public
+        run: npm publish ./crates/moodbar-wasm/pkg --access public --provenance

@@ -6,6 +6,7 @@ CLI-first moodbar generator in Rust.
 
 - Rust toolchain (stable)
 - `make`
+- Node.js (required for `make wasm` / npm package preparation)
 
 ## Install
 
@@ -84,7 +85,8 @@ python3 -m http.server
 
 ## CI and Releases
 
-- CI workflow: `.github/workflows/rust-ci.yml`
+- CI workflow (Rust core): `.github/workflows/rust-ci.yml`
+- CI workflow (WASM package): `.github/workflows/wasm-ci.yml`
 - Release artifacts: `.github/workflows/release-build.yml` (Linux + macOS)
 - Artifact naming: `moodbar-<tag>-<target>.tar.gz`
 - npm release workflow: `.github/workflows/publish-wasm-npm.yml` (OIDC trusted publishing)
@@ -99,5 +101,5 @@ make wasm
 make publish-check-wasm
 
 # publish manually (maintainer workflow)
-npm publish ./crates/moodbar-wasm/pkg --access public
+npm publish ./crates/moodbar-wasm/pkg --access public --provenance
 ```
