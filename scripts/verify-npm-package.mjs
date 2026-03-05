@@ -8,6 +8,7 @@ function main() {
   const args = parseArgs(process.argv.slice(2));
   const packageDir = args["package-dir"];
   const expectedName = args["expected-name"];
+  const expectedRepositoryUrl = args["expected-repository-url"];
   const requiredFilesArg = args["required-files"];
   const jsonOutput = args.json === "true" || args.json === "1";
 
@@ -28,7 +29,7 @@ function main() {
 
   if (!packageDir || !expectedName) {
     throw new Error(
-      "Usage: node scripts/verify-npm-package.mjs --package-dir <dir> --expected-name <name> [--required-files file1,file2] [--json true|false]",
+      "Usage: node scripts/verify-npm-package.mjs --package-dir <dir> --expected-name <name> [--expected-repository-url <url>] [--required-files file1,file2] [--json true|false]",
     );
   }
 
@@ -49,6 +50,15 @@ function main() {
   }
   if (!pkg.repository || !pkg.repository.url) {
     failWith("missing repository.url");
+  }
+  if (expectedRepositoryUrl && pkg.repository.url !== expectedRepositoryUrl) {
+    failWith(
+      `expected repository.url ${expectedRepositoryUrl}, got ${pkg.repository.url ?? "<missing>"}`,
+      {
+        expectedRepositoryUrl,
+        actualRepositoryUrl: pkg.repository?.url ?? null,
+      },
+    );
   }
 
   const requiredFiles = requiredFilesArg

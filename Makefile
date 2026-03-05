@@ -3,6 +3,7 @@
 WASM_NPM_PACKAGE_DIR := crates/moodbar-wasm/pkg
 WASM_NPM_TEMPLATE := crates/moodbar-wasm/package.npm.json
 WASM_NPM_README := crates/moodbar-wasm/README.npm.md
+WASM_NPM_REPOSITORY_URL := git+https://github.com/gildesmarais/moodbar.rs.git
 WASM_DEMO_PACKAGE_DIR := packages/moodbar-wasm
 NPM_CACHE_DIR ?= .npm-cache
 
@@ -49,6 +50,7 @@ wasm:
 		--package-dir $(WASM_NPM_PACKAGE_DIR) \
 		--template $(WASM_NPM_TEMPLATE) \
 		--readme $(WASM_NPM_README)
+	rm -rf $(WASM_DEMO_PACKAGE_DIR)
 	mkdir -p $(WASM_DEMO_PACKAGE_DIR)
 	cp -R $(WASM_NPM_PACKAGE_DIR)/. $(WASM_DEMO_PACKAGE_DIR)/
 
@@ -56,6 +58,7 @@ publish-check-wasm: wasm
 	node scripts/verify-npm-package.mjs \
 		--package-dir $(WASM_NPM_PACKAGE_DIR) \
 		--expected-name @moodbar/wasm \
+		--expected-repository-url $(WASM_NPM_REPOSITORY_URL) \
 		--required-files README.md,LICENSE-MIT,LICENSE-APACHE,moodbar_wasm.js,moodbar_wasm_bg.wasm,package.json
 	npm pack ./$(WASM_NPM_PACKAGE_DIR) --dry-run --json --cache $(NPM_CACHE_DIR)
 
