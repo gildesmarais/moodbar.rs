@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 import fs from "node:fs";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 export function readWorkspaceVersion(cargoTomlPath = "Cargo.toml") {
   const cargoToml = fs.readFileSync(cargoTomlPath, "utf8");
@@ -30,7 +32,11 @@ export function readWorkspaceVersion(cargoTomlPath = "Cargo.toml") {
   return versionMatch[1];
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+const invokedScriptUrl = process.argv[1]
+  ? pathToFileURL(path.resolve(process.argv[1])).href
+  : null;
+
+if (invokedScriptUrl && import.meta.url === invokedScriptUrl) {
   const cargoTomlPath = process.argv[2] ?? "Cargo.toml";
   process.stdout.write(readWorkspaceVersion(cargoTomlPath));
 }
