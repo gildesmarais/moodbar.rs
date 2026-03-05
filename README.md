@@ -77,3 +77,16 @@ python3 -m http.server
 - CI workflow: `.github/workflows/rust-ci.yml`
 - Release artifacts: `.github/workflows/release-build.yml` (Linux + macOS)
 - Artifact naming: `moodbar-<tag>-<target>.tar.gz`
+- npm release workflow: `.github/workflows/publish-wasm-npm.yml` (OIDC trusted publishing)
+
+## Publish WASM Package
+```bash
+# build and normalize npm package metadata/files
+make wasm
+
+# reproducibility and package contract checks
+make publish-check-wasm
+
+# publish manually (maintainer workflow)
+npm publish ./crates/moodbar-wasm/pkg --access public
+```

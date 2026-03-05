@@ -1,0 +1,8 @@
+{
+  "name": "@moodbar/native",
+  "description": "React Native bindings for moodbar audio visualization",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gildesmarais/moodbar.rs.git"
+  }
+}

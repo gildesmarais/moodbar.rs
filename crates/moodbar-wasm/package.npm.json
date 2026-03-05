@@ -1,0 +1,34 @@
+{
+  "name": "@moodbar/wasm",
+  "type": "module",
+  "description": "WebAssembly bindings for moodbar audio visualization",
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gildesmarais/moodbar.rs.git"
+  },
+  "homepage": "https://github.com/gildesmarais/moodbar.rs#readme",
+  "bugs": {
+    "url": "https://github.com/gildesmarais/moodbar.rs/issues"
+  },
+  "keywords": [
+    "moodbar",
+    "audio",
+    "visualization",
+    "wasm"
+  ],
+  "files": [
+    "moodbar_wasm_bg.wasm",
+    "moodbar_wasm.js",
+    "moodbar_wasm_bg.js",
+    "moodbar_wasm.d.ts",
+    "LICENSE-MIT",
+    "LICENSE-APACHE"
+  ],
+  "main": "moodbar_wasm.js",
+  "types": "moodbar_wasm.d.ts",
+  "sideEffects": [
+    "./moodbar_wasm.js",
+    "./snippets/*"
+  ]
+}

@@ -11,6 +11,10 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    env:
+      WASM_PACK_VERSION: "0.13.1"
+      NODE_VERSION: "22.14.0"
+      NPM_VERSION: "11.5.1"
 
     steps:
       - name: Checkout
@@ -27,18 +31,42 @@ jobs:
           workspaces: . -> target
 
       - name: Install wasm-pack
-        run: cargo install wasm-pack
+        run: cargo install wasm-pack --version ${WASM_PACK_VERSION} --locked
 
       # Node 22.14+ / npm 11.5.1+ required for OIDC trusted publishing
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: ${{ env.NODE_VERSION }}
 
-      - name: Build WASM package
-        run: wasm-pack build crates/moodbar-wasm --release --target bundler --out-dir ../../packages/moodbar-wasm --package-name @moodbar/wasm
+      - name: Pin npm
+        run: npm install -g npm@${NPM_VERSION}
+
+      - name: Validate release tag matches workspace version
+        run: |
+          WORKSPACE_VERSION="$(awk '
+            $0 ~ /^\[workspace\.package\]/ { in_ws=1; next }
+            $0 ~ /^\[/ && in_ws { in_ws=0 }
+            in_ws && $1 == "version" {
+              gsub(/"/, "", $3);
+              print $3;
+              exit
+            }
+          ' Cargo.toml)"
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [ -z "$WORKSPACE_VERSION" ]; then
+            echo "Could not determine workspace version from Cargo.toml"
+            exit 1
+          fi
+          if [ "$TAG_VERSION" != "$WORKSPACE_VERSION" ]; then
+            echo "Release tag ${GITHUB_REF_NAME} does not match workspace version ${WORKSPACE_VERSION}"
+            exit 1
+          fi
+
+      - name: Build and validate WASM package
+        run: make publish-check-wasm
 
       # Provenance is generated automatically via trusted publishing — no token needed.
       # Requires this package to be configured as a trusted publisher on npmjs.com first.
       - name: Publish to npm
-        run: npm publish packages/moodbar-wasm --access public
+        run: npm publish ./crates/moodbar-wasm/pkg --access public

@@ -1,4 +1,9 @@
-.PHONY: help test test-core test-cli parity fmt lint check tdd tdd-core ci wasm wasm-docs
+.PHONY: help test test-core test-cli parity fmt lint check tdd tdd-core ci wasm publish-check-wasm wasm-docs
+
+WASM_NPM_PACKAGE_DIR := crates/moodbar-wasm/pkg
+WASM_NPM_TEMPLATE := crates/moodbar-wasm/package.npm.json
+WASM_NPM_README := crates/moodbar-wasm/README.npm.md
+NPM_CACHE_DIR ?= .npm-cache
 
 help:
 	@echo "Targets:"
@@ -6,6 +11,7 @@ help:
 	@echo "  make test-core  - run moodbar-core tests"
 	@echo "  make parity     - run legacy parity test"
 	@echo "  make wasm       - build the wasm package (requires wasm-pack)"
+	@echo "  make publish-check-wasm - build and validate npm package contents"
 	@echo "  make wasm-docs  - build wasm assets for GitHub Pages under docs/assets/"
 	@echo "  make fmt        - check formatting"
 	@echo "  make lint       - run clippy with warnings as errors"
@@ -37,7 +43,18 @@ check: fmt lint test
 ci: check
 
 wasm:
-	wasm-pack build crates/moodbar-wasm --release --target bundler --out-dir ../../packages/moodbar-wasm --package-name @moodbar/wasm
+	wasm-pack build crates/moodbar-wasm --release --target bundler
+	node scripts/prepare-npm-package.mjs \
+		--package-dir $(WASM_NPM_PACKAGE_DIR) \
+		--template $(WASM_NPM_TEMPLATE) \
+		--readme $(WASM_NPM_README)
+
+publish-check-wasm: wasm
+	node scripts/verify-npm-package.mjs \
+		--package-dir $(WASM_NPM_PACKAGE_DIR) \
+		--expected-name @moodbar/wasm \
+		--required-files README.md,LICENSE-MIT,LICENSE-APACHE,moodbar_wasm.js,moodbar_wasm_bg.wasm,package.json
+	npm pack ./$(WASM_NPM_PACKAGE_DIR) --dry-run --json --cache $(NPM_CACHE_DIR)
 
 wasm-docs:
 	wasm-pack build crates/moodbar-wasm --release --target web --out-dir ../../docs/assets/moodbar-wasm
