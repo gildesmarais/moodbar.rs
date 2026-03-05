@@ -25,8 +25,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       WASM_PACK_VERSION: "0.13.1"
-      NODE_VERSION: "22.14.0"
-      NPM_VERSION: "11.5.1"
+      NODE_VERSION: "22.22.0"
+      NPM_VERSION: "11.8.0"
 
     steps:
       - name: Checkout

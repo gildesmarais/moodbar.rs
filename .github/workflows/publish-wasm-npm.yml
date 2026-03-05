@@ -13,8 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       WASM_PACK_VERSION: "0.13.1"
-      NODE_VERSION: "22.14.0"
-      NPM_VERSION: "11.5.1"
+      NODE_VERSION: "22.22.0"
+      NPM_VERSION: "11.8.0"
 
     steps:
       - name: Checkout
@@ -33,7 +33,7 @@ jobs:
       - name: Install wasm-pack
         run: cargo install wasm-pack --version ${WASM_PACK_VERSION} --locked
 
-      # Node 22.14+ / npm 11.5.1+ required for OIDC trusted publishing
+      # Node 22+ / npm 11+ required for OIDC trusted publishing
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
