@@ -18,6 +18,7 @@
     "moodbar_wasm_bg.js",
     "moodbar_wasm_bg.wasm.d.ts",
     "moodbar_wasm.d.ts",
+    "snippets/",
     "LICENSE-MIT",
     "LICENSE-APACHE"
   ],

@@ -33,12 +33,17 @@ function main() {
   }
 
   const version = readWorkspaceVersion(cargoTomlPath);
+  const generatedPackage = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
   const template = JSON.parse(fs.readFileSync(templatePath, "utf8"));
-  template.version = version;
+  const mergedPackage = {
+    ...generatedPackage,
+    ...template,
+    version,
+  };
 
   fs.writeFileSync(
     packageJsonPath,
-    `${JSON.stringify(template, null, 2)}\n`,
+    `${JSON.stringify(mergedPackage, null, 2)}\n`,
     "utf8",
   );
 
