@@ -165,6 +165,8 @@
         }
         setStatus("Loading WASM module...");
         const candidates = [
+          "https://cdn.jsdelivr.net/npm/@moodbar/wasm@latest/moodbar_wasm.js",
+          "https://unpkg.com/@moodbar/wasm@latest/moodbar_wasm.js",
           "../packages/moodbar-wasm/moodbar_wasm.js",
           "./assets/moodbar-wasm/moodbar_wasm.js",
         ];
@@ -185,7 +187,7 @@
 
         if (!wasmInit || !wasmAnalyze || !wasmSvg || !wasmPng) {
           throw new Error(
-            `WASM module not found. Build locally with make wasm or publish docs/assets/moodbar-wasm. ${lastError ? `Last error: ${String(lastError)}` : ""}`,
+            `WASM module not found. Ensure @moodbar/wasm is published (CDN) or build locally with make wasm. ${lastError ? `Last error: ${String(lastError)}` : ""}`,
           );
         }
 
