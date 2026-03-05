@@ -11,12 +11,7 @@
   "bugs": {
     "url": "https://github.com/gildesmarais/moodbar.rs/issues"
   },
-  "keywords": [
-    "moodbar",
-    "audio",
-    "visualization",
-    "wasm"
-  ],
+  "keywords": ["moodbar", "audio", "visualization", "wasm"],
   "files": [
     "moodbar_wasm_bg.wasm",
     "moodbar_wasm.js",
@@ -27,8 +22,5 @@
   ],
   "main": "moodbar_wasm.js",
   "types": "moodbar_wasm.d.ts",
-  "sideEffects": [
-    "./moodbar_wasm.js",
-    "./snippets/*"
-  ]
+  "sideEffects": ["./moodbar_wasm.js", "./snippets/*"]
 }

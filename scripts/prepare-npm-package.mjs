@@ -23,13 +23,17 @@ function parseArgs(argv) {
 
 function readWorkspaceVersion(cargoTomlPath) {
   const cargoToml = fs.readFileSync(cargoTomlPath, "utf8");
-  const sectionMatch = cargoToml.match(/\[workspace\.package\]([\s\S]*?)(\n\[|$)/);
+  const sectionMatch = cargoToml.match(
+    /\[workspace\.package\]([\s\S]*?)(\n\[|$)/,
+  );
   if (!sectionMatch) {
     throw new Error(`Could not find [workspace.package] in ${cargoTomlPath}`);
   }
   const versionMatch = sectionMatch[1].match(/\bversion\s*=\s*"([^"]+)"/);
   if (!versionMatch) {
-    throw new Error(`Could not find workspace.package.version in ${cargoTomlPath}`);
+    throw new Error(
+      `Could not find workspace.package.version in ${cargoTomlPath}`,
+    );
   }
   return versionMatch[1];
 }
@@ -56,14 +60,20 @@ function main() {
 
   const packageJsonPath = path.join(packageDir, "package.json");
   if (!fs.existsSync(packageJsonPath)) {
-    throw new Error(`Missing generated package at ${packageJsonPath}. Build package first.`);
+    throw new Error(
+      `Missing generated package at ${packageJsonPath}. Build package first.`,
+    );
   }
 
   const version = readWorkspaceVersion(cargoTomlPath);
   const template = JSON.parse(fs.readFileSync(templatePath, "utf8"));
   template.version = version;
 
-  fs.writeFileSync(packageJsonPath, `${JSON.stringify(template, null, 2)}\n`, "utf8");
+  fs.writeFileSync(
+    packageJsonPath,
+    `${JSON.stringify(template, null, 2)}\n`,
+    "utf8",
+  );
 
   copyRequiredFile(readmePath, path.join(packageDir, "README.md"));
   copyRequiredFile("LICENSE-MIT", path.join(packageDir, "LICENSE-MIT"));

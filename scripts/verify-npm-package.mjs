@@ -69,14 +69,19 @@ function main() {
   }
 
   const requiredFiles = requiredFilesArg
-    ? requiredFilesArg.split(",").map((file) => file.trim()).filter(Boolean)
+    ? requiredFilesArg
+        .split(",")
+        .map((file) => file.trim())
+        .filter(Boolean)
     : ["README.md", "LICENSE-MIT", "LICENSE-APACHE", "package.json"];
 
   const missingFiles = requiredFiles.filter(
     (file) => !fs.existsSync(path.join(packageDir, file)),
   );
   if (missingFiles.length > 0) {
-    failWith(`missing required files: ${missingFiles.join(", ")}`, { missingFiles });
+    failWith(`missing required files: ${missingFiles.join(", ")}`, {
+      missingFiles,
+    });
   }
 
   emit({
