@@ -21,6 +21,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Download published WASM package for demo assets
+        run: |
+          rm -rf docs/assets/moodbar-wasm
+          mkdir -p docs/assets/moodbar-wasm
+          npm pack @moodbar/wasm@latest --silent
+          TARBALL="$(ls -t moodbar-wasm-*.tgz | head -n1)"
+          tar -xzf "$TARBALL" -C docs/assets/moodbar-wasm --strip-components=1 package/
+          rm -f "$TARBALL"
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
