@@ -1,10 +1,13 @@
-.PHONY: help test test-core test-cli parity fmt lint check tdd tdd-core ci wasm publish-check-wasm wasm-docs
+.PHONY: help test test-core test-cli parity fmt lint check tdd tdd-core ci wasm publish-check-wasm wasm-docs native native-ios native-android publish-check-native
 
 WASM_NPM_PACKAGE_DIR := crates/moodbar-wasm/pkg
 WASM_NPM_TEMPLATE := crates/moodbar-wasm/package.npm.json
 WASM_NPM_README := crates/moodbar-wasm/README.npm.md
 WASM_NPM_REPOSITORY_URL := git+https://github.com/gildesmarais/moodbar.rs.git
 WASM_DEMO_PACKAGE_DIR := packages/moodbar-wasm
+NATIVE_NPM_PACKAGE_DIR := packages/moodbar-native
+NATIVE_NPM_REPOSITORY_URL := git+https://github.com/gildesmarais/moodbar.rs.git
+NATIVE_NPM_README := packages/moodbar-native/README.npm.md
 NPM_CACHE_DIR ?= .npm-cache
 
 help:
@@ -14,6 +17,10 @@ help:
 	@echo "  make parity     - run legacy parity test"
 	@echo "  make wasm       - build the wasm package (requires wasm-pack and node)"
 	@echo "  make publish-check-wasm - build and validate npm package contents"
+	@echo "  make native     - prepare @moodbar/native package metadata/files"
+	@echo "  make native-ios - build iOS xcframework for @moodbar/native"
+	@echo "  make native-android - build Android JNI libs for @moodbar/native"
+	@echo "  make publish-check-native - validate native npm package contents"
 	@echo "  make wasm-docs  - build wasm assets for GitHub Pages under docs/assets/"
 	@echo "  make fmt        - check formatting"
 	@echo "  make lint       - run clippy with warnings as errors"
@@ -64,6 +71,27 @@ publish-check-wasm: wasm
 
 wasm-docs:
 	wasm-pack build crates/moodbar-wasm --release --target web --out-dir ../../docs/assets/moodbar-wasm
+
+native:
+	node scripts/prepare-native-package.mjs \
+		--package-dir $(NATIVE_NPM_PACKAGE_DIR) \
+		--readme $(NATIVE_NPM_README)
+
+native-ios:
+	./scripts/build-native-ios.sh
+	$(MAKE) native
+
+native-android:
+	./scripts/build-native-android.sh
+	$(MAKE) native
+
+publish-check-native: native
+	node scripts/verify-npm-package.mjs \
+		--package-dir $(NATIVE_NPM_PACKAGE_DIR) \
+		--expected-name @moodbar/native \
+		--expected-repository-url $(NATIVE_NPM_REPOSITORY_URL) \
+		--required-files README.md,LICENSE-MIT,LICENSE-APACHE,index.js,index.d.ts,expo-module.config.json,moodbar-native.podspec,package.json
+	npm pack ./$(NATIVE_NPM_PACKAGE_DIR) --dry-run --json --cache $(NPM_CACHE_DIR)
 
 # TDD loop: automatically reruns tests when files change if cargo-watch is installed.
 tdd:

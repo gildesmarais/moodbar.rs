@@ -1,6 +1,8 @@
 #[cfg(feature = "decode")]
 use std::fs::File;
 #[cfg(feature = "decode")]
+use std::io::Cursor;
+#[cfg(feature = "decode")]
 use std::path::Path;
 
 #[cfg(feature = "png")]
@@ -178,6 +180,36 @@ pub fn analyze_path(
         hint.with_extension(ext);
     }
 
+    analyze_media_source(mss, hint, options)
+}
+
+/// Decode and analyze in-memory encoded audio bytes.
+#[cfg(feature = "decode")]
+pub fn analyze_bytes(
+    bytes: &[u8],
+    extension: Option<&str>,
+    options: &GenerateOptions,
+) -> Result<MoodbarAnalysis, MoodbarError> {
+    validate_options(options)?;
+
+    let cursor = Cursor::new(bytes.to_vec());
+    let mss = MediaSourceStream::new(Box::new(cursor), Default::default());
+    let mut hint = Hint::new();
+    if let Some(ext) = extension {
+        if !ext.is_empty() {
+            hint.with_extension(ext);
+        }
+    }
+
+    analyze_media_source(mss, hint, options)
+}
+
+#[cfg(feature = "decode")]
+fn analyze_media_source(
+    mss: MediaSourceStream,
+    hint: Hint,
+    options: &GenerateOptions,
+) -> Result<MoodbarAnalysis, MoodbarError> {
     let probed = symphonia::default::get_probe().format(
         &hint,
         mss,
@@ -270,6 +302,17 @@ pub fn generate_moodbar_from_path(
     options: &GenerateOptions,
 ) -> Result<Vec<u8>, MoodbarError> {
     let analysis = analyze_path(path, options)?;
+    Ok(analysis_to_raw_rgb_bytes(&analysis))
+}
+
+/// Convenience API for in-memory encoded audio input.
+#[cfg(feature = "decode")]
+pub fn generate_moodbar_from_bytes(
+    bytes: &[u8],
+    extension: Option<&str>,
+    options: &GenerateOptions,
+) -> Result<Vec<u8>, MoodbarError> {
+    let analysis = analyze_bytes(bytes, extension, options)?;
     Ok(analysis_to_raw_rgb_bytes(&analysis))
 }
 

@@ -1,0 +1,105 @@
+name: native-ci
+
+on:
+  push:
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "Makefile"
+      - "crates/moodbar-core/**"
+      - "crates/moodbar-native-ffi/**"
+      - "packages/moodbar-native/**"
+      - "scripts/**"
+      - ".github/workflows/native-ci.yml"
+  pull_request:
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "Makefile"
+      - "crates/moodbar-core/**"
+      - "crates/moodbar-native-ffi/**"
+      - "packages/moodbar-native/**"
+      - "scripts/**"
+      - ".github/workflows/native-ci.yml"
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    env:
+      NODE_VERSION: "22.22.0"
+      NPM_VERSION: "11.8.0"
+      ANDROID_NDK_VERSION: "27.1.12297006"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: . -> target
+
+      - name: Setup Android SDK + NDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install NDK
+        run: sdkmanager "ndk;${ANDROID_NDK_VERSION}"
+
+      - name: Export NDK path
+        run: echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/${ANDROID_NDK_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --locked
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Pin npm
+        run: npm install -g npm@${NPM_VERSION}
+
+      - name: Build Android native artifacts
+        run: make native-android
+
+      - name: Validate npm package contract
+        run: make publish-check-native
+
+  ios:
+    runs-on: macos-latest
+    env:
+      NODE_VERSION: "22.22.0"
+      NPM_VERSION: "11.8.0"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios,aarch64-apple-ios-sim,x86_64-apple-ios
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: . -> target
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Pin npm
+        run: npm install -g npm@${NPM_VERSION}
+
+      - name: Build iOS native artifacts
+        run: make native-ios
+
+      - name: Validate npm package contract
+        run: make publish-check-native
