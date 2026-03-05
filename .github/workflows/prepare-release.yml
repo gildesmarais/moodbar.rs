@@ -1,0 +1,55 @@
+name: prepare-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Semver bump type"
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compute next workspace version
+        id: next
+        run: |
+          RESULT="$(node scripts/bump-version.mjs --cargo Cargo.toml --bump ${{ inputs.bump }})"
+          CURRENT_VERSION="$(RESULT=\"$RESULT\" node -e 'const result = JSON.parse(process.env.RESULT); process.stdout.write(result.current)')"
+          NEXT_VERSION="$(RESULT=\"$RESULT\" node -e 'const result = JSON.parse(process.env.RESULT); process.stdout.write(result.next)')"
+          echo "current=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "next=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Computed next version: $NEXT_VERSION"
+
+      - name: Update workspace version in Cargo.toml
+        run: node scripts/bump-version.mjs --cargo Cargo.toml --bump ${{ inputs.bump }} --write true
+
+      - name: Create release prep pull request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: release/prepare-v${{ steps.next.outputs.next }}
+          commit-message: chore(release): bump workspace version to v${{ steps.next.outputs.next }}
+          title: chore(release): bump workspace version to v${{ steps.next.outputs.next }}
+          body: |
+            Automated release prep PR.
+
+            - Previous version: `${{ steps.next.outputs.current }}`
+            - Next version: `${{ steps.next.outputs.next }}`
+            - Bump type: `${{ inputs.bump }}`
+
+            Merge this PR, then create GitHub Release tag `v${{ steps.next.outputs.next }}`.
+          labels: |
+            semver:${{ inputs.bump }}

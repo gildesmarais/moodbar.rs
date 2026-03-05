@@ -87,6 +87,7 @@ python3 -m http.server
 
 - CI workflow (Rust core): `.github/workflows/rust-ci.yml`
 - CI workflow (WASM package): `.github/workflows/wasm-ci.yml`
+- Release prep workflow: `.github/workflows/prepare-release.yml` (`workflow_dispatch`; opens PR that bumps `Cargo.toml` version)
 - Release artifacts: `.github/workflows/release-build.yml` (Linux + macOS)
 - Artifact naming: `moodbar-<tag>-<target>.tar.gz`
 - npm release workflow: `.github/workflows/publish-wasm-npm.yml` (OIDC trusted publishing)
