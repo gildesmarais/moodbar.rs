@@ -2,6 +2,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { readWorkspaceVersion } from "./workspace-version.mjs";
 
 function parseArgs(argv) {
   const args = {};
@@ -19,23 +20,6 @@ function parseArgs(argv) {
     i += 1;
   }
   return args;
-}
-
-function readWorkspaceVersion(cargoTomlPath) {
-  const cargoToml = fs.readFileSync(cargoTomlPath, "utf8");
-  const sectionMatch = cargoToml.match(
-    /\[workspace\.package\]([\s\S]*?)(\n\[|$)/,
-  );
-  if (!sectionMatch) {
-    throw new Error(`Could not find [workspace.package] in ${cargoTomlPath}`);
-  }
-  const versionMatch = sectionMatch[1].match(/\bversion\s*=\s*"([^"]+)"/);
-  if (!versionMatch) {
-    throw new Error(
-      `Could not find workspace.package.version in ${cargoTomlPath}`,
-    );
-  }
-  return versionMatch[1];
 }
 
 function copyRequiredFile(src, dest) {

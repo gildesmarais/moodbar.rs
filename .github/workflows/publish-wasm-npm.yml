@@ -44,15 +44,7 @@ jobs:
 
       - name: Validate release tag matches workspace version
         run: |
-          WORKSPACE_VERSION="$(awk '
-            $0 ~ /^\[workspace\.package\]/ { in_ws=1; next }
-            $0 ~ /^\[/ && in_ws { in_ws=0 }
-            in_ws && $1 == "version" {
-              gsub(/"/, "", $3);
-              print $3;
-              exit
-            }
-          ' Cargo.toml)"
+          WORKSPACE_VERSION="$(node scripts/workspace-version.mjs Cargo.toml)"
           TAG_VERSION="${GITHUB_REF_NAME#v}"
           if [ -z "$WORKSPACE_VERSION" ]; then
             echo "Could not determine workspace version from Cargo.toml"
