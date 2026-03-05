@@ -25,6 +25,8 @@ categories:
 change-template: '- $TITLE (#$NUMBER) @$AUTHOR'
 change-title-escapes: '\\<*_&'
 template: |
+  > Release checklist: run the `prepare-release` workflow (`workflow_dispatch`) and merge its PR before publishing this release tag.
+
   ## Changes
 
   $CHANGES

@@ -1,0 +1,107 @@
+name: prepare-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Semver bump type"
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compute next workspace version
+        id: next
+        run: |
+          CURRENT_VERSION="$(node scripts/workspace-version.mjs Cargo.toml)"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+          case "${{ inputs.bump }}" in
+            major)
+              NEXT_VERSION="$((MAJOR + 1)).0.0"
+              ;;
+            minor)
+              NEXT_VERSION="${MAJOR}.$((MINOR + 1)).0"
+              ;;
+            patch)
+              NEXT_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
+              ;;
+            *)
+              echo "Unsupported bump type: ${{ inputs.bump }}"
+              exit 1
+              ;;
+          esac
+
+          echo "current=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "next=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Computed next version: $NEXT_VERSION"
+
+      - name: Update workspace version in Cargo.toml
+        env:
+          NEXT_VERSION: ${{ steps.next.outputs.next }}
+        run: |
+          node - <<'NODE'
+          const fs = require("node:fs");
+
+          const cargoTomlPath = "Cargo.toml";
+          const nextVersion = process.env.NEXT_VERSION;
+          if (!nextVersion) {
+            throw new Error("NEXT_VERSION is required");
+          }
+
+          const lines = fs.readFileSync(cargoTomlPath, "utf8").split(/\r?\n/);
+          const sectionHeader = "[workspace.package]";
+          const start = lines.findIndex((line) => line.trim() === sectionHeader);
+          if (start < 0) {
+            throw new Error("Could not find [workspace.package] section");
+          }
+
+          let replaced = false;
+          for (let i = start + 1; i < lines.length; i += 1) {
+            if (/^\s*\[[^\]]+\]\s*$/.test(lines[i])) {
+              break;
+            }
+            if (/^\s*version\s*=/.test(lines[i])) {
+              lines[i] = `version = "${nextVersion}"`;
+              replaced = true;
+              break;
+            }
+          }
+
+          if (!replaced) {
+            throw new Error("Could not find workspace.package.version line");
+          }
+
+          fs.writeFileSync(cargoTomlPath, `${lines.join("\n")}\n`, "utf8");
+          NODE
+
+      - name: Create release prep pull request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: release/prepare-v${{ steps.next.outputs.next }}
+          commit-message: chore(release): bump workspace version to v${{ steps.next.outputs.next }}
+          title: chore(release): bump workspace version to v${{ steps.next.outputs.next }}
+          body: |
+            Automated release prep PR.
+
+            - Previous version: `${{ steps.next.outputs.current }}`
+            - Next version: `${{ steps.next.outputs.next }}`
+            - Bump type: `${{ inputs.bump }}`
+
+            Merge this PR, then create GitHub Release tag `v${{ steps.next.outputs.next }}`.
+          labels: |
+            semver:patch
