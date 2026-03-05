@@ -6,8 +6,9 @@ public class MoodbarNativeModule: Module {
     Name("MoodbarNative")
 
     AsyncFunction("analyzeFromUri") { (uri: String, optionsJson: String?) throws -> [String: Any] in
+      let resolvedPath = try self.resolvePath(from: uri)
       var summary = MoodbarNativeAnalysisSummary(handle: 0, frame_count: 0, channel_count: 0)
-      let status = uri.withCString { pathPtr in
+      let status = resolvedPath.withCString { pathPtr in
         withOptionalCString(optionsJson) { optionsPtr in
           moodbar_native_analysis_from_path(pathPtr, optionsPtr, &summary)
         }
@@ -108,5 +109,21 @@ public class MoodbarNativeModule: Module {
       return Data()
     }
     return Data(bytes: ptr, count: buffer.len)
+  }
+
+  private func resolvePath(from uri: String) throws -> String {
+    guard let url = URL(string: uri), url.scheme != nil else {
+      return uri
+    }
+
+    if url.isFileURL {
+      return url.path
+    }
+
+    throw NSError(
+      domain: "MoodbarNative",
+      code: 4,
+      userInfo: [NSLocalizedDescriptionKey: "unsupported URI scheme for iOS: \(uri)"]
+    )
   }
 }

@@ -1,5 +1,6 @@
 package expo.modules.moodbarnative
 
+import android.net.Uri
 import android.util.Base64
 import expo.modules.kotlin.exception.CodedException
 import expo.modules.kotlin.modules.Module
@@ -11,7 +12,7 @@ class MoodbarNativeModule : Module() {
     Name("MoodbarNative")
 
     AsyncFunction("analyzeFromUri") { uri: String, optionsJson: String ->
-      val payload = parseResponse(NativeBridge.nativeAnalyzeFromUri(uri, optionsJson))
+      val payload = parseResponse(analyzeUri(uri, optionsJson))
       mapOf(
         "handle" to payload.getLong("handle"),
         "frameCount" to payload.getInt("frameCount"),
@@ -48,6 +49,35 @@ class MoodbarNativeModule : Module() {
       parseResponse(NativeBridge.nativeDisposeAnalysis(handle))
       null
     }
+  }
+
+  private fun analyzeUri(uri: String, optionsJson: String): String {
+    val parsed = Uri.parse(uri)
+    return when (parsed.scheme?.lowercase()) {
+      "content" -> {
+        val context = appContext.reactContext
+          ?: throw CodedException("ERR_CONTEXT_UNAVAILABLE", "React context is unavailable for content URI decode")
+        val bytes = context.contentResolver.openInputStream(parsed)?.use { it.readBytes() }
+          ?: throw CodedException("ERR_URI_READ_FAILED", "could not read content URI: $uri")
+        val extension = inferExtension(parsed)
+        NativeBridge.nativeAnalyzeFromBytes(bytes, extension, optionsJson)
+      }
+      "file" -> {
+        val path = parsed.path
+          ?: throw CodedException("ERR_INVALID_URI", "file URI is missing a path: $uri")
+        NativeBridge.nativeAnalyzeFromUri(path, optionsJson)
+      }
+      else -> NativeBridge.nativeAnalyzeFromUri(uri, optionsJson)
+    }
+  }
+
+  private fun inferExtension(uri: Uri): String? {
+    val segment = uri.lastPathSegment ?: return null
+    val idx = segment.lastIndexOf('.')
+    if (idx < 0 || idx == segment.length - 1) {
+      return null
+    }
+    return segment.substring(idx + 1).lowercase()
   }
 
   private fun parseResponse(raw: String): JSONObject {

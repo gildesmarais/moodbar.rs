@@ -24,3 +24,7 @@ const fromMemory = await generate(
   "png"
 );
 ```
+
+`analyze({ uri })` accepts:
+- iOS: file paths and `file://` URIs
+- Android: file paths, `file://` URIs, and `content://` URIs
