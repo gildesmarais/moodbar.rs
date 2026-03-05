@@ -156,6 +156,12 @@ Build tooling choices:
 - iOS static libs built per target via cargo + packaged into an `.xcframework` using `xcodebuild -create-xcframework`.
 - `cargo-ndk` for Android multi-ABI builds and JNI libs packaging.
 - `cargo-lipo` is not required when distributing `.xcframework`; prefer per-target archives + xcframework assembly.
+- Use a dedicated Cargo profile for mobile artifacts (`mobile-release`) with:
+  - `opt-level = "z"`
+  - `lto = true`
+  - `codegen-units = 1`
+  - `panic = "abort"`
+  - `strip = true`
 
 ## Implementation Phases
 
