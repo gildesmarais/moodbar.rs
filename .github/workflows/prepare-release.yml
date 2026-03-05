@@ -27,9 +27,9 @@ jobs:
       - name: Compute next workspace version
         id: next
         run: |
-          RESULT="$(node scripts/bump-version.mjs --cargo Cargo.toml --bump ${{ inputs.bump }})"
-          CURRENT_VERSION="$(RESULT=\"$RESULT\" node -e 'const result = JSON.parse(process.env.RESULT); process.stdout.write(result.current)')"
-          NEXT_VERSION="$(RESULT=\"$RESULT\" node -e 'const result = JSON.parse(process.env.RESULT); process.stdout.write(result.next)')"
+          export RESULT="$(node scripts/bump-version.mjs --cargo Cargo.toml --bump ${{ inputs.bump }})"
+          CURRENT_VERSION="$(node -e 'process.stdout.write(JSON.parse(process.env.RESULT).current)')"
+          NEXT_VERSION="$(node -e 'process.stdout.write(JSON.parse(process.env.RESULT).next)')"
           echo "current=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
           echo "next=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
           echo "Computed next version: $NEXT_VERSION"
