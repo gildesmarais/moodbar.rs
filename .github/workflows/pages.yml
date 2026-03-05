@@ -17,23 +17,27 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      WASM_PACK_VERSION: "0.13.1"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          node-version: "22"
+          targets: wasm32-unknown-unknown
 
-      - name: Download published WASM package for demo assets
-        run: |
-          rm -rf docs/assets/moodbar-wasm
-          mkdir -p docs/assets/moodbar-wasm
-          npm pack @moodbar/wasm@latest --silent
-          TARBALL="$(ls -t moodbar-wasm-*.tgz | head -n1)"
-          tar -xzf "$TARBALL" -C docs/assets/moodbar-wasm --strip-components=1 package/
-          rm -f "$TARBALL"
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: . -> target
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack --version ${WASM_PACK_VERSION} --locked
+
+      - name: Build docs WASM assets
+        run: make wasm-docs
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
