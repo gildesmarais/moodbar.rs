@@ -24,17 +24,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Compute next workspace version
+      - name: Bump workspace version
         id: next
-        run: |
-          export RESULT="$(node scripts/bump-version.mjs --cargo Cargo.toml --bump ${{ inputs.bump }})"
-          CURRENT_VERSION="$(node -e 'process.stdout.write(JSON.parse(process.env.RESULT).current)')"
-          NEXT_VERSION="$(node -e 'process.stdout.write(JSON.parse(process.env.RESULT).next)')"
-          echo "current=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
-          echo "next=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
-          echo "Computed next version: $NEXT_VERSION"
-
-      - name: Update workspace version in Cargo.toml
         run: node scripts/bump-version.mjs --cargo Cargo.toml --bump ${{ inputs.bump }} --write true
 
       - name: Create release prep pull request

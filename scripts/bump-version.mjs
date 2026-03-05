@@ -77,6 +77,13 @@ function main() {
     writeWorkspaceVersion(cargoTomlPath, next);
   }
 
+  if (process.env.GITHUB_OUTPUT) {
+    fs.appendFileSync(
+      process.env.GITHUB_OUTPUT,
+      `current=${current}\nnext=${next}\n`,
+    );
+  }
+
   process.stdout.write(
     `${JSON.stringify({ current, next, bump, wrote: write })}\n`,
   );
