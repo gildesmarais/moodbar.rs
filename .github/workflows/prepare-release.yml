@@ -41,8 +41,8 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           branch: release/prepare-v${{ steps.next.outputs.next }}
-          commit-message: chore(release): bump workspace version to v${{ steps.next.outputs.next }}
-          title: chore(release): bump workspace version to v${{ steps.next.outputs.next }}
+          commit-message: "chore(release): bump workspace version to v${{ steps.next.outputs.next }}"
+          title: "chore(release): bump workspace version to v${{ steps.next.outputs.next }}"
           body: |
             Automated release prep PR.
 
