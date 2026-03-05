@@ -13,13 +13,12 @@ on:
           - major
         default: patch
 
-permissions:
-  contents: write
-  pull-requests: write
-
 jobs:
   bump:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
 
     steps:
       - name: Checkout
@@ -28,66 +27,15 @@ jobs:
       - name: Compute next workspace version
         id: next
         run: |
-          CURRENT_VERSION="$(node scripts/workspace-version.mjs Cargo.toml)"
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
-          case "${{ inputs.bump }}" in
-            major)
-              NEXT_VERSION="$((MAJOR + 1)).0.0"
-              ;;
-            minor)
-              NEXT_VERSION="${MAJOR}.$((MINOR + 1)).0"
-              ;;
-            patch)
-              NEXT_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
-              ;;
-            *)
-              echo "Unsupported bump type: ${{ inputs.bump }}"
-              exit 1
-              ;;
-          esac
-
+          RESULT="$(node scripts/bump-version.mjs --cargo Cargo.toml --bump ${{ inputs.bump }})"
+          CURRENT_VERSION="$(RESULT=\"$RESULT\" node -e 'const result = JSON.parse(process.env.RESULT); process.stdout.write(result.current)')"
+          NEXT_VERSION="$(RESULT=\"$RESULT\" node -e 'const result = JSON.parse(process.env.RESULT); process.stdout.write(result.next)')"
           echo "current=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
           echo "next=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
           echo "Computed next version: $NEXT_VERSION"
 
       - name: Update workspace version in Cargo.toml
-        env:
-          NEXT_VERSION: ${{ steps.next.outputs.next }}
-        run: |
-          node - <<'NODE'
-          const fs = require("node:fs");
-
-          const cargoTomlPath = "Cargo.toml";
-          const nextVersion = process.env.NEXT_VERSION;
-          if (!nextVersion) {
-            throw new Error("NEXT_VERSION is required");
-          }
-
-          const lines = fs.readFileSync(cargoTomlPath, "utf8").split(/\r?\n/);
-          const sectionHeader = "[workspace.package]";
-          const start = lines.findIndex((line) => line.trim() === sectionHeader);
-          if (start < 0) {
-            throw new Error("Could not find [workspace.package] section");
-          }
-
-          let replaced = false;
-          for (let i = start + 1; i < lines.length; i += 1) {
-            if (/^\s*\[[^\]]+\]\s*$/.test(lines[i])) {
-              break;
-            }
-            if (/^\s*version\s*=/.test(lines[i])) {
-              lines[i] = `version = "${nextVersion}"`;
-              replaced = true;
-              break;
-            }
-          }
-
-          if (!replaced) {
-            throw new Error("Could not find workspace.package.version line");
-          }
-
-          fs.writeFileSync(cargoTomlPath, `${lines.join("\n")}\n`, "utf8");
-          NODE
+        run: node scripts/bump-version.mjs --cargo Cargo.toml --bump ${{ inputs.bump }} --write true
 
       - name: Create release prep pull request
         uses: peter-evans/create-pull-request@v6
@@ -104,4 +52,4 @@ jobs:
 
             Merge this PR, then create GitHub Release tag `v${{ steps.next.outputs.next }}`.
           labels: |
-            semver:patch
+            semver:${{ inputs.bump }}
