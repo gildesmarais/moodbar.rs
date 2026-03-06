@@ -5,22 +5,20 @@ import path from "node:path";
 import { parseArgs } from "./args.mjs";
 import { readWorkspaceVersion } from "./workspace-version.mjs";
 
-function copyRequiredFile(src, dest) {
-  if (!fs.existsSync(src)) {
-    throw new Error(`Required file missing: ${src}`);
+function ensureRequiredFile(filePath) {
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`Required file missing: ${filePath}`);
   }
-  fs.copyFileSync(src, dest);
 }
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const packageDir = args["package-dir"];
-  const readmePath = args.readme;
   const cargoTomlPath = args["workspace-cargo"] ?? "Cargo.toml";
 
-  if (!packageDir || !readmePath) {
+  if (!packageDir) {
     throw new Error(
-      "Usage: node scripts/prepare-native-package.mjs --package-dir <dir> --readme <md> [--workspace-cargo Cargo.toml]",
+      "Usage: node scripts/prepare-native-package.mjs --package-dir <dir> [--workspace-cargo Cargo.toml]",
     );
   }
 
@@ -35,9 +33,9 @@ function main() {
 
   fs.writeFileSync(packageJsonPath, `${JSON.stringify(pkg, null, 2)}\n`, "utf8");
 
-  copyRequiredFile(readmePath, path.join(packageDir, "README.md"));
-  copyRequiredFile("LICENSE-MIT", path.join(packageDir, "LICENSE-MIT"));
-  copyRequiredFile("LICENSE-APACHE", path.join(packageDir, "LICENSE-APACHE"));
+  ensureRequiredFile(path.join(packageDir, "README.md"));
+  fs.copyFileSync("LICENSE-MIT", path.join(packageDir, "LICENSE-MIT"));
+  fs.copyFileSync("LICENSE-APACHE", path.join(packageDir, "LICENSE-APACHE"));
 }
 
 main();

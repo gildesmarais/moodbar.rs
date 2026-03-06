@@ -7,7 +7,6 @@ WASM_NPM_REPOSITORY_URL := git+https://github.com/gildesmarais/moodbar.rs.git
 WASM_DEMO_PACKAGE_DIR := packages/moodbar-wasm
 NATIVE_NPM_PACKAGE_DIR := packages/moodbar-native
 NATIVE_NPM_REPOSITORY_URL := git+https://github.com/gildesmarais/moodbar.rs.git
-NATIVE_NPM_README := packages/moodbar-native/README.npm.md
 NPM_CACHE_DIR ?= .npm-cache
 
 help:
@@ -74,8 +73,7 @@ wasm-docs:
 
 native:
 	node scripts/prepare-native-package.mjs \
-		--package-dir $(NATIVE_NPM_PACKAGE_DIR) \
-		--readme $(NATIVE_NPM_README)
+		--package-dir $(NATIVE_NPM_PACKAGE_DIR)
 
 native-ios:
 	./scripts/build-native-ios.sh
