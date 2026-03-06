@@ -72,6 +72,8 @@ cargo run -p moodbar -- batch -i ./music -o ./moods --progress
 - `crates/moodbar-core`: decode, analysis, normalization, render primitives
 - `crates/moodbar-cli`: `generate`, `batch`, `inspect` commands
 - `crates/moodbar-wasm`: WebAssembly JS bindings for browser/Node usage
+- `examples/web-wasm`: minimal browser integration example
+- `examples/expo-native`: minimal Expo/React Native integration example
 - `tests/fixtures/legacy`: optional parity fixtures
 - `scripts/`: helper scripts
 
