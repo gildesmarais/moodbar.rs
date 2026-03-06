@@ -1,8 +1,8 @@
 .PHONY: help test test-core test-cli parity fmt lint check tdd tdd-core ci wasm publish-check-wasm wasm-docs native native-ios native-android publish-check-native
 
 WASM_NPM_PACKAGE_DIR := crates/moodbar-wasm/pkg
-WASM_NPM_TEMPLATE := crates/moodbar-wasm/package.npm.json
-WASM_NPM_README := crates/moodbar-wasm/README.npm.md
+WASM_NPM_PACKAGE_JSON_SOURCE := crates/moodbar-wasm/package.json
+WASM_NPM_README_SOURCE := crates/moodbar-wasm/README.md
 WASM_NPM_REPOSITORY_URL := git+https://github.com/gildesmarais/moodbar.rs.git
 WASM_DEMO_PACKAGE_DIR := packages/moodbar-wasm
 NATIVE_NPM_PACKAGE_DIR := packages/moodbar-native
@@ -54,8 +54,8 @@ wasm:
 	wasm-pack build crates/moodbar-wasm --release --target bundler
 	node scripts/prepare-npm-package.mjs \
 		--package-dir $(WASM_NPM_PACKAGE_DIR) \
-		--template $(WASM_NPM_TEMPLATE) \
-		--readme $(WASM_NPM_README)
+		--package-json-source $(WASM_NPM_PACKAGE_JSON_SOURCE) \
+		--readme-source $(WASM_NPM_README_SOURCE)
 	rm -rf $(WASM_DEMO_PACKAGE_DIR)
 	mkdir -p $(WASM_DEMO_PACKAGE_DIR)
 	cp -R $(WASM_NPM_PACKAGE_DIR)/. $(WASM_DEMO_PACKAGE_DIR)/

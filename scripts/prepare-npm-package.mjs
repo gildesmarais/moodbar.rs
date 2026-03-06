@@ -15,13 +15,13 @@ function copyRequiredFile(src, dest) {
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const packageDir = args["package-dir"];
-  const templatePath = args.template;
-  const readmePath = args.readme;
+  const packageJsonSourcePath = args["package-json-source"];
+  const readmeSourcePath = args["readme-source"];
   const cargoTomlPath = args["workspace-cargo"] ?? "Cargo.toml";
 
-  if (!packageDir || !templatePath || !readmePath) {
+  if (!packageDir || !packageJsonSourcePath || !readmeSourcePath) {
     throw new Error(
-      "Usage: node scripts/prepare-npm-package.mjs --package-dir <dir> --template <json> --readme <md> [--workspace-cargo Cargo.toml]",
+      "Usage: node scripts/prepare-npm-package.mjs --package-dir <dir> --package-json-source <json> --readme-source <md> [--workspace-cargo Cargo.toml]",
     );
   }
 
@@ -34,10 +34,12 @@ function main() {
 
   const version = readWorkspaceVersion(cargoTomlPath);
   const generatedPackage = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
-  const template = JSON.parse(fs.readFileSync(templatePath, "utf8"));
+  const packageSource = JSON.parse(
+    fs.readFileSync(packageJsonSourcePath, "utf8"),
+  );
   const mergedPackage = {
     ...generatedPackage,
-    ...template,
+    ...packageSource,
     version,
   };
 
@@ -47,7 +49,7 @@ function main() {
     "utf8",
   );
 
-  copyRequiredFile(readmePath, path.join(packageDir, "README.md"));
+  copyRequiredFile(readmeSourcePath, path.join(packageDir, "README.md"));
   copyRequiredFile("LICENSE-MIT", path.join(packageDir, "LICENSE-MIT"));
   copyRequiredFile("LICENSE-APACHE", path.join(packageDir, "LICENSE-APACHE"));
 }
