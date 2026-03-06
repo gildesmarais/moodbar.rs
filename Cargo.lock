@@ -555,6 +555,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "moodbar-analysis"
+version = "0.2.0"
+dependencies = [
+ "anyhow",
+ "image",
+ "num-complex",
+ "rustfft",
+ "serde",
+ "serde_json",
+ "symphonia",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "moodbar-bindings-schema"
+version = "0.2.0"
+dependencies = [
+ "moodbar-analysis",
+ "serde",
+]
+
+[[package]]
 name = "moodbar-core"
 version = "0.2.0"
 dependencies = [
@@ -569,6 +591,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "moodbar-decode"
+version = "0.2.0"
+dependencies = [
+ "moodbar-analysis",
+ "symphonia",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "moodbar-native-ffi"
 version = "0.2.0"
 dependencies = [
@@ -576,7 +607,9 @@ dependencies = [
  "base64",
  "cbindgen",
  "jni",
- "moodbar-core",
+ "moodbar-analysis",
+ "moodbar-bindings-schema",
+ "moodbar-decode",
  "once_cell",
  "serde",
  "serde_json",
@@ -587,7 +620,8 @@ dependencies = [
 name = "moodbar-wasm"
 version = "0.2.0"
 dependencies = [
- "moodbar-core",
+ "moodbar-analysis",
+ "moodbar-bindings-schema",
  "serde",
  "serde-wasm-bindgen",
  "wasm-bindgen",

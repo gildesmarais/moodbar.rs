@@ -12,7 +12,9 @@ crate-type = ["staticlib", "cdylib"]
 
 [dependencies]
 base64.workspace = true
-moodbar-core = { path = "../moodbar-core", features = ["decode", "png"] }
+moodbar-analysis = { path = "../moodbar-analysis", features = ["png"] }
+moodbar-bindings-schema = { path = "../moodbar-bindings-schema" }
+moodbar-decode = { path = "../moodbar-decode" }
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true

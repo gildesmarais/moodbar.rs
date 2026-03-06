@@ -5,10 +5,14 @@ use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 
-use moodbar_core::{
-    analyze_bytes, analyze_path, render_png, render_svg, DetectionMode, GenerateOptions,
-    MoodbarAnalysis, MoodbarError, NormalizeMode, PngOptions, SvgOptions, SvgShape,
+use moodbar_analysis::{
+    render_png, render_svg, GenerateOptions, MoodbarAnalysis, MoodbarError, PngOptions, SvgOptions,
 };
+use moodbar_bindings_schema::{
+    apply_generate_patch, apply_png_patch, apply_svg_patch, GenerateOptionsPatch, PngOptionsPatch,
+    SvgOptionsPatch,
+};
+use moodbar_decode::{analyze_bytes, analyze_path, MoodbarDecodeError};
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 use thiserror::Error;
@@ -53,17 +57,22 @@ impl MoodbarNativeStatus {
         match err {
             FfiError::InvalidArgument(_) => Self::InvalidArgument,
             FfiError::NotFound(_) => Self::NotFound,
-            FfiError::Core(core_err) => match core_err {
-                MoodbarError::NoAudioTrack | MoodbarError::EmptyAudio => Self::InvalidArgument,
-                MoodbarError::InvalidOptions(_) => Self::InvalidArgument,
-                MoodbarError::Io(io_err) => {
+            FfiError::Decode(decode_err) => match decode_err {
+                MoodbarDecodeError::NoAudioTrack
+                | MoodbarDecodeError::EmptyAudio
+                | MoodbarDecodeError::InvalidOptions(_) => Self::InvalidArgument,
+                MoodbarDecodeError::Io(io_err) => {
                     if io_err.kind() == std::io::ErrorKind::NotFound {
                         Self::NotFound
                     } else {
                         Self::Internal
                     }
                 }
-                MoodbarError::Decode(_) | MoodbarError::Image(_) => Self::Internal,
+                MoodbarDecodeError::Decode(_) => Self::Internal,
+            },
+            FfiError::Analysis(analysis_err) => match analysis_err {
+                MoodbarError::InvalidOptions(_) => Self::InvalidArgument,
+                MoodbarError::Image(_) => Self::Internal,
             },
             FfiError::Poisoned | FfiError::Panic | FfiError::Utf8 | FfiError::Json(_) => {
                 Self::Internal
@@ -79,7 +88,9 @@ enum FfiError {
     #[error("not found: {0}")]
     NotFound(String),
     #[error(transparent)]
-    Core(#[from] MoodbarError),
+    Decode(#[from] MoodbarDecodeError),
+    #[error(transparent)]
+    Analysis(#[from] MoodbarError),
     #[error("mutex poisoned")]
     Poisoned,
     #[error("panic across FFI boundary")]
@@ -98,151 +109,24 @@ thread_local! {
     static LAST_ERROR: RefCell<String> = const { RefCell::new(String::new()) };
 }
 
-#[derive(Default, Deserialize)]
-#[serde(default)]
-struct GenerateOptionsInput {
-    fft_size: Option<usize>,
-    low_cut_hz: Option<f32>,
-    mid_cut_hz: Option<f32>,
-    normalize_mode: Option<NormalizeModeInput>,
-    deterministic_floor: Option<f64>,
-    detection_mode: Option<DetectionModeInput>,
-    frames_per_color: Option<usize>,
-    band_edges_hz: Option<Vec<f32>>,
-}
-
-#[derive(Default, Deserialize)]
-#[serde(default)]
-struct SvgOptionsInput {
-    width: Option<u32>,
-    height: Option<u32>,
-    shape: Option<SvgShapeInput>,
-    background: Option<String>,
-    max_gradient_stops: Option<usize>,
-}
-
-#[derive(Default, Deserialize)]
-#[serde(default)]
-struct PngOptionsInput {
-    width: Option<u32>,
-    height: Option<u32>,
-    shape: Option<SvgShapeInput>,
-}
-
-#[derive(Deserialize)]
-enum NormalizeModeInput {
-    PerChannelPeak,
-    GlobalPeak,
-}
-
-#[derive(Deserialize)]
-enum DetectionModeInput {
-    SpectralEnergy,
-    SpectralFlux,
-}
-
-#[derive(Deserialize)]
-enum SvgShapeInput {
-    Strip,
-    Waveform,
-}
-
-impl From<NormalizeModeInput> for NormalizeMode {
-    fn from(value: NormalizeModeInput) -> Self {
-        match value {
-            NormalizeModeInput::PerChannelPeak => NormalizeMode::PerChannelPeak,
-            NormalizeModeInput::GlobalPeak => NormalizeMode::GlobalPeak,
-        }
-    }
-}
-
-impl From<DetectionModeInput> for DetectionMode {
-    fn from(value: DetectionModeInput) -> Self {
-        match value {
-            DetectionModeInput::SpectralEnergy => DetectionMode::SpectralEnergy,
-            DetectionModeInput::SpectralFlux => DetectionMode::SpectralFlux,
-        }
-    }
-}
-
-impl From<SvgShapeInput> for SvgShape {
-    fn from(value: SvgShapeInput) -> Self {
-        match value {
-            SvgShapeInput::Strip => SvgShape::Strip,
-            SvgShapeInput::Waveform => SvgShape::Waveform,
-        }
-    }
-}
-
 fn parse_generate_options(options_json: *const c_char) -> Result<GenerateOptions, FfiError> {
-    let input: GenerateOptionsInput = parse_optional_json(options_json)?;
+    let input: GenerateOptionsPatch = parse_optional_json(options_json)?;
     let mut options = GenerateOptions::default();
-
-    if let Some(v) = input.fft_size {
-        options.fft_size = v;
-    }
-    if let Some(v) = input.low_cut_hz {
-        options.low_cut_hz = v;
-    }
-    if let Some(v) = input.mid_cut_hz {
-        options.mid_cut_hz = v;
-    }
-    if let Some(v) = input.normalize_mode {
-        options.normalize_mode = v.into();
-    }
-    if let Some(v) = input.deterministic_floor {
-        options.deterministic_floor = v;
-    }
-    if let Some(v) = input.detection_mode {
-        options.detection_mode = v.into();
-    }
-    if let Some(v) = input.frames_per_color {
-        options.frames_per_color = v;
-    }
-    if let Some(v) = input.band_edges_hz {
-        options.band_edges_hz = v;
-    }
-
+    apply_generate_patch(&mut options, input);
     Ok(options)
 }
 
 fn parse_svg_options(options_json: *const c_char) -> Result<SvgOptions, FfiError> {
-    let input: SvgOptionsInput = parse_optional_json(options_json)?;
+    let input: SvgOptionsPatch = parse_optional_json(options_json)?;
     let mut options = SvgOptions::default();
-
-    if let Some(v) = input.width {
-        options.width = v;
-    }
-    if let Some(v) = input.height {
-        options.height = v;
-    }
-    if let Some(v) = input.shape {
-        options.shape = v.into();
-    }
-    if let Some(v) = input.max_gradient_stops {
-        options.max_gradient_stops = v;
-    }
-    if let Some(v) = input.background {
-        options.background = parse_svg_background(&v)?;
-    }
-
+    apply_svg_patch(&mut options, input).map_err(FfiError::InvalidArgument)?;
     Ok(options)
 }
 
 fn parse_png_options(options_json: *const c_char) -> Result<PngOptions, FfiError> {
-    let input: PngOptionsInput = parse_optional_json(options_json)?;
+    let input: PngOptionsPatch = parse_optional_json(options_json)?;
     let mut options = PngOptions::default();
-
-    if let Some(v) = input.width {
-        options.width = v;
-    }
-    if let Some(v) = input.height {
-        options.height = v;
-    }
-    if let Some(v) = input.shape {
-        options.shape = v.into();
-    }
-
+    apply_png_patch(&mut options, input);
     Ok(options)
 }
 
@@ -264,18 +148,6 @@ where
 
     let text = raw.to_str().map_err(|_| FfiError::Utf8)?;
     serde_json::from_str(text).map_err(|e| FfiError::Json(e.to_string()))
-}
-
-fn parse_svg_background(background: &str) -> Result<&'static str, FfiError> {
-    match background {
-        "transparent" => Ok("transparent"),
-        "black" => Ok("black"),
-        "white" => Ok("white"),
-        "none" => Ok("none"),
-        other => Err(FfiError::InvalidArgument(format!(
-            "unsupported background {other}; use transparent, black, white, or none"
-        ))),
-    }
 }
 
 fn require_c_string<'a>(ptr: *const c_char, name: &str) -> Result<&'a str, FfiError> {

@@ -1,5 +1,8 @@
 [workspace]
 members = [
+  "crates/moodbar-analysis",
+  "crates/moodbar-bindings-schema",
+  "crates/moodbar-decode",
   "crates/moodbar-core",
   "crates/moodbar-cli",
   "crates/moodbar-wasm",
