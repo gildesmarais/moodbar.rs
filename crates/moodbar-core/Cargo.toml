@@ -22,3 +22,5 @@ image = { workspace = true, optional = true }
 anyhow.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+image.workspace = true
+moodbar-analysis = { path = "../moodbar-analysis", default-features = false, features = ["png"] }

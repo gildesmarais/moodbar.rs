@@ -582,6 +582,7 @@ version = "0.2.0"
 dependencies = [
  "anyhow",
  "image",
+ "moodbar-analysis",
  "num-complex",
  "rustfft",
  "serde",
