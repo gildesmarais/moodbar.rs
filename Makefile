@@ -6,6 +6,8 @@ WASM_NPM_README_SOURCE := crates/moodbar-wasm/README.md
 WASM_NPM_REPOSITORY_URL := git+https://github.com/gildesmarais/moodbar.rs.git
 WASM_DEMO_PACKAGE_DIR := packages/moodbar-wasm
 NATIVE_NPM_PACKAGE_DIR := packages/moodbar-native
+NATIVE_NPM_PACKAGE_JSON_SOURCE := packages/moodbar-native/package.json
+NATIVE_NPM_README_SOURCE := packages/moodbar-native/README.md
 NATIVE_NPM_REPOSITORY_URL := git+https://github.com/gildesmarais/moodbar.rs.git
 NPM_CACHE_DIR ?= .npm-cache
 
@@ -52,7 +54,7 @@ ci: check
 
 wasm:
 	wasm-pack build crates/moodbar-wasm --release --target bundler
-	node scripts/prepare-npm-package.mjs \
+	node scripts/prepare-package.mjs \
 		--package-dir $(WASM_NPM_PACKAGE_DIR) \
 		--package-json-source $(WASM_NPM_PACKAGE_JSON_SOURCE) \
 		--readme-source $(WASM_NPM_README_SOURCE)
@@ -72,8 +74,10 @@ wasm-docs:
 	wasm-pack build crates/moodbar-wasm --release --target web --out-dir ../../docs/assets/moodbar-wasm
 
 native:
-	node scripts/prepare-native-package.mjs \
-		--package-dir $(NATIVE_NPM_PACKAGE_DIR)
+	node scripts/prepare-package.mjs \
+		--package-dir $(NATIVE_NPM_PACKAGE_DIR) \
+		--package-json-source $(NATIVE_NPM_PACKAGE_JSON_SOURCE) \
+		--readme-source $(NATIVE_NPM_README_SOURCE)
 
 native-ios:
 	./scripts/build-native-ios.sh

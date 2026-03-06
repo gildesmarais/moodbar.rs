@@ -22,7 +22,7 @@ Constraints for `@moodbar/native` v1:
   - `decode` (`symphonia`) and `png` (`image`) are optional features.
 - WASM packaging flow already exists:
   - `make wasm`, `make publish-check-wasm`
-  - `scripts/prepare-npm-package.mjs`, `scripts/verify-npm-package.mjs`
+  - `scripts/prepare-package.mjs`, `scripts/verify-npm-package.mjs`
   - CI workflows for wasm package validation and npm publish.
 - Existing `docs/plans/wasm-and-native-plan.md` was based on `napi-rs` for RN, which is not the preferred Expo-compatible RN approach.
 
