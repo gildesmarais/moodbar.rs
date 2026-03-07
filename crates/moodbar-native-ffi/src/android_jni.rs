@@ -1,4 +1,5 @@
 use crate::MoodbarNativeBuffer;
+use crate::MoodbarNativeStatus;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
 use jni::objects::{JByteArray, JClass, JObject, JString};
@@ -50,12 +51,12 @@ fn status_message(mut buffer: MoodbarNativeBuffer) -> String {
     message
 }
 
-fn last_error_json() -> serde_json::Value {
+fn last_error_json(original_status: MoodbarNativeStatus) -> serde_json::Value {
     let mut buffer = MoodbarNativeBuffer::empty();
-    let status = crate::moodbar_native_last_error(&mut buffer);
+    let _ = crate::moodbar_native_last_error(&mut buffer);
     json!({
         "ok": false,
-        "status": status as i32,
+        "status": original_status as i32,
         "error": status_message(buffer),
     })
 }
@@ -112,7 +113,7 @@ pub extern "system" fn Java_expo_modules_moodbarnative_NativeBridge_nativeAnalyz
     let status =
         crate::moodbar_native_analysis_from_path(path.as_ptr(), opts.as_ptr(), &mut summary);
     if (status as i32) != 0 {
-        return response(&mut env, last_error_json());
+        return response(&mut env, last_error_json(status));
     }
 
     response(
@@ -184,7 +185,7 @@ pub extern "system" fn Java_expo_modules_moodbarnative_NativeBridge_nativeAnalyz
         &mut summary,
     );
     if (status as i32) != 0 {
-        return response(&mut env, last_error_json());
+        return response(&mut env, last_error_json(status));
     }
 
     response(
@@ -222,7 +223,7 @@ pub extern "system" fn Java_expo_modules_moodbarnative_NativeBridge_nativeRender
     let mut out = MoodbarNativeBuffer::empty();
     let status = crate::moodbar_native_render_svg(handle as u64, opts.as_ptr(), &mut out);
     if (status as i32) != 0 {
-        return response(&mut env, last_error_json());
+        return response(&mut env, last_error_json(status));
     }
 
     let svg = status_message(out);
@@ -253,7 +254,7 @@ pub extern "system" fn Java_expo_modules_moodbarnative_NativeBridge_nativeRender
     let mut out = MoodbarNativeBuffer::empty();
     let status = crate::moodbar_native_render_png(handle as u64, opts.as_ptr(), &mut out);
     if (status as i32) != 0 {
-        return response(&mut env, last_error_json());
+        return response(&mut env, last_error_json(status));
     }
 
     let encoded = if out.ptr.is_null() || out.len == 0 {
@@ -276,7 +277,7 @@ pub extern "system" fn Java_expo_modules_moodbarnative_NativeBridge_nativeDispos
 ) -> jstring {
     let status = crate::moodbar_native_analysis_dispose(handle as u64);
     if (status as i32) != 0 {
-        return response(&mut env, last_error_json());
+        return response(&mut env, last_error_json(status));
     }
     response(&mut env, json!({"ok": true}))
 }

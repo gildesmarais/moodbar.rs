@@ -13,7 +13,8 @@ fn main() {
         .with_crate(&crate_dir)
         .with_config(config);
 
-    if let Ok(bindings) = builder.generate() {
-        let _ = bindings.write_to_file(out_file);
-    }
+    let bindings = builder
+        .generate()
+        .expect("cbindgen failed to generate bindings");
+    let _changed = bindings.write_to_file(&out_file);
 }
