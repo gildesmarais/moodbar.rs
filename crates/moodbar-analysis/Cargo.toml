@@ -1,13 +1,14 @@
 [package]
-name = "moodbar-core"
+name = "moodbar-analysis"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
+description = "Core moodbar DSP analysis and rendering primitives"
 
 [features]
-default = ["decode", "png"]
+default = ["png"]
 decode = ["dep:symphonia"]
 png = ["dep:image"]
 
@@ -15,12 +16,10 @@ png = ["dep:image"]
 num-complex.workspace = true
 rustfft.workspace = true
 thiserror.workspace = true
-symphonia = { workspace = true, optional = true }
 image = { workspace = true, optional = true }
+symphonia = { workspace = true, optional = true }
 
 [dev-dependencies]
 anyhow.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-image.workspace = true
-moodbar-analysis = { path = "../moodbar-analysis", default-features = false, features = ["png"] }

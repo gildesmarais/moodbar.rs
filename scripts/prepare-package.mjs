@@ -12,42 +12,43 @@ function copyRequiredFile(src, dest) {
   fs.copyFileSync(src, dest);
 }
 
+function readJson(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+}
+
+function writeJson(filePath, value) {
+  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const packageDir = args["package-dir"];
-  const templatePath = args.template;
-  const readmePath = args.readme;
+  const packageJsonSourcePath = args["package-json-source"];
+  const readmeSourcePath = args["readme-source"];
   const cargoTomlPath = args["workspace-cargo"] ?? "Cargo.toml";
 
-  if (!packageDir || !templatePath || !readmePath) {
+  if (!packageDir || !packageJsonSourcePath || !readmeSourcePath) {
     throw new Error(
-      "Usage: node scripts/prepare-npm-package.mjs --package-dir <dir> --template <json> --readme <md> [--workspace-cargo Cargo.toml]",
+      "Usage: node scripts/prepare-package.mjs --package-dir <dir> --package-json-source <json> --readme-source <md> [--workspace-cargo Cargo.toml]",
     );
   }
 
   const packageJsonPath = path.join(packageDir, "package.json");
   if (!fs.existsSync(packageJsonPath)) {
-    throw new Error(
-      `Missing generated package at ${packageJsonPath}. Build package first.`,
-    );
+    throw new Error(`Missing package.json at ${packageJsonPath}`);
   }
 
   const version = readWorkspaceVersion(cargoTomlPath);
-  const generatedPackage = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
-  const template = JSON.parse(fs.readFileSync(templatePath, "utf8"));
+  const generatedPackage = readJson(packageJsonPath);
+  const packageSource = readJson(packageJsonSourcePath);
   const mergedPackage = {
     ...generatedPackage,
-    ...template,
+    ...packageSource,
     version,
   };
 
-  fs.writeFileSync(
-    packageJsonPath,
-    `${JSON.stringify(mergedPackage, null, 2)}\n`,
-    "utf8",
-  );
-
-  copyRequiredFile(readmePath, path.join(packageDir, "README.md"));
+  writeJson(packageJsonPath, mergedPackage);
+  copyRequiredFile(readmeSourcePath, path.join(packageDir, "README.md"));
   copyRequiredFile("LICENSE-MIT", path.join(packageDir, "LICENSE-MIT"));
   copyRequiredFile("LICENSE-APACHE", path.join(packageDir, "LICENSE-APACHE"));
 }

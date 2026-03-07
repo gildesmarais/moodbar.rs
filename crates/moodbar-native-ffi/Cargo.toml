@@ -1,0 +1,30 @@
+[package]
+name = "moodbar-native-ffi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Native FFI bridge for moodbar mobile bindings"
+
+[lib]
+crate-type = ["staticlib", "cdylib"]
+
+[dependencies]
+base64.workspace = true
+moodbar-analysis = { path = "../moodbar-analysis", features = ["png"] }
+moodbar-bindings-schema = { path = "../moodbar-bindings-schema" }
+moodbar-decode = { path = "../moodbar-decode" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+once_cell.workspace = true
+
+[target.'cfg(target_os = "android")'.dependencies]
+jni.workspace = true
+
+[dev-dependencies]
+anyhow.workspace = true
+
+[build-dependencies]
+cbindgen.workspace = true

@@ -1,8 +1,12 @@
 [workspace]
 members = [
+  "crates/moodbar-analysis",
+  "crates/moodbar-bindings-schema",
+  "crates/moodbar-decode",
   "crates/moodbar-core",
   "crates/moodbar-cli",
   "crates/moodbar-wasm",
+  "crates/moodbar-native-ffi",
 ]
 resolver = "2"
 
@@ -40,4 +44,14 @@ symphonia = { version = "0.5", features = [
 wasm-bindgen = "0.2"
 serde-wasm-bindgen = "0.6"
 wasm-bindgen-test = "0.3"
+base64 = "0.22"
+jni = "0.21"
+cbindgen = "0.27"
+once_cell = "1.21"
 
+[profile.mobile-release]
+inherits = "release"
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
