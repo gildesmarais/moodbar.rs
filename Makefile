@@ -87,28 +87,28 @@ native-android:
 	./scripts/build-native-android.sh
 	$(MAKE) native
 
-publish-check-native: native
+publish-check-native: native-ios native-android
 	node scripts/verify-npm-package.mjs \
 		--package-dir $(NATIVE_NPM_PACKAGE_DIR) \
 		--expected-name @moodbar/native \
 		--expected-repository-url $(NATIVE_NPM_REPOSITORY_URL) \
-		--required-files README.md,LICENSE-MIT,LICENSE-APACHE,index.js,index.d.ts,expo-module.config.json,moodbar-native.podspec,package.json,ios/MoodbarNativeFFI.xcframework,android/src/main/jniLibs
+		--required-files README.md,LICENSE-MIT,LICENSE-APACHE,index.js,index.d.ts,expo-module.config.json,moodbar-native.podspec,package.json,ios/MoodbarNativeFFI.xcframework/ios-arm64/libmoodbar_native_ffi.a,ios/MoodbarNativeFFI.xcframework/ios-arm64_x86_64-simulator/libmoodbar_native_ffi_simulator.a,android/src/main/jniLibs/arm64-v8a/libmoodbar_native_ffi.so,android/src/main/jniLibs/armeabi-v7a/libmoodbar_native_ffi.so,android/src/main/jniLibs/x86/libmoodbar_native_ffi.so,android/src/main/jniLibs/x86_64/libmoodbar_native_ffi.so
 	npm pack ./$(NATIVE_NPM_PACKAGE_DIR) --dry-run --json --cache $(NPM_CACHE_DIR)
 
-publish-check-native-ios: native
+publish-check-native-ios: native-ios
 	node scripts/verify-npm-package.mjs \
 		--package-dir $(NATIVE_NPM_PACKAGE_DIR) \
 		--expected-name @moodbar/native \
 		--expected-repository-url $(NATIVE_NPM_REPOSITORY_URL) \
-		--required-files README.md,LICENSE-MIT,LICENSE-APACHE,index.js,index.d.ts,expo-module.config.json,moodbar-native.podspec,package.json,ios/MoodbarNativeFFI.xcframework
+		--required-files README.md,LICENSE-MIT,LICENSE-APACHE,index.js,index.d.ts,expo-module.config.json,moodbar-native.podspec,package.json,ios/MoodbarNativeFFI.xcframework/ios-arm64/libmoodbar_native_ffi.a,ios/MoodbarNativeFFI.xcframework/ios-arm64_x86_64-simulator/libmoodbar_native_ffi_simulator.a
 	npm pack ./$(NATIVE_NPM_PACKAGE_DIR) --dry-run --json --cache $(NPM_CACHE_DIR)
 
-publish-check-native-android: native
+publish-check-native-android: native-android
 	node scripts/verify-npm-package.mjs \
 		--package-dir $(NATIVE_NPM_PACKAGE_DIR) \
 		--expected-name @moodbar/native \
 		--expected-repository-url $(NATIVE_NPM_REPOSITORY_URL) \
-		--required-files README.md,LICENSE-MIT,LICENSE-APACHE,index.js,index.d.ts,expo-module.config.json,moodbar-native.podspec,package.json,android/src/main/jniLibs
+		--required-files README.md,LICENSE-MIT,LICENSE-APACHE,index.js,index.d.ts,expo-module.config.json,moodbar-native.podspec,package.json,android/src/main/jniLibs/arm64-v8a/libmoodbar_native_ffi.so,android/src/main/jniLibs/armeabi-v7a/libmoodbar_native_ffi.so,android/src/main/jniLibs/x86/libmoodbar_native_ffi.so,android/src/main/jniLibs/x86_64/libmoodbar_native_ffi.so
 	npm pack ./$(NATIVE_NPM_PACKAGE_DIR) --dry-run --json --cache $(NPM_CACHE_DIR)
 
 # TDD loop: automatically reruns tests when files change if cargo-watch is installed.
