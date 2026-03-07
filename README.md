@@ -88,7 +88,7 @@ python3 -m http.server
 ## React Native Package
 
 `@moodbar/native` ships Expo-compatible native bindings for iOS + Android.
-Native artifacts are built with the Cargo `mobile-release` profile (`opt-level=z`, `lto`, `strip`, `panic=abort`) to reduce binary size.
+Native artifacts are built with the Cargo `mobile-release` profile (`opt-level=z`, `lto`, `strip`) to reduce binary size.
 
 ```bash
 # prepare npm metadata/assets

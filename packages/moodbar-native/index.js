@@ -24,11 +24,11 @@ class NativeAnalysis {
     if (this.disposed) {
       return;
     }
-    await Native.disposeAnalysis(this.__nativeHandle);
     this.disposed = true;
     if (finalizer) {
       finalizer.unregister(this);
     }
+    await Native.disposeAnalysis(this.__nativeHandle);
   }
 }
 

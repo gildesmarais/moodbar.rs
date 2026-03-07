@@ -16,5 +16,9 @@ fn main() {
     let bindings = builder
         .generate()
         .expect("cbindgen failed to generate bindings");
-    let _changed = bindings.write_to_file(&out_file);
+    assert!(
+        bindings.write_to_file(&out_file) || out_file.is_file(),
+        "cbindgen failed to write header to {}",
+        out_file.display()
+    );
 }

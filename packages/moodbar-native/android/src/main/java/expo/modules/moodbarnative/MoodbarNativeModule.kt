@@ -67,7 +67,10 @@ class MoodbarNativeModule : Module() {
           ?: throw CodedException("ERR_INVALID_URI", "file URI is missing a path: $uri")
         NativeBridge.nativeAnalyzeFromUri(path, optionsJson)
       }
-      else -> NativeBridge.nativeAnalyzeFromUri(uri, optionsJson)
+      else -> throw CodedException(
+        "ERR_UNSUPPORTED_URI_SCHEME",
+        "unsupported URI scheme '${parsed.scheme}': only file:// and content:// are supported on Android"
+      )
     }
   }
 

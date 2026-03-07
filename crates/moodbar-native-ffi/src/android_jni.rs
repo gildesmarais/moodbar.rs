@@ -32,9 +32,15 @@ fn optional_rust_string(
 
 fn response(env: &mut JNIEnv<'_>, value: serde_json::Value) -> jstring {
     let text = value.to_string();
-    match env.new_string(text) {
+    match env.new_string(&text) {
         Ok(s) => s.into_raw(),
-        Err(_) => std::ptr::null_mut(),
+        Err(e) => {
+            let _ = env.throw_new(
+                "java/lang/OutOfMemoryError",
+                format!("moodbar: failed to allocate JNI response string: {e}"),
+            );
+            std::ptr::null_mut()
+        }
     }
 }
 
