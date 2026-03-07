@@ -6,7 +6,10 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
       - "Makefile"
+      - "crates/moodbar-analysis/**"
+      - "crates/moodbar-bindings-schema/**"
       - "crates/moodbar-core/**"
+      - "crates/moodbar-decode/**"
       - "crates/moodbar-native-ffi/**"
       - "packages/moodbar-native/**"
       - "scripts/**"
@@ -16,7 +19,10 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
       - "Makefile"
+      - "crates/moodbar-analysis/**"
+      - "crates/moodbar-bindings-schema/**"
       - "crates/moodbar-core/**"
+      - "crates/moodbar-decode/**"
       - "crates/moodbar-native-ffi/**"
       - "packages/moodbar-native/**"
       - "scripts/**"
@@ -68,7 +74,7 @@ jobs:
         run: make native-android
 
       - name: Validate npm package contract
-        run: make publish-check-native
+        run: make publish-check-native-android
 
   ios:
     runs-on: macos-latest
@@ -102,4 +108,4 @@ jobs:
         run: make native-ios
 
       - name: Validate npm package contract
-        run: make publish-check-native
+        run: make publish-check-native-ios

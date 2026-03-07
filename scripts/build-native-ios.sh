@@ -23,9 +23,17 @@ mkdir -p "$OUT_DIR/include"
 cp "$HEADER_SRC" "$OUT_DIR/include/moodbar_native_ffi.h"
 
 rm -rf "$OUT_DIR/MoodbarNativeFFI.xcframework"
+SIM_LIB="$OUT_DIR/libmoodbar_native_ffi_simulator.a"
+rm -f "$SIM_LIB"
+
+lipo -create \
+  "$ROOT_DIR/target/aarch64-apple-ios-sim/$BUILD_PROFILE/$CRATE_LIB" \
+  "$ROOT_DIR/target/x86_64-apple-ios/$BUILD_PROFILE/$CRATE_LIB" \
+  -output "$SIM_LIB"
 
 xcodebuild -create-xcframework \
   -library "$ROOT_DIR/target/aarch64-apple-ios/$BUILD_PROFILE/$CRATE_LIB" -headers "$OUT_DIR/include" \
-  -library "$ROOT_DIR/target/aarch64-apple-ios-sim/$BUILD_PROFILE/$CRATE_LIB" -headers "$OUT_DIR/include" \
-  -library "$ROOT_DIR/target/x86_64-apple-ios/$BUILD_PROFILE/$CRATE_LIB" -headers "$OUT_DIR/include" \
+  -library "$SIM_LIB" -headers "$OUT_DIR/include" \
   -output "$OUT_DIR/MoodbarNativeFFI.xcframework"
+
+rm -f "$SIM_LIB"

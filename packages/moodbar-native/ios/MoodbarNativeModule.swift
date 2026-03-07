@@ -46,11 +46,11 @@ public class MoodbarNativeModule: Module {
 
     AsyncFunction("renderSvg") { (handle: UInt64, optionsJson: String?) throws -> String in
       var out = MoodbarNativeBuffer(ptr: nil, len: 0, cap: 0)
+      defer { moodbar_native_buffer_free(&out) }
       let status = withOptionalCString(optionsJson) { optionsPtr in
         moodbar_native_render_svg(handle, optionsPtr, &out)
       }
       try throwIfNeeded(status)
-      defer { moodbar_native_buffer_free(&out) }
 
       let data = consumeBuffer(out)
       guard let svg = String(data: data, encoding: .utf8) else {
@@ -61,11 +61,11 @@ public class MoodbarNativeModule: Module {
 
     AsyncFunction("renderPng") { (handle: UInt64, optionsJson: String?) throws -> String in
       var out = MoodbarNativeBuffer(ptr: nil, len: 0, cap: 0)
+      defer { moodbar_native_buffer_free(&out) }
       let status = withOptionalCString(optionsJson) { optionsPtr in
         moodbar_native_render_png(handle, optionsPtr, &out)
       }
       try throwIfNeeded(status)
-      defer { moodbar_native_buffer_free(&out) }
 
       let data = consumeBuffer(out)
       return data.base64EncodedString()

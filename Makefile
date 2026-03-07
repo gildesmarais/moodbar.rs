@@ -1,4 +1,4 @@
-.PHONY: help test test-core test-cli parity fmt lint check tdd tdd-core ci wasm publish-check-wasm wasm-docs native native-ios native-android publish-check-native
+.PHONY: help test test-core test-cli parity fmt lint check tdd tdd-core ci wasm publish-check-wasm wasm-docs native native-ios native-android publish-check-native publish-check-native-ios publish-check-native-android
 
 WASM_NPM_PACKAGE_DIR := crates/moodbar-wasm/pkg
 WASM_NPM_PACKAGE_JSON_SOURCE := crates/moodbar-wasm/package.json
@@ -92,7 +92,23 @@ publish-check-native: native
 		--package-dir $(NATIVE_NPM_PACKAGE_DIR) \
 		--expected-name @moodbar/native \
 		--expected-repository-url $(NATIVE_NPM_REPOSITORY_URL) \
-		--required-files README.md,LICENSE-MIT,LICENSE-APACHE,index.js,index.d.ts,expo-module.config.json,moodbar-native.podspec,package.json
+		--required-files README.md,LICENSE-MIT,LICENSE-APACHE,index.js,index.d.ts,expo-module.config.json,moodbar-native.podspec,package.json,ios/MoodbarNativeFFI.xcframework,android/src/main/jniLibs
+	npm pack ./$(NATIVE_NPM_PACKAGE_DIR) --dry-run --json --cache $(NPM_CACHE_DIR)
+
+publish-check-native-ios: native
+	node scripts/verify-npm-package.mjs \
+		--package-dir $(NATIVE_NPM_PACKAGE_DIR) \
+		--expected-name @moodbar/native \
+		--expected-repository-url $(NATIVE_NPM_REPOSITORY_URL) \
+		--required-files README.md,LICENSE-MIT,LICENSE-APACHE,index.js,index.d.ts,expo-module.config.json,moodbar-native.podspec,package.json,ios/MoodbarNativeFFI.xcframework
+	npm pack ./$(NATIVE_NPM_PACKAGE_DIR) --dry-run --json --cache $(NPM_CACHE_DIR)
+
+publish-check-native-android: native
+	node scripts/verify-npm-package.mjs \
+		--package-dir $(NATIVE_NPM_PACKAGE_DIR) \
+		--expected-name @moodbar/native \
+		--expected-repository-url $(NATIVE_NPM_REPOSITORY_URL) \
+		--required-files README.md,LICENSE-MIT,LICENSE-APACHE,index.js,index.d.ts,expo-module.config.json,moodbar-native.podspec,package.json,android/src/main/jniLibs
 	npm pack ./$(NATIVE_NPM_PACKAGE_DIR) --dry-run --json --cache $(NPM_CACHE_DIR)
 
 # TDD loop: automatically reruns tests when files change if cargo-watch is installed.

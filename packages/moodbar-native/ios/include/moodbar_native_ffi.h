@@ -53,6 +53,14 @@ MoodbarNativeStatus moodbar_native_render_png(uint64_t handle,
 
 MoodbarNativeStatus moodbar_native_last_error(struct MoodbarNativeBuffer *out_message_utf8);
 
+/**
+ * Frees a heap buffer previously returned by this library.
+ *
+ * # Safety
+ *
+ * `buffer` must be a valid, writable pointer obtained from this library, and must not be
+ * freed more than once.
+ */
 void moodbar_native_buffer_free(struct MoodbarNativeBuffer *buffer);
 
 #endif  /* MOODBAR_NATIVE_FFI_H */

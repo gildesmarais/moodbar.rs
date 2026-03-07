@@ -33,6 +33,10 @@ pub(crate) fn with_analysis<R>(
     handle: u64,
     f: impl FnOnce(&MoodbarAnalysis) -> Result<R, FfiError>,
 ) -> Result<R, FfiError> {
+    // NOTE: The registry mutex is intentionally held for the duration of `f`.
+    // This keeps handle access simple but serializes concurrent renders on the same
+    // process. Acceptable for v1, but a future optimization can clone/arc analyses
+    // out of the map before expensive render work.
     let guard = ANALYSIS_REGISTRY.lock().map_err(|_| FfiError::Poisoned)?;
     let analysis = guard
         .get(&handle)
