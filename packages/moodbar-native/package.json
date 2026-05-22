@@ -1,0 +1,42 @@
+{
+  "name": "@moodbar/native",
+  "version": "0.2.0",
+  "description": "React Native bindings for moodbar audio visualization",
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gildesmarais/moodbar.rs.git"
+  },
+  "homepage": "https://github.com/gildesmarais/moodbar.rs#readme",
+  "bugs": {
+    "url": "https://github.com/gildesmarais/moodbar.rs/issues"
+  },
+  "keywords": [
+    "moodbar",
+    "react-native",
+    "expo",
+    "audio",
+    "visualization"
+  ],
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "expo-module.config.json",
+    "moodbar-native.podspec",
+    "android",
+    "ios",
+    "README.md",
+    "LICENSE-MIT",
+    "LICENSE-APACHE"
+  ],
+  "peerDependencies": {
+    "expo": "*",
+    "react-native": "*"
+  },
+  "dependencies": {
+    "expo-modules-core": "^2.6.0"
+  },
+  "sideEffects": false
+}

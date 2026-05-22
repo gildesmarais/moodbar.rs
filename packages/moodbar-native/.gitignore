@@ -1,0 +1,4 @@
+ios/MoodbarNativeFFI.xcframework/
+android/src/main/jniLibs/**/libmoodbar_native_ffi.so
+!android/src/main/jniLibs/.gitkeep
+android/src/main/cpp/include/moodbar_native_ffi.h

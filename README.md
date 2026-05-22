@@ -72,6 +72,8 @@ cargo run -p moodbar -- batch -i ./music -o ./moods --progress
 - `crates/moodbar-core`: decode, analysis, normalization, render primitives
 - `crates/moodbar-cli`: `generate`, `batch`, `inspect` commands
 - `crates/moodbar-wasm`: WebAssembly JS bindings for browser/Node usage
+- `examples/web-wasm`: minimal browser integration example
+- `examples/expo-native`: minimal Expo/React Native integration example
 - `tests/fixtures/legacy`: optional parity fixtures
 - `scripts/`: helper scripts
 
@@ -83,14 +85,32 @@ python3 -m http.server
 # open http://localhost:8000/docs/wasm-demo.html
 ```
 
+## React Native Package
+
+`@moodbar/native` ships Expo-compatible native bindings for iOS + Android.
+Native artifacts are built with the Cargo `mobile-release` profile (`opt-level=z`, `lto`, `strip`) to reduce binary size.
+
+```bash
+# prepare npm metadata/assets
+make native
+
+# build iOS xcframework (macOS/Xcode)
+make native-ios
+
+# build Android JNI libs (requires Android NDK + cargo-ndk)
+make native-android
+```
+
 ## CI and Releases
 
 - CI workflow (Rust core): `.github/workflows/rust-ci.yml`
 - CI workflow (WASM package): `.github/workflows/wasm-ci.yml`
+- CI workflow (Native package): `.github/workflows/native-ci.yml`
 - Release prep workflow: `.github/workflows/prepare-release.yml` (`workflow_dispatch`; opens PR that bumps `Cargo.toml` version)
 - Release artifacts: `.github/workflows/release-build.yml` (Linux + macOS)
 - Artifact naming: `moodbar-<tag>-<target>.tar.gz`
 - npm release workflow: `.github/workflows/publish-wasm-npm.yml` (OIDC trusted publishing)
+- npm release workflow (native): `.github/workflows/publish-native-npm.yml` (OIDC trusted publishing)
 
 ## Publish WASM Package
 
@@ -103,4 +123,18 @@ make publish-check-wasm
 
 # publish manually (maintainer workflow)
 npm publish ./crates/moodbar-wasm/pkg --access public --provenance
+```
+
+## Publish Native Package
+
+```bash
+# build platform artifacts + prepare metadata/files
+make native-ios
+make native-android
+
+# validate package contract and dry-run publish
+make publish-check-native
+
+# publish manually (maintainer workflow)
+npm publish ./packages/moodbar-native --access public --provenance
 ```

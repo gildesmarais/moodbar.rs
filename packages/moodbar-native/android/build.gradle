@@ -1,0 +1,35 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+group = 'expo.modules.moodbarnative'
+version = '0.0.0'
+
+def safeExtGet(prop, fallback) {
+  rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
+}
+
+apply from: new File(project(':expo-modules-core').projectDir, 'ExpoModulesCorePlugin.gradle')
+
+android {
+  namespace "expo.modules.moodbarnative"
+  compileSdkVersion safeExtGet('compileSdkVersion', 35)
+
+  defaultConfig {
+    minSdkVersion safeExtGet('minSdkVersion', 24)
+    targetSdkVersion safeExtGet('targetSdkVersion', 35)
+  }
+
+  sourceSets {
+    main {
+      jniLibs.srcDirs = ['src/main/jniLibs']
+    }
+  }
+
+  lintOptions {
+    abortOnError false
+  }
+}
+
+dependencies {
+  implementation project(':expo-modules-core')
+}

@@ -1,0 +1,13 @@
+[package]
+name = "moodbar-decode"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Audio decode adapters for moodbar analysis"
+
+[dependencies]
+moodbar-analysis = { path = "../moodbar-analysis" }
+symphonia.workspace = true
+thiserror.workspace = true

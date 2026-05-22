@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Moodbar WASM Example</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      import init, { analyze, svg } from "@moodbar/wasm";
+
+      await init();
+      const sampleRate = 44100;
+      const pcm = new Float32Array(sampleRate).fill(0);
+      const analysis = analyze(pcm, sampleRate);
+      const markup = svg(analysis, { width: 800, height: 64, shape: "Waveform" });
+      document.getElementById("root").innerHTML = markup;
+    </script>
+  </body>
+</html>

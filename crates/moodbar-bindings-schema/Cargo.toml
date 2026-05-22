@@ -1,0 +1,12 @@
+[package]
+name = "moodbar-bindings-schema"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Shared bindings option schema for wasm/native moodbar surfaces"
+
+[dependencies]
+moodbar-analysis = { path = "../moodbar-analysis", default-features = false }
+serde.workspace = true

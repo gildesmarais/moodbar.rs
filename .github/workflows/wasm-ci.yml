@@ -2,11 +2,14 @@ name: wasm-ci
 
 on:
   push:
+    branches:
+      - main
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
       - "Makefile"
-      - "crates/moodbar-core/**"
+      - "crates/moodbar-analysis/**"
+      - "crates/moodbar-bindings-schema/**"
       - "crates/moodbar-wasm/**"
       - "scripts/**"
       - ".github/workflows/wasm-ci.yml"
@@ -15,7 +18,8 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
       - "Makefile"
-      - "crates/moodbar-core/**"
+      - "crates/moodbar-analysis/**"
+      - "crates/moodbar-bindings-schema/**"
       - "crates/moodbar-wasm/**"
       - "scripts/**"
       - ".github/workflows/wasm-ci.yml"
