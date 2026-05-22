@@ -28,6 +28,9 @@ jobs:
         id: next
         run: node scripts/bump-version.mjs --cargo Cargo.toml --bump ${{ inputs.bump }} --write true
 
+      - name: Update Cargo.lock
+        run: cargo generate-lockfile || cargo fetch
+
       - name: Create release prep pull request
         uses: peter-evans/create-pull-request@v7
         with:
