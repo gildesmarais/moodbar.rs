@@ -2,6 +2,8 @@ name: wasm-ci
 
 on:
   push:
+    branches:
+      - main
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
