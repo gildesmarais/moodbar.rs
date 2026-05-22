@@ -1,0 +1,51 @@
+name: publish-crates
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write # required for OIDC trusted publishing
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Validate release tag matches workspace version
+        run: |
+          WORKSPACE_VERSION="$(node scripts/workspace-version.mjs Cargo.toml)"
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [ -z "$WORKSPACE_VERSION" ]; then
+            echo "Could not determine workspace version from Cargo.toml"
+            exit 1
+          fi
+          if [ "$TAG_VERSION" != "$WORKSPACE_VERSION" ]; then
+            echo "Release tag ${GITHUB_REF_NAME} does not match workspace version ${WORKSPACE_VERSION}"
+            exit 1
+          fi
+
+      - name: Authenticate with crates.io
+        uses: rust-lang/crates-io-auth-action@v1
+
+      - name: Publish moodbar-analysis
+        run: cargo publish -p moodbar-analysis
+
+      - name: Publish moodbar-bindings-schema
+        run: cargo publish -p moodbar-bindings-schema
+
+      - name: Publish moodbar-decode
+        run: cargo publish -p moodbar-decode
+
+      - name: Publish moodbar-core
+        run: cargo publish -p moodbar-core
+
+      - name: Publish moodbar
+        run: cargo publish -p moodbar

@@ -6,6 +6,7 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 description = "Native FFI bridge for moodbar mobile bindings"
+publish = false
 
 [lib]
 crate-type = ["staticlib", "cdylib"]

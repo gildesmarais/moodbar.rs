@@ -6,8 +6,9 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 description = "Audio decode adapters for moodbar analysis"
+readme = "../../README.md"
 
 [dependencies]
-moodbar-analysis = { path = "../moodbar-analysis" }
+moodbar-analysis = { workspace = true, default-features = true }
 symphonia.workspace = true
 thiserror.workspace = true
