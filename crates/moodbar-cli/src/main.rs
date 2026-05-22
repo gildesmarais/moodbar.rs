@@ -364,7 +364,7 @@ fn run(cli: Cli) -> Result<i32> {
             let mut succeeded = 0usize;
             let mut skipped = 0usize;
             let mut failed = 0usize;
-            for (src, outcome) in candidates.iter().zip(outcomes.into_iter()) {
+            for (src, outcome) in candidates.iter().zip(outcomes) {
                 match outcome {
                     Ok(BatchItemStatus::Generated) => succeeded += 1,
                     Ok(BatchItemStatus::Skipped) => skipped += 1,

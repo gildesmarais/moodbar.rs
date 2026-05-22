@@ -68,19 +68,19 @@ export type MoodbarInput =
 
 export async function analyze(
   input: MoodbarInput,
-  options?: AnalyzeOptions
+  options?: AnalyzeOptions,
 ): Promise<MoodbarAnalysis>;
 
 export async function render(
   analysis: MoodbarAnalysis,
   format: "png" | "svg",
-  options?: RenderOptions
+  options?: RenderOptions,
 ): Promise<Uint8Array | string>;
 
 export async function generate(
   input: MoodbarInput,
   format: "png" | "svg",
-  options?: AnalyzeOptions & RenderOptions
+  options?: AnalyzeOptions & RenderOptions,
 ): Promise<Uint8Array | string>;
 ```
 
@@ -90,23 +90,23 @@ Type-safe overloads to remove return ambiguity:
 export async function render(
   analysis: MoodbarAnalysis,
   format: "png",
-  options?: RenderOptions
+  options?: RenderOptions,
 ): Promise<Uint8Array>;
 export async function render(
   analysis: MoodbarAnalysis,
   format: "svg",
-  options?: RenderOptions
+  options?: RenderOptions,
 ): Promise<string>;
 
 export async function generate(
   input: MoodbarInput,
   format: "png",
-  options?: AnalyzeOptions & RenderOptions
+  options?: AnalyzeOptions & RenderOptions,
 ): Promise<Uint8Array>;
 export async function generate(
   input: MoodbarInput,
   format: "svg",
-  options?: AnalyzeOptions & RenderOptions
+  options?: AnalyzeOptions & RenderOptions,
 ): Promise<string>;
 ```
 
