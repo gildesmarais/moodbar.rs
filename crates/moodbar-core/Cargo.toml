@@ -5,6 +5,8 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
+description = "Re-export facade and core DSP pipeline for moodbar audio visualization"
+readme = "../../README.md"
 
 [features]
 default = ["decode", "png"]
@@ -23,4 +25,4 @@ anyhow.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 image.workspace = true
-moodbar-analysis = { path = "../moodbar-analysis", default-features = false, features = ["png"] }
+moodbar-analysis = { workspace = true, features = ["png"] }

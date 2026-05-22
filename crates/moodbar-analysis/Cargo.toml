@@ -6,6 +6,9 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 description = "Core moodbar DSP analysis and rendering primitives"
+readme = "../../README.md"
+categories = ["multimedia::audio", "science"]
+keywords = ["audio", "dsp", "moodbar"]
 
 [features]
 default = ["png"]

@@ -5,6 +5,10 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
+description = "CLI tool to generate moodbar audio visualizations"
+readme = "../../README.md"
+categories = ["command-line-utilities", "multimedia::audio"]
+keywords = ["audio", "cli", "moodbar"]
 
 [[bin]]
 name = "moodbar"
@@ -13,7 +17,7 @@ path = "src/main.rs"
 [dependencies]
 anyhow.workspace = true
 clap.workspace = true
-moodbar-core = { path = "../moodbar-core", features = ["decode", "png"] }
+moodbar-core = { workspace = true, features = ["decode", "png"] }
 serde.workspace = true
 serde_json.workspace = true
 walkdir.workspace = true

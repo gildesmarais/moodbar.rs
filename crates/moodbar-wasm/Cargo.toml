@@ -6,6 +6,7 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 description = "WebAssembly bindings for moodbar audio visualization"
+publish = false
 
 [lib]
 crate-type = ["cdylib"]
