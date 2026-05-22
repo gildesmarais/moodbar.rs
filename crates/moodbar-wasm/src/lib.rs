@@ -66,7 +66,17 @@ fn js_opts_to_generate_options(opts: JsValue) -> Result<GenerateOptions, JsValue
     let parsed: GenerateOptionsPatch = decode_opts(opts)?;
     let mut options = GenerateOptions::default();
     apply_generate_patch(&mut options, parsed);
+    validate_generate_options(&options)?;
     Ok(options)
+}
+
+fn validate_generate_options(options: &GenerateOptions) -> Result<(), JsValue> {
+    if options.fft_size == 0 {
+        return Err(JsValue::from_str(
+            "invalid generate options: fft_size must be greater than 0",
+        ));
+    }
+    Ok(())
 }
 
 fn js_opts_to_svg_options(opts: JsValue) -> Result<SvgOptions, JsValue> {

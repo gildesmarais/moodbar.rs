@@ -62,7 +62,7 @@ class MoodbarNativeModule : Module() {
         val extension = inferExtension(parsed)
         NativeBridge.nativeAnalyzeFromBytes(bytes, extension, optionsJson)
       }
-      "file" -> {
+      null, "", "file" -> {
         val path = parsed.path
           ?: throw CodedException("ERR_INVALID_URI", "file URI is missing a path: $uri")
         NativeBridge.nativeAnalyzeFromUri(path, optionsJson)

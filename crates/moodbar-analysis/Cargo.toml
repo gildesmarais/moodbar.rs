@@ -9,7 +9,6 @@ description = "Core moodbar DSP analysis and rendering primitives"
 
 [features]
 default = ["png"]
-decode = ["dep:symphonia"]
 png = ["dep:image"]
 
 [dependencies]
@@ -17,7 +16,6 @@ num-complex.workspace = true
 rustfft.workspace = true
 thiserror.workspace = true
 image = { workspace = true, optional = true }
-symphonia = { workspace = true, optional = true }
 
 [dev-dependencies]
 anyhow.workspace = true

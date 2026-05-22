@@ -21,7 +21,7 @@ public class MoodbarNativeModule: Module {
       ]
     }
 
-    AsyncFunction("analyzeFromBase64") { (base64: String, extension: String?, optionsJson: String?) throws -> [String: Any] in
+    AsyncFunction("analyzeFromBase64") { (base64: String, fileExtension: String?, optionsJson: String?) throws -> [String: Any] in
       guard let data = Data(base64Encoded: base64) else {
         throw NSError(domain: "MoodbarNative", code: 1, userInfo: [NSLocalizedDescriptionKey: "input bytes were not valid base64"])
       }
@@ -29,7 +29,7 @@ public class MoodbarNativeModule: Module {
       var summary = MoodbarNativeAnalysisSummary(handle: 0, frame_count: 0, channel_count: 0)
       let status = data.withUnsafeBytes { rawBuffer in
         let bytes = rawBuffer.bindMemory(to: UInt8.self).baseAddress
-        return withOptionalCString(extension) { extensionPtr in
+        return withOptionalCString(fileExtension) { extensionPtr in
           withOptionalCString(optionsJson) { optionsPtr in
             moodbar_native_analysis_from_bytes(bytes, data.count, extensionPtr, optionsPtr, &summary)
           }

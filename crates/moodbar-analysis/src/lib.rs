@@ -1,28 +1,8 @@
-#[cfg(feature = "decode")]
-use std::fs::File;
-#[cfg(feature = "decode")]
-use std::io::Cursor;
-#[cfg(feature = "decode")]
-use std::path::Path;
-
 #[cfg(feature = "png")]
 use image::{ImageBuffer, ImageEncoder, Rgba};
 use num_complex::Complex32;
 use rustfft::FftPlanner;
-#[cfg(feature = "decode")]
-use symphonia::core::audio::SampleBuffer;
-#[cfg(feature = "decode")]
-use symphonia::core::codecs::DecoderOptions;
-#[cfg(feature = "decode")]
-use symphonia::core::errors::Error as SymphoniaError;
-#[cfg(feature = "decode")]
-use symphonia::core::formats::FormatOptions;
-#[cfg(feature = "decode")]
-use symphonia::core::io::MediaSourceStream;
-#[cfg(feature = "decode")]
-use symphonia::core::meta::MetadataOptions;
-#[cfg(feature = "decode")]
-use symphonia::core::probe::Hint;
+
 use thiserror::Error;
 
 /// Tunable DSP options used by raw and SVG rendering paths.
@@ -145,175 +125,11 @@ impl Default for SvgOptions {
 /// Errors returned by analysis/decoding APIs.
 #[derive(Debug, Error)]
 pub enum MoodbarError {
-    #[cfg(feature = "decode")]
-    #[error("no playable audio track found")]
-    NoAudioTrack,
-    #[cfg(feature = "decode")]
-    #[error("decoded stream has no samples")]
-    EmptyAudio,
-    #[cfg(feature = "decode")]
-    #[error("I/O error: {0}")]
-    Io(#[from] std::io::Error),
-    #[cfg(feature = "decode")]
-    #[error("decode error: {0}")]
-    Decode(#[from] SymphoniaError),
     #[cfg(feature = "png")]
     #[error("image error: {0}")]
     Image(#[from] image::ImageError),
     #[error("invalid options: {0}")]
     InvalidOptions(String),
-}
-
-/// Decode and analyze media into normalized mood frames.
-#[cfg(feature = "decode")]
-pub fn analyze_path(
-    path: &Path,
-    options: &GenerateOptions,
-) -> Result<MoodbarAnalysis, MoodbarError> {
-    validate_options(options)?;
-
-    let file = File::open(path)?;
-    let mss = MediaSourceStream::new(Box::new(file), Default::default());
-
-    let mut hint = Hint::new();
-    if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
-        hint.with_extension(ext);
-    }
-
-    analyze_media_source(mss, hint, options)
-}
-
-/// Decode and analyze in-memory encoded audio bytes.
-#[cfg(feature = "decode")]
-pub fn analyze_bytes(
-    bytes: &[u8],
-    extension: Option<&str>,
-    options: &GenerateOptions,
-) -> Result<MoodbarAnalysis, MoodbarError> {
-    validate_options(options)?;
-
-    let cursor = Cursor::new(bytes.to_vec());
-    let mss = MediaSourceStream::new(Box::new(cursor), Default::default());
-    let mut hint = Hint::new();
-    if let Some(ext) = extension {
-        if !ext.is_empty() {
-            hint.with_extension(ext);
-        }
-    }
-
-    analyze_media_source(mss, hint, options)
-}
-
-#[cfg(feature = "decode")]
-fn analyze_media_source(
-    mss: MediaSourceStream,
-    hint: Hint,
-    options: &GenerateOptions,
-) -> Result<MoodbarAnalysis, MoodbarError> {
-    let probed = symphonia::default::get_probe().format(
-        &hint,
-        mss,
-        &FormatOptions::default(),
-        &MetadataOptions::default(),
-    )?;
-
-    let mut format = probed.format;
-    let track = format
-        .tracks()
-        .iter()
-        .find(|t| t.codec_params.codec != symphonia::core::codecs::CODEC_TYPE_NULL)
-        .ok_or(MoodbarError::NoAudioTrack)?;
-
-    let sample_rate = track
-        .codec_params
-        .sample_rate
-        .ok_or(MoodbarError::NoAudioTrack)?;
-    let track_id = track.id;
-
-    let mut decoder =
-        symphonia::default::get_codecs().make(&track.codec_params, &DecoderOptions::default())?;
-    let mut analyzer = FrameAnalyzer::new(sample_rate, options);
-    let mut diagnostics = AnalysisDiagnostics::default();
-
-    loop {
-        let packet = match format.next_packet() {
-            Ok(packet) => packet,
-            Err(SymphoniaError::IoError(err))
-                if err.kind() == std::io::ErrorKind::UnexpectedEof =>
-            {
-                break;
-            }
-            Err(err) => return Err(err.into()),
-        };
-
-        if packet.track_id() != track_id {
-            continue;
-        }
-
-        match decoder.decode(&packet) {
-            Ok(decoded) => {
-                let spec = *decoded.spec();
-                let channels = spec.channels.count();
-                let mut sample_buf = SampleBuffer::<f32>::new(decoded.capacity() as u64, spec);
-                sample_buf.copy_interleaved_ref(decoded);
-                let interleaved = sample_buf.samples();
-
-                if channels == 0 {
-                    diagnostics.zero_channel_packets += 1;
-                    continue;
-                }
-
-                for frame in interleaved.chunks(channels) {
-                    if frame.len() != channels {
-                        diagnostics.truncated_frames += 1;
-                        continue;
-                    }
-                    let sum = frame.iter().copied().sum::<f32>();
-                    let mono = [sum / channels as f32];
-                    analyzer.feed_mono_samples(&mono);
-                }
-            }
-            Err(SymphoniaError::DecodeError(_)) => {
-                diagnostics.decode_errors += 1;
-                continue;
-            }
-            Err(SymphoniaError::IoError(err))
-                if err.kind() == std::io::ErrorKind::UnexpectedEof =>
-            {
-                break;
-            }
-            Err(err) => return Err(err.into()),
-        }
-    }
-
-    if analyzer.is_empty() {
-        return Err(MoodbarError::EmptyAudio);
-    }
-
-    let mut analysis = analyzer.finish();
-    analysis.diagnostics = diagnostics;
-    Ok(analysis)
-}
-
-/// Convenience API that returns legacy raw RGB bytes.
-#[cfg(feature = "decode")]
-pub fn generate_moodbar_from_path(
-    path: &Path,
-    options: &GenerateOptions,
-) -> Result<Vec<u8>, MoodbarError> {
-    let analysis = analyze_path(path, options)?;
-    Ok(analysis_to_raw_rgb_bytes(&analysis))
-}
-
-/// Convenience API for in-memory encoded audio input.
-#[cfg(feature = "decode")]
-pub fn generate_moodbar_from_bytes(
-    bytes: &[u8],
-    extension: Option<&str>,
-    options: &GenerateOptions,
-) -> Result<Vec<u8>, MoodbarError> {
-    let analysis = analyze_bytes(bytes, extension, options)?;
-    Ok(analysis_to_raw_rgb_bytes(&analysis))
 }
 
 /// Analyze already-decoded mono PCM samples.
@@ -383,11 +199,6 @@ impl<'a> FrameAnalyzer<'a> {
             self.pending_start += self.hop_size.max(1);
             self.compact_pending_if_needed();
         }
-    }
-
-    #[cfg(feature = "decode")]
-    fn is_empty(&self) -> bool {
-        self.frame_count == 0 && self.pending.is_empty()
     }
 
     fn finish(mut self) -> MoodbarAnalysis {
@@ -633,39 +444,6 @@ pub fn render_png(
     let encoder = image::codecs::png::PngEncoder::new(&mut out);
     encoder.write_image(img.as_raw(), width, height, image::ColorType::Rgba8.into())?;
     Ok(out)
-}
-
-#[cfg(feature = "decode")]
-fn validate_options(options: &GenerateOptions) -> Result<(), MoodbarError> {
-    if !options.fft_size.is_power_of_two() || options.fft_size < 64 {
-        return Err(MoodbarError::InvalidOptions(
-            "fft_size must be a power of two and >= 64".to_string(),
-        ));
-    }
-    if !(options.deterministic_floor.is_finite() && options.deterministic_floor > 0.0) {
-        return Err(MoodbarError::InvalidOptions(
-            "deterministic_floor must be finite and > 0".to_string(),
-        ));
-    }
-    if options.frames_per_color == 0 {
-        return Err(MoodbarError::InvalidOptions(
-            "frames_per_color must be >= 1".to_string(),
-        ));
-    }
-    let edges = options.effective_band_edges();
-    if edges.is_empty() {
-        return Err(MoodbarError::InvalidOptions(
-            "at least one band edge is required".to_string(),
-        ));
-    }
-    for pair in edges.windows(2) {
-        if pair[0] >= pair[1] {
-            return Err(MoodbarError::InvalidOptions(
-                "band edges must be strictly increasing".to_string(),
-            ));
-        }
-    }
-    Ok(())
 }
 
 fn hann_window(size: usize) -> Vec<f32> {
@@ -1001,17 +779,6 @@ mod tests {
         assert!(
             max_per_channel(&global.frames, 0) < 1.0 || max_per_channel(&global.frames, 2) < 1.0
         );
-    }
-
-    #[cfg(feature = "decode")]
-    #[test]
-    fn invalid_band_edges_fail_fast_before_io() {
-        let options = GenerateOptions {
-            band_edges_hz: vec![2000.0, 500.0],
-            ..GenerateOptions::default()
-        };
-        let res = analyze_path(Path::new("definitely-not-used.wav"), &options);
-        assert!(matches!(res, Err(MoodbarError::InvalidOptions(_))));
     }
 
     #[test]

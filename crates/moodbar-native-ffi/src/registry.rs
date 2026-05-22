@@ -9,7 +9,7 @@ use crate::errors::FfiError;
 use crate::MoodbarNativeAnalysisSummary;
 
 static NEXT_HANDLE: AtomicU64 = AtomicU64::new(1);
-static ANALYSIS_REGISTRY: Lazy<Mutex<HashMap<u64, MoodbarAnalysis>>> =
+static ANALYSIS_REGISTRY: Lazy<Mutex<HashMap<u64, std::sync::Arc<MoodbarAnalysis>>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
 pub(crate) fn store_analysis(
@@ -20,7 +20,7 @@ pub(crate) fn store_analysis(
     let handle = NEXT_HANDLE.fetch_add(1, Ordering::Relaxed);
 
     let mut guard = ANALYSIS_REGISTRY.lock().map_err(|_| FfiError::Poisoned)?;
-    guard.insert(handle, analysis);
+    guard.insert(handle, std::sync::Arc::new(analysis));
 
     Ok(MoodbarNativeAnalysisSummary {
         handle,
@@ -33,15 +33,14 @@ pub(crate) fn with_analysis<R>(
     handle: u64,
     f: impl FnOnce(&MoodbarAnalysis) -> Result<R, FfiError>,
 ) -> Result<R, FfiError> {
-    // NOTE: The registry mutex is intentionally held for the duration of `f`.
-    // This keeps handle access simple but serializes concurrent renders on the same
-    // process. Acceptable for v1, but a future optimization can clone/arc analyses
-    // out of the map before expensive render work.
-    let guard = ANALYSIS_REGISTRY.lock().map_err(|_| FfiError::Poisoned)?;
-    let analysis = guard
-        .get(&handle)
-        .ok_or_else(|| FfiError::NotFound(format!("analysis handle {handle} not found")))?;
-    f(analysis)
+    let analysis = {
+        let guard = ANALYSIS_REGISTRY.lock().map_err(|_| FfiError::Poisoned)?;
+        guard
+            .get(&handle)
+            .cloned()
+            .ok_or_else(|| FfiError::NotFound(format!("analysis handle {handle} not found")))?
+    };
+    f(&analysis)
 }
 
 pub(crate) fn free_analysis(handle: u64) -> Result<(), FfiError> {
