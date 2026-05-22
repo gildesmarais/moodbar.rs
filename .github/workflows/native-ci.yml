@@ -62,12 +62,16 @@ jobs:
         run: echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/${ANDROID_NDK_VERSION}" >> "$GITHUB_ENV"
 
       - name: Install cargo-ndk
-        run: cargo install cargo-ndk --locked
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-ndk
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: "packages/moodbar-native/package.json"
 
       - name: Pin npm
         run: npm install -g npm@${NPM_VERSION}
@@ -102,6 +106,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: "packages/moodbar-native/package.json"
 
       - name: Pin npm
         run: npm install -g npm@${NPM_VERSION}
