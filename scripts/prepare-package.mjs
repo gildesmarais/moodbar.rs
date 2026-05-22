@@ -9,7 +9,9 @@ function copyRequiredFile(src, dest) {
   if (!fs.existsSync(src)) {
     throw new Error(`Required file missing: ${src}`);
   }
-  fs.copyFileSync(src, dest);
+  if (path.resolve(src) !== path.resolve(dest)) {
+    fs.copyFileSync(src, dest);
+  }
 }
 
 function readJson(filePath) {
