@@ -55,6 +55,19 @@ function writeWorkspaceVersion(cargoTomlPath, nextVersion) {
     );
   }
 
+  const depsHeader = "[workspace.dependencies]";
+  const depsStart = lines.findIndex((line) => line.trim() === depsHeader);
+  if (depsStart >= 0) {
+    for (let i = depsStart + 1; i < lines.length; i += 1) {
+      if (/^\s*\[[^\]]+\]\s*$/.test(lines[i])) {
+        break;
+      }
+      if (/^\s*moodbar-/.test(lines[i]) && lines[i].includes('version = "')) {
+        lines[i] = lines[i].replace(/version = "[^"]+"/, `version = "${nextVersion}"`);
+      }
+    }
+  }
+
   fs.writeFileSync(cargoTomlPath, `${lines.join("\n")}\n`, "utf8");
 }
 
