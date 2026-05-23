@@ -16,6 +16,7 @@ pub struct GenerateOptions {
     pub detection_mode: DetectionMode,
     pub frames_per_color: usize,
     pub band_edges_hz: Vec<f32>,
+    pub max_target_frames: Option<usize>,
 }
 
 impl Default for GenerateOptions {
@@ -29,6 +30,7 @@ impl Default for GenerateOptions {
             detection_mode: DetectionMode::SpectralEnergy,
             frames_per_color: 1,
             band_edges_hz: vec![500.0, 2000.0],
+            max_target_frames: Some(2000),
         }
     }
 }
@@ -138,7 +140,7 @@ pub fn analyze_pcm_mono(
     samples: &[f32],
     options: &GenerateOptions,
 ) -> MoodbarAnalysis {
-    let mut analyzer = FrameAnalyzer::new(sample_rate, options);
+    let mut analyzer = FrameAnalyzer::new(sample_rate, options, Some(samples.len()));
     analyzer.feed_mono_samples(samples);
     analyzer.finish()
 }
@@ -161,9 +163,13 @@ struct FrameAnalyzer<'a> {
 }
 
 impl<'a> FrameAnalyzer<'a> {
-    fn new(sample_rate: u32, options: &'a GenerateOptions) -> Self {
+    fn new(sample_rate: u32, options: &'a GenerateOptions, total_samples: Option<usize>) -> Self {
         let fft_size = options.fft_size;
-        let hop_size = fft_size / 2;
+        let mut hop_size = fft_size / 2;
+        if let (Some(total), Some(target)) = (total_samples, options.max_target_frames) {
+            let dynamic_hop = total / target.max(1);
+            hop_size = hop_size.max(dynamic_hop);
+        }
         let band_edges_hz = options.effective_band_edges();
         let channel_count = band_edges_hz.len() + 1;
 
@@ -792,7 +798,7 @@ mod tests {
         let options = GenerateOptions::default();
         let batch = analyze_pcm_mono(sample_rate, &pcm, &options);
 
-        let mut stream = FrameAnalyzer::new(sample_rate, &options);
+        let mut stream = FrameAnalyzer::new(sample_rate, &options, None);
         for chunk in pcm.chunks(257) {
             stream.feed_mono_samples(chunk);
         }
