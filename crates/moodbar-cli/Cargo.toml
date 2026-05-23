@@ -6,7 +6,7 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 description = "CLI tool to generate moodbar audio visualizations"
-readme = "../../README.md"
+readme = "README.md"
 categories = ["command-line-utilities", "multimedia::audio"]
 keywords = ["audio", "cli", "moodbar"]
 

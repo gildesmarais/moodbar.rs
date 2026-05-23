@@ -11,6 +11,7 @@ export interface AnalyzeOptions {
   detection_mode?: DetectionMode;
   frames_per_color?: number;
   band_edges_hz?: number[];
+  max_target_frames?: number;
 }
 
 export interface RenderOptions {

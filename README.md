@@ -1,6 +1,38 @@
 # Moodbar (Rust)
 
-CLI-first moodbar generator in Rust.
+[![Crates.io](https://img.shields.io/crates/v/moodbar.svg)](https://crates.io/crates/moodbar)
+[![npm wasm](https://img.shields.io/npm/v/@moodbar/wasm?label=wasm)](https://www.npmjs.com/package/@moodbar/wasm)
+[![npm native](https://img.shields.io/npm/v/@moodbar/native?label=native)](https://www.npmjs.com/package/@moodbar/native)
+[![Docs](https://img.shields.io/badge/docs-github_pages-blue.svg)](https://gildesmarais.github.io/moodbar.rs/)
+
+CLI-first moodbar generator in Rust, with WASM and Native (iOS/Android) bindings. All packages are published automatically via GitHub Actions (with trusted publishing).
+
+## What is a Moodbar?
+
+A moodbar is a visual timeline of a song that maps frequencies and intensities to colors.
+
+- The **classic strip** shows you the overall mood and progression of the track visually.
+- The **modern waveform** view lets you pinpoint drops and structural changes at a glance before you even listen.
+
+### Classic Strip
+
+![Classic Strip](docs/assets/strip.png)
+
+### Modern Waveform
+
+![Modern Waveform](docs/assets/waveform.png)
+
+## Architecture
+
+This project is built around the "One Rust Core" philosophy. We do the heavy DSP lifting once, and expose it via bindings to the platforms you actually use.
+
+```mermaid
+graph LR
+    A[Symphonia Decode] --> B[moodbar-analysis]
+    B --> C(CLI Output)
+    B --> D(WASM JS Bindings)
+    B --> E(Native Mobile FFI)
+```
 
 ## Prerequisites
 
@@ -17,9 +49,6 @@ cargo install --path crates/moodbar-cli
 ## Quick Start
 
 ```bash
-# run the full local quality gate
-make check
-
 # generate legacy raw moodbar bytes (.mood)
 cargo run -p moodbar -- generate -i input.ogg -o output.mood
 
@@ -42,25 +71,6 @@ moodbar generate --help
 moodbar batch --help
 ```
 
-## Developer Workflow
-
-```bash
-# core crate fast loop
-make test-core
-
-# full workspace tests
-make test
-
-# parity harness (skips when fixtures are absent)
-make parity
-
-# fmt + clippy -D warnings + tests
-make check
-
-# optional watch loop
-make tdd-core
-```
-
 ## Batch Mode
 
 ```bash
@@ -69,72 +79,17 @@ cargo run -p moodbar -- batch -i ./music -o ./moods --progress
 
 ## Repository Layout
 
-- `crates/moodbar-core`: decode, analysis, normalization, render primitives
+- `crates/moodbar-analysis`: DSP, FFT, normalization, and rendering (SVG/PNG)
+- `crates/moodbar-decode`: Symphonia-based audio decoding
+- `crates/moodbar-bindings-schema`: Shared options schema and serde logic
+- `crates/moodbar-core`: Legacy monolithic implementation for backwards compatibility
 - `crates/moodbar-cli`: `generate`, `batch`, `inspect` commands
 - `crates/moodbar-wasm`: WebAssembly JS bindings for browser/Node usage
-- `examples/web-wasm`: minimal browser integration example
-- `examples/expo-native`: minimal Expo/React Native integration example
+- `crates/moodbar-native-ffi`: C ABI FFI layer for mobile native modules
+- `packages/moodbar-native`: React Native/Expo module for iOS + Android
 - `tests/fixtures/legacy`: optional parity fixtures
 - `scripts/`: helper scripts
 
-## WASM Demo (Browser)
+## Contributing
 
-```bash
-make wasm
-python3 -m http.server
-# open http://localhost:8000/docs/wasm-demo.html
-```
-
-## React Native Package
-
-`@moodbar/native` ships Expo-compatible native bindings for iOS + Android.
-Native artifacts are built with the Cargo `mobile-release` profile (`opt-level=z`, `lto`, `strip`) to reduce binary size.
-
-```bash
-# prepare npm metadata/assets
-make native
-
-# build iOS xcframework (macOS/Xcode)
-make native-ios
-
-# build Android JNI libs (requires Android NDK + cargo-ndk)
-make native-android
-```
-
-## CI and Releases
-
-- CI workflow (Rust core): `.github/workflows/rust-ci.yml`
-- CI workflow (WASM package): `.github/workflows/wasm-ci.yml`
-- CI workflow (Native package): `.github/workflows/native-ci.yml`
-- Release prep workflow: `.github/workflows/prepare-release.yml` (`workflow_dispatch`; opens PR that bumps `Cargo.toml` version)
-- Release artifacts: `.github/workflows/release-build.yml` (Linux + macOS)
-- Artifact naming: `moodbar-<tag>-<target>.tar.gz`
-- npm release workflow: `.github/workflows/publish-wasm-npm.yml` (OIDC trusted publishing)
-- npm release workflow (native): `.github/workflows/publish-native-npm.yml` (OIDC trusted publishing)
-
-## Publish WASM Package
-
-```bash
-# build and normalize npm package metadata/files
-make wasm
-
-# reproducibility and package contract checks
-make publish-check-wasm
-
-# publish manually (maintainer workflow)
-npm publish ./crates/moodbar-wasm/pkg --access public --provenance
-```
-
-## Publish Native Package
-
-```bash
-# build platform artifacts + prepare metadata/files
-make native-ios
-make native-android
-
-# validate package contract and dry-run publish
-make publish-check-native
-
-# publish manually (maintainer workflow)
-npm publish ./packages/moodbar-native --access public --provenance
-```
+For advanced maintainer workflows, tests, CI/CD logic, and native build scripts, please see [CONTRIBUTING.md](CONTRIBUTING.md).

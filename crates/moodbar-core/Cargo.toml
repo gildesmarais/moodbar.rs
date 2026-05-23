@@ -6,7 +6,7 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 description = "Re-export facade and core DSP pipeline for moodbar audio visualization"
-readme = "../../README.md"
+readme = "README.md"
 
 [features]
 default = ["decode", "png"]
