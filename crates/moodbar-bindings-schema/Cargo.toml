@@ -6,7 +6,7 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 description = "Shared bindings option schema for wasm/native moodbar surfaces"
-readme = "../../README.md"
+readme = "README.md"
 
 [dependencies]
 moodbar-analysis = { workspace = true, features = ["png"] }
