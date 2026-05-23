@@ -45,6 +45,7 @@ fn analyze_pcm_contract_matches_analysis_crate() {
             detection_mode: analysis::DetectionMode::SpectralFlux,
             frames_per_color: options.frames_per_color,
             band_edges_hz: options.band_edges_hz.clone(),
+            max_target_frames: None,
         },
     );
 
@@ -70,8 +71,14 @@ fn render_contract_matches_analysis_crate() {
 
     let core_analysis =
         core::analyze_pcm_mono(sample_rate, &pcm, &core::GenerateOptions::default());
-    let analysis_analysis =
-        analysis::analyze_pcm_mono(sample_rate, &pcm, &analysis::GenerateOptions::default());
+    let analysis_analysis = analysis::analyze_pcm_mono(
+        sample_rate,
+        &pcm,
+        &analysis::GenerateOptions {
+            max_target_frames: None,
+            ..analysis::GenerateOptions::default()
+        },
+    );
 
     let core_raw = core::analysis_to_raw_rgb_bytes(&core_analysis);
     let analysis_raw = analysis::analysis_to_raw_rgb_bytes(&analysis_analysis);

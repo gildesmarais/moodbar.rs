@@ -14,6 +14,7 @@ pub struct GenerateOptionsPatch {
     pub detection_mode: Option<DetectionModeInput>,
     pub frames_per_color: Option<usize>,
     pub band_edges_hz: Option<Vec<f32>>,
+    pub max_target_frames: Option<usize>,
 }
 
 #[derive(Default, Deserialize)]
@@ -103,6 +104,9 @@ pub fn apply_generate_patch(options: &mut GenerateOptions, patch: GenerateOption
     }
     if let Some(v) = patch.band_edges_hz {
         options.band_edges_hz = v;
+    }
+    if let Some(v) = patch.max_target_frames {
+        options.max_target_frames = Some(v);
     }
 }
 
