@@ -118,6 +118,7 @@ fn analyze_media_source(
     let mut samples = Vec::<f32>::new();
     let mut saw_samples = false;
     let mut diagnostics = DecodeDiagnostics::default();
+    let mut sample_buf: Option<SampleBuffer<f32>> = None;
 
     loop {
         let packet = match format.next_packet() {
@@ -138,22 +139,30 @@ fn analyze_media_source(
             Ok(decoded) => {
                 let spec = *decoded.spec();
                 let channels = spec.channels.count();
-                let mut sample_buf = SampleBuffer::<f32>::new(decoded.capacity() as u64, spec);
-                sample_buf.copy_interleaved_ref(decoded);
-                let interleaved = sample_buf.samples();
+
+                if sample_buf.is_none()
+                    || sample_buf.as_ref().unwrap().capacity() < decoded.capacity()
+                {
+                    sample_buf = Some(SampleBuffer::<f32>::new(decoded.capacity() as u64, spec));
+                }
+
+                let buf = sample_buf.as_mut().unwrap();
+                buf.copy_interleaved_ref(decoded);
+                let interleaved = buf.samples();
 
                 if channels == 0 {
                     diagnostics.zero_channel_packets += 1;
                     continue;
                 }
 
+                let max_channels = channels.min(2);
                 for frame in interleaved.chunks(channels) {
                     if frame.len() != channels {
                         diagnostics.truncated_frames += 1;
                         continue;
                     }
-                    let sum = frame.iter().copied().sum::<f32>();
-                    samples.push(sum / channels as f32);
+                    let sum = frame[..max_channels].iter().copied().sum::<f32>();
+                    samples.push(sum / max_channels as f32);
                     saw_samples = true;
                 }
             }
