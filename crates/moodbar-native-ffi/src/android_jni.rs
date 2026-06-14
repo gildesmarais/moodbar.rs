@@ -115,6 +115,9 @@ pub extern "system" fn Java_expo_modules_moodbarnative_NativeBridge_nativeAnalyz
         handle: 0,
         frame_count: 0,
         channel_count: 0,
+        decode_errors: 0,
+        zero_channel_packets: 0,
+        truncated_frames: 0,
     };
     let status =
         crate::moodbar_native_analysis_from_path(path.as_ptr(), opts.as_ptr(), &mut summary);
@@ -129,6 +132,9 @@ pub extern "system" fn Java_expo_modules_moodbarnative_NativeBridge_nativeAnalyz
             "handle": summary.handle,
             "frameCount": summary.frame_count,
             "channelCount": summary.channel_count,
+            "decodeErrors": summary.decode_errors,
+            "zeroChannelPackets": summary.zero_channel_packets,
+            "truncatedFrames": summary.truncated_frames,
         }),
     )
 }
@@ -178,6 +184,9 @@ pub extern "system" fn Java_expo_modules_moodbarnative_NativeBridge_nativeAnalyz
         handle: 0,
         frame_count: 0,
         channel_count: 0,
+        decode_errors: 0,
+        zero_channel_packets: 0,
+        truncated_frames: 0,
     };
     let ext_ptr = ext_c
         .as_ref()
@@ -201,6 +210,9 @@ pub extern "system" fn Java_expo_modules_moodbarnative_NativeBridge_nativeAnalyz
             "handle": summary.handle,
             "frameCount": summary.frame_count,
             "channelCount": summary.channel_count,
+            "decodeErrors": summary.decode_errors,
+            "zeroChannelPackets": summary.zero_channel_packets,
+            "truncatedFrames": summary.truncated_frames,
         }),
     )
 }

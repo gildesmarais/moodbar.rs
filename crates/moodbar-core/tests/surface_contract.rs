@@ -83,6 +83,7 @@ fn render_contract_matches_analysis_crate() {
     let core_raw = core::analysis_to_raw_rgb_bytes(&core_analysis);
     let analysis_raw = analysis::analysis_to_raw_rgb_bytes(&analysis_analysis);
     assert_eq!(core_raw, analysis_raw);
+    assert_eq!(core_analysis.colors(), analysis_analysis.colors());
 
     let core_svg = core::render_svg(&core_analysis, &core::SvgOptions::default());
     let analysis_svg = analysis::render_svg(&analysis_analysis, &analysis::SvgOptions::default());

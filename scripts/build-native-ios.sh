@@ -14,7 +14,12 @@ TARGETS=(
   "x86_64-apple-ios"
 )
 
-for target in "${TARGETS[@]}"; do
+MACOS_TARGETS=(
+  "aarch64-apple-darwin"
+  "x86_64-apple-darwin"
+)
+
+for target in "${TARGETS[@]}" "${MACOS_TARGETS[@]}"; do
   rustup target add "$target"
   cargo build -p "$CRATE_NAME" --profile "$BUILD_PROFILE" --target "$target"
 done
@@ -23,17 +28,26 @@ mkdir -p "$OUT_DIR/include"
 cp "$HEADER_SRC" "$OUT_DIR/include/moodbar_native_ffi.h"
 
 rm -rf "$OUT_DIR/MoodbarNativeFFI.xcframework"
+
 SIM_LIB="$OUT_DIR/libmoodbar_native_ffi_simulator.a"
 rm -f "$SIM_LIB"
-
 lipo -create \
   "$ROOT_DIR/target/aarch64-apple-ios-sim/$BUILD_PROFILE/$CRATE_LIB" \
   "$ROOT_DIR/target/x86_64-apple-ios/$BUILD_PROFILE/$CRATE_LIB" \
   -output "$SIM_LIB"
 
+MACOS_LIB="$OUT_DIR/libmoodbar_native_ffi_macos.a"
+rm -f "$MACOS_LIB"
+lipo -create \
+  "$ROOT_DIR/target/aarch64-apple-darwin/$BUILD_PROFILE/$CRATE_LIB" \
+  "$ROOT_DIR/target/x86_64-apple-darwin/$BUILD_PROFILE/$CRATE_LIB" \
+  -output "$MACOS_LIB"
+
 xcodebuild -create-xcframework \
   -library "$ROOT_DIR/target/aarch64-apple-ios/$BUILD_PROFILE/$CRATE_LIB" -headers "$OUT_DIR/include" \
   -library "$SIM_LIB" -headers "$OUT_DIR/include" \
+  -library "$MACOS_LIB" -headers "$OUT_DIR/include" \
   -output "$OUT_DIR/MoodbarNativeFFI.xcframework"
 
 rm -f "$SIM_LIB"
+rm -f "$MACOS_LIB"

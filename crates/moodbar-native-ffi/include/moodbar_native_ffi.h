@@ -23,6 +23,9 @@ typedef struct MoodbarNativeAnalysisSummary {
   uint64_t handle;
   uint32_t frame_count;
   uint32_t channel_count;
+  uint32_t decode_errors;
+  uint32_t zero_channel_packets;
+  uint32_t truncated_frames;
 } MoodbarNativeAnalysisSummary;
 
 typedef struct MoodbarNativeBuffer {
@@ -41,6 +44,12 @@ MoodbarNativeStatus moodbar_native_analysis_from_bytes(const uint8_t *bytes,
                                                        const char *options_json,
                                                        struct MoodbarNativeAnalysisSummary *out_summary);
 
+MoodbarNativeStatus moodbar_native_analysis_from_pcm(uint32_t sample_rate,
+                                                     const float *samples,
+                                                     size_t samples_len,
+                                                     const char *options_json,
+                                                     struct MoodbarNativeAnalysisSummary *out_summary);
+
 MoodbarNativeStatus moodbar_native_analysis_dispose(uint64_t handle);
 
 MoodbarNativeStatus moodbar_native_render_svg(uint64_t handle,
@@ -50,6 +59,12 @@ MoodbarNativeStatus moodbar_native_render_svg(uint64_t handle,
 MoodbarNativeStatus moodbar_native_render_png(uint64_t handle,
                                               const char *options_json,
                                               struct MoodbarNativeBuffer *out_png);
+
+MoodbarNativeStatus moodbar_native_get_colors(uint64_t handle,
+                                              struct MoodbarNativeBuffer *out_colors);
+
+MoodbarNativeStatus moodbar_native_get_frames(uint64_t handle,
+                                              struct MoodbarNativeBuffer *out_frames);
 
 MoodbarNativeStatus moodbar_native_last_error(struct MoodbarNativeBuffer *out_message_utf8);
 

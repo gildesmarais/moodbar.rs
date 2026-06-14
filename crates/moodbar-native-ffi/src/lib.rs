@@ -22,6 +22,9 @@ pub struct MoodbarNativeAnalysisSummary {
     pub handle: u64,
     pub frame_count: u32,
     pub channel_count: u32,
+    pub decode_errors: u32,
+    pub zero_channel_packets: u32,
+    pub truncated_frames: u32,
 }
 
 #[repr(C)]
@@ -157,6 +160,42 @@ pub extern "C" fn moodbar_native_analysis_from_bytes(
     })
 }
 
+fn analyze_from_pcm_impl(
+    sample_rate: u32,
+    samples: *const f32,
+    samples_len: usize,
+    options_json: *const c_char,
+) -> Result<MoodbarNativeAnalysisSummary, FfiError> {
+    if samples.is_null() {
+        return Err(FfiError::InvalidArgument(
+            "samples pointer must not be null".to_string(),
+        ));
+    }
+
+    let pcm = unsafe {
+        // SAFETY: caller guarantees samples pointer is valid and contains samples_len elements.
+        std::slice::from_raw_parts(samples, samples_len)
+    };
+
+    let options = parse_generate_options(options_json)?;
+    let analysis = moodbar_analysis::analyze_pcm_mono(sample_rate, pcm, &options);
+    store_analysis(analysis)
+}
+
+#[no_mangle]
+pub extern "C" fn moodbar_native_analysis_from_pcm(
+    sample_rate: u32,
+    samples: *const f32,
+    samples_len: usize,
+    options_json: *const c_char,
+    out_summary: *mut MoodbarNativeAnalysisSummary,
+) -> MoodbarNativeStatus {
+    ffi_guard(|| {
+        let summary = analyze_from_pcm_impl(sample_rate, samples, samples_len, options_json)?;
+        write_summary(out_summary, summary)
+    })
+}
+
 #[no_mangle]
 pub extern "C" fn moodbar_native_analysis_dispose(handle: u64) -> MoodbarNativeStatus {
     ffi_guard(|| free_analysis(handle))
@@ -183,6 +222,48 @@ pub extern "C" fn moodbar_native_render_png(
     ffi_guard(|| {
         let bytes = render_png_impl(handle, options_json)?;
         write_buffer(out_png, bytes)
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn moodbar_native_get_colors(
+    handle: u64,
+    out_colors: *mut MoodbarNativeBuffer,
+) -> MoodbarNativeStatus {
+    ffi_guard(|| {
+        let bytes = with_analysis(handle, |analysis| {
+            let colors = analysis.colors();
+            let mut out = Vec::<u8>::with_capacity(colors.len() * 3);
+            for color in colors {
+                out.push(color[0]);
+                out.push(color[1]);
+                out.push(color[2]);
+            }
+            Ok(out)
+        })?;
+        write_buffer(out_colors, bytes)
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn moodbar_native_get_frames(
+    handle: u64,
+    out_frames: *mut MoodbarNativeBuffer,
+) -> MoodbarNativeStatus {
+    ffi_guard(|| {
+        let bytes = with_analysis(handle, |analysis| {
+            let frame_count = analysis.frames.len();
+            let channel_count = analysis.channel_count;
+            let mut out =
+                Vec::<u8>::with_capacity(frame_count * channel_count * std::mem::size_of::<f64>());
+            for frame in &analysis.frames {
+                for &val in frame {
+                    out.extend_from_slice(&val.to_ne_bytes());
+                }
+            }
+            Ok(out)
+        })?;
+        write_buffer(out_frames, bytes)
     })
 }
 
@@ -218,3 +299,135 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(buffer: *mut MoodbarNativeBu
 
 #[cfg(target_os = "android")]
 mod android_jni;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::ptr;
+
+    #[test]
+    fn test_analysis_from_pcm() {
+        let sample_rate = 44100;
+        let samples = vec![0.0f32; 8000]; // 8k silence samples
+        let mut summary = MoodbarNativeAnalysisSummary {
+            handle: 0,
+            frame_count: 0,
+            channel_count: 0,
+            decode_errors: 0,
+            zero_channel_packets: 0,
+            truncated_frames: 0,
+        };
+
+        let status = moodbar_native_analysis_from_pcm(
+            sample_rate,
+            samples.as_ptr(),
+            samples.len(),
+            ptr::null(),
+            &mut summary,
+        );
+
+        assert_eq!(status as i32, MoodbarNativeStatus::Ok as i32);
+        assert!(summary.handle > 0);
+        assert!(summary.frame_count > 0);
+        assert_eq!(summary.channel_count, 3); // Default has 3 channels
+
+        // Render SVG to test it works
+        let mut svg_buf = MoodbarNativeBuffer::empty();
+        let render_status = moodbar_native_render_svg(summary.handle, ptr::null(), &mut svg_buf);
+        assert_eq!(render_status as i32, MoodbarNativeStatus::Ok as i32);
+        assert!(svg_buf.len > 0);
+
+        unsafe {
+            moodbar_native_buffer_free(&mut svg_buf);
+        }
+
+        // Dispose
+        let dispose_status = moodbar_native_analysis_dispose(summary.handle);
+        assert_eq!(dispose_status as i32, MoodbarNativeStatus::Ok as i32);
+    }
+
+    #[test]
+    fn test_get_colors_and_frames() {
+        let sample_rate = 44100;
+        let samples = vec![0.1f32; 8000]; // some non-silent samples
+        let mut summary = MoodbarNativeAnalysisSummary {
+            handle: 0,
+            frame_count: 0,
+            channel_count: 0,
+            decode_errors: 0,
+            zero_channel_packets: 0,
+            truncated_frames: 0,
+        };
+
+        let status = moodbar_native_analysis_from_pcm(
+            sample_rate,
+            samples.as_ptr(),
+            samples.len(),
+            ptr::null(),
+            &mut summary,
+        );
+
+        assert_eq!(status as i32, MoodbarNativeStatus::Ok as i32);
+        assert!(summary.handle > 0);
+        assert!(summary.frame_count > 0);
+        assert_eq!(summary.channel_count, 3);
+        assert_eq!(summary.decode_errors, 0);
+        assert_eq!(summary.zero_channel_packets, 0);
+        assert_eq!(summary.truncated_frames, 0);
+
+        // Retrieve the analyzed struct for reference assertion
+        let mut expected_colors = Vec::new();
+        let mut expected_flat_frames = Vec::new();
+        let ref_status = with_analysis(summary.handle, |analysis| {
+            expected_colors = analysis.colors().to_vec();
+            for frame in &analysis.frames {
+                expected_flat_frames.extend_from_slice(frame);
+            }
+            Ok(())
+        });
+        assert!(ref_status.is_ok());
+
+        // Get colors
+        let mut colors_buf = MoodbarNativeBuffer::empty();
+        let colors_status = moodbar_native_get_colors(summary.handle, &mut colors_buf);
+        assert_eq!(colors_status as i32, MoodbarNativeStatus::Ok as i32);
+        assert_eq!(colors_buf.len, expected_colors.len() * 3);
+        assert!(!colors_buf.ptr.is_null());
+
+        let colors_slice = unsafe { std::slice::from_raw_parts(colors_buf.ptr, colors_buf.len) };
+        for (i, &color) in expected_colors.iter().enumerate() {
+            assert_eq!(colors_slice[i * 3], color[0]);
+            assert_eq!(colors_slice[i * 3 + 1], color[1]);
+            assert_eq!(colors_slice[i * 3 + 2], color[2]);
+        }
+
+        unsafe {
+            moodbar_native_buffer_free(&mut colors_buf);
+        }
+
+        // Get frames
+        let mut frames_buf = MoodbarNativeBuffer::empty();
+        let frames_status = moodbar_native_get_frames(summary.handle, &mut frames_buf);
+        assert_eq!(frames_status as i32, MoodbarNativeStatus::Ok as i32);
+        assert_eq!(
+            frames_buf.len,
+            expected_flat_frames.len() * std::mem::size_of::<f64>()
+        );
+        assert!(!frames_buf.ptr.is_null());
+
+        let frames_slice = unsafe {
+            std::slice::from_raw_parts(frames_buf.ptr as *const f64, expected_flat_frames.len())
+        };
+        for (i, &expected_val) in expected_flat_frames.iter().enumerate() {
+            assert!((frames_slice[i] - expected_val).abs() < 1e-12);
+        }
+
+        unsafe {
+            moodbar_native_buffer_free(&mut frames_buf);
+        }
+
+        // Dispose
+        let dispose_status = moodbar_native_analysis_dispose(summary.handle);
+        assert_eq!(dispose_status as i32, MoodbarNativeStatus::Ok as i32);
+    }
+}

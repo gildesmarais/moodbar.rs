@@ -90,7 +90,15 @@ pub struct AnalysisDiagnostics {
 pub struct MoodbarAnalysis {
     pub channel_count: usize,
     pub frames: Vec<Vec<f64>>,
+    pub colors: Vec<[u8; 3]>,
     pub diagnostics: AnalysisDiagnostics,
+}
+
+impl MoodbarAnalysis {
+    /// Returns the sequence of colors as a slice of RGB values.
+    pub fn colors(&self) -> &[[u8; 3]] {
+        &self.colors
+    }
 }
 
 /// SVG output shape presets.
@@ -403,9 +411,18 @@ impl<'a> FrameAnalyzer<'a> {
             .map(|chunk| chunk.to_vec())
             .collect::<Vec<_>>();
         let aggregated = aggregate_frames(&frames, self.options.frames_per_color.max(1));
+        let normalized = normalize_frames(&aggregated, self.options);
+        let colors = normalized
+            .iter()
+            .map(|frame| {
+                let (r, g, b) = frame_to_rgb(frame);
+                [scale_to_u8(r), scale_to_u8(g), scale_to_u8(b)]
+            })
+            .collect();
         MoodbarAnalysis {
             channel_count: self.channel_count,
-            frames: normalize_frames(&aggregated, self.options),
+            frames: normalized,
+            colors,
             diagnostics: AnalysisDiagnostics::default(),
         }
     }
@@ -463,12 +480,11 @@ impl<'a> FrameAnalyzer<'a> {
 }
 
 pub fn analysis_to_raw_rgb_bytes(analysis: &MoodbarAnalysis) -> Vec<u8> {
-    let mut out = Vec::<u8>::with_capacity(analysis.frames.len() * 3);
-    for frame in &analysis.frames {
-        let (r, g, b) = frame_to_rgb(frame);
-        out.push(scale_to_u8(r));
-        out.push(scale_to_u8(g));
-        out.push(scale_to_u8(b));
+    let mut out = Vec::<u8>::with_capacity(analysis.colors.len() * 3);
+    for color in &analysis.colors {
+        out.push(color[0]);
+        out.push(color[1]);
+        out.push(color[2]);
     }
     out
 }
@@ -1049,6 +1065,7 @@ mod tests {
                 vec![0.0, 1.0, 0.2],
                 vec![0.0, 0.1, 1.0],
             ],
+            colors: vec![[255, 0, 0], [0, 255, 51], [0, 25, 255]],
             diagnostics: AnalysisDiagnostics::default(),
         };
 
@@ -1100,6 +1117,7 @@ mod tests {
         let analysis = MoodbarAnalysis {
             channel_count: 3,
             frames,
+            colors: Vec::new(),
             diagnostics: AnalysisDiagnostics::default(),
         };
         let svg = render_svg(
@@ -1124,6 +1142,7 @@ mod tests {
                 vec![0.0, 1.0, 0.0],
                 vec![0.0, 0.0, 1.0],
             ],
+            colors: vec![[255, 0, 0], [0, 255, 0], [0, 0, 255]],
             diagnostics: AnalysisDiagnostics::default(),
         };
         let png = render_png(
