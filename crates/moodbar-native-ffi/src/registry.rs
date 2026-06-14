@@ -17,6 +17,9 @@ pub(crate) fn store_analysis(
 ) -> Result<MoodbarNativeAnalysisSummary, FfiError> {
     let frame_count = analysis.frames.len() as u32;
     let channel_count = analysis.channel_count as u32;
+    let decode_errors = analysis.diagnostics.decode_errors as u32;
+    let zero_channel_packets = analysis.diagnostics.zero_channel_packets as u32;
+    let truncated_frames = analysis.diagnostics.truncated_frames as u32;
     let handle = NEXT_HANDLE.fetch_add(1, Ordering::Relaxed);
 
     let mut guard = ANALYSIS_REGISTRY.lock().map_err(|_| FfiError::Poisoned)?;
@@ -26,6 +29,9 @@ pub(crate) fn store_analysis(
         handle,
         frame_count,
         channel_count,
+        decode_errors,
+        zero_channel_packets,
+        truncated_frames,
     })
 }
 
