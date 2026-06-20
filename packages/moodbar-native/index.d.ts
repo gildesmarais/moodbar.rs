@@ -1,6 +1,6 @@
 export type NormalizeMode = "PerChannelPeak" | "GlobalPeak";
 export type DetectionMode = "SpectralEnergy" | "SpectralFlux";
-export type SvgShape = "Strip" | "Waveform";
+export type SvgShape = "Strip" | "Waveform" | "SplitStacked" | "SplitWaveform" | "SplitLanes" | "SplitCentrifugal" | "SplitOverlapping";
 
 export interface AnalyzeOptions {
   fft_size?: number;
