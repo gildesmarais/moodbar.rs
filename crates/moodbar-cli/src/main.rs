@@ -154,6 +154,11 @@ impl DetectionModeArg {
 enum SvgShapeArg {
     Strip,
     Waveform,
+    SplitStacked,
+    SplitWaveform,
+    SplitLanes,
+    SplitCentrifugal,
+    SplitOverlapping,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, ValueEnum)]
@@ -167,6 +172,11 @@ impl SvgShapeArg {
         match self {
             SvgShapeArg::Strip => SvgShape::Strip,
             SvgShapeArg::Waveform => SvgShape::Waveform,
+            SvgShapeArg::SplitStacked => SvgShape::SplitStacked,
+            SvgShapeArg::SplitWaveform => SvgShape::SplitWaveform,
+            SvgShapeArg::SplitLanes => SvgShape::SplitLanes,
+            SvgShapeArg::SplitCentrifugal => SvgShape::SplitCentrifugal,
+            SvgShapeArg::SplitOverlapping => SvgShape::SplitOverlapping,
         }
     }
 }

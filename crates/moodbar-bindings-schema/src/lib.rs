@@ -52,6 +52,11 @@ pub enum DetectionModeInput {
 pub enum SvgShapeInput {
     Strip,
     Waveform,
+    SplitStacked,
+    SplitWaveform,
+    SplitLanes,
+    SplitCentrifugal,
+    SplitOverlapping,
 }
 
 impl From<NormalizeModeInput> for NormalizeMode {
@@ -77,6 +82,11 @@ impl From<SvgShapeInput> for SvgShape {
         match value {
             SvgShapeInput::Strip => SvgShape::Strip,
             SvgShapeInput::Waveform => SvgShape::Waveform,
+            SvgShapeInput::SplitStacked => SvgShape::SplitStacked,
+            SvgShapeInput::SplitWaveform => SvgShape::SplitWaveform,
+            SvgShapeInput::SplitLanes => SvgShape::SplitLanes,
+            SvgShapeInput::SplitCentrifugal => SvgShape::SplitCentrifugal,
+            SvgShapeInput::SplitOverlapping => SvgShape::SplitOverlapping,
         }
     }
 }
