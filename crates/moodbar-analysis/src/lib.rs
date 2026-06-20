@@ -17,6 +17,7 @@ pub struct GenerateOptions {
     pub frames_per_color: usize,
     pub band_edges_hz: Vec<f32>,
     pub max_target_frames: Option<usize>,
+    pub playback_rate: Option<f32>,
 }
 
 impl Default for GenerateOptions {
@@ -31,6 +32,7 @@ impl Default for GenerateOptions {
             frames_per_color: 1,
             band_edges_hz: vec![500.0, 2000.0],
             max_target_frames: Some(2000),
+            playback_rate: None,
         }
     }
 }
@@ -42,6 +44,11 @@ impl GenerateOptions {
         } else {
             self.band_edges_hz.clone()
         }
+    }
+
+    fn effective_nyquist_hz(&self, sample_rate: u32) -> f64 {
+        let rate = self.playback_rate.unwrap_or(1.0) as f64;
+        sample_rate as f64 / 2.0 * rate
     }
 }
 
@@ -188,7 +195,11 @@ impl<'a> FrameAnalyzer<'a> {
             options,
             fft_size,
             hop_size,
-            bin_to_band: build_bin_to_band(fft_size, sample_rate as f64 / 2.0, &band_edges_hz),
+            bin_to_band: build_bin_to_band(
+                fft_size,
+                options.effective_nyquist_hz(sample_rate),
+                &band_edges_hz,
+            ),
             channel_count,
             hann: hann_window(fft_size),
             fft,
@@ -800,6 +811,53 @@ mod tests {
         assert!((max_overall(&global.frames) - 1.0).abs() < 1e-9);
         assert!(
             max_per_channel(&global.frames, 0) < 1.0 || max_per_channel(&global.frames, 2) < 1.0
+        );
+    }
+
+    #[test]
+    fn test_playback_rate_frequency_shift() {
+        let sample_rate = 44_100;
+        // Near the upper mid/high boundary so rate shifts change band allocation.
+        let pcm = sine(1900.0, sample_rate, 1.0);
+        let stable = GenerateOptions {
+            max_target_frames: None,
+            ..GenerateOptions::default()
+        };
+
+        let baseline = analyze_pcm_mono(sample_rate, &pcm, &stable);
+        let faster = analyze_pcm_mono(
+            sample_rate,
+            &pcm,
+            &GenerateOptions {
+                playback_rate: Some(1.10),
+                ..stable.clone()
+            },
+        );
+        let slower = analyze_pcm_mono(
+            sample_rate,
+            &pcm,
+            &GenerateOptions {
+                playback_rate: Some(0.90),
+                ..stable
+            },
+        );
+
+        let total_band_energy = |analysis: &MoodbarAnalysis, band: usize| -> f64 {
+            analysis.frames.iter().map(|frame| frame[band]).sum()
+        };
+
+        let high_baseline = total_band_energy(&baseline, 2);
+        let high_faster = total_band_energy(&faster, 2);
+        let low_baseline = total_band_energy(&baseline, 0);
+        let low_slower = total_band_energy(&slower, 0);
+
+        assert!(
+            high_faster > high_baseline,
+            "speed-up should shift energy toward high bands: {high_faster} vs {high_baseline}"
+        );
+        assert!(
+            low_slower > low_baseline,
+            "slow-down should shift energy toward low bands: {low_slower} vs {low_baseline}"
         );
     }
 

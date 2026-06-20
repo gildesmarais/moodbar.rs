@@ -36,6 +36,7 @@ pub struct GenerateOptions {
     pub detection_mode: DetectionMode,
     pub frames_per_color: usize,
     pub band_edges_hz: Vec<f32>,
+    pub playback_rate: Option<f32>,
 }
 
 impl Default for GenerateOptions {
@@ -49,6 +50,7 @@ impl Default for GenerateOptions {
             detection_mode: DetectionMode::SpectralEnergy,
             frames_per_color: 1,
             band_edges_hz: vec![500.0, 2000.0],
+            playback_rate: None,
         }
     }
 }
@@ -60,6 +62,11 @@ impl GenerateOptions {
         } else {
             self.band_edges_hz.clone()
         }
+    }
+
+    fn effective_nyquist_hz(&self, sample_rate: u32) -> f64 {
+        let rate = self.playback_rate.unwrap_or(1.0) as f64;
+        sample_rate as f64 / 2.0 * rate
     }
 }
 
@@ -366,7 +373,11 @@ impl<'a> FrameAnalyzer<'a> {
             options,
             fft_size,
             hop_size,
-            bin_to_band: build_bin_to_band(fft_size, sample_rate as f64 / 2.0, &band_edges_hz),
+            bin_to_band: build_bin_to_band(
+                fft_size,
+                options.effective_nyquist_hz(sample_rate),
+                &band_edges_hz,
+            ),
             channel_count,
             hann: hann_window(fft_size),
             fft,
@@ -667,6 +678,13 @@ fn validate_options(options: &GenerateOptions) -> Result<(), MoodbarError> {
         return Err(MoodbarError::InvalidOptions(
             "frames_per_color must be >= 1".to_string(),
         ));
+    }
+    if let Some(rate) = options.playback_rate {
+        if !(rate.is_finite() && rate > 0.0) {
+            return Err(MoodbarError::InvalidOptions(
+                "playback_rate must be finite and > 0".to_string(),
+            ));
+        }
     }
     let edges = options.effective_band_edges();
     if edges.is_empty() {
