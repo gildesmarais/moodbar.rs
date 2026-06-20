@@ -114,7 +114,9 @@
       let wasmSvg;
       let wasmPng;
       let selectedFile;
-      let latestAnalysis;
+      let decodedFile = null;
+      let latestAnalysis = null;
+      let latestAnalysisRate = null;
       let cachedDecode = null;
       let busy = false;
       let debounceTimer = null;
@@ -150,8 +152,15 @@
       }
 
       function setSelectedFile(file) {
-        selectedFile = file;
-        selectedFileEl.textContent = file ? `Selected: ${file.name}` : "";
+        if (selectedFile !== file) {
+          selectedFile = file;
+          selectedFileEl.textContent = file ? `Selected: ${file.name}` : "";
+          cachedDecode = null;
+          decodedFile = null;
+          releaseAnalysis();
+          playbackRateInput.disabled = true;
+          savePngButton.disabled = true;
+        }
       }
 
       function getSelectedFile() {
@@ -203,6 +212,7 @@
           latestAnalysis.free();
         }
         latestAnalysis = null;
+        latestAnalysisRate = null;
       }
 
       async function ensureWasmInit() {
@@ -300,15 +310,18 @@
 
         try {
           await ensureWasmInit();
-          setStatus(`Analyzing at ${rate.toFixed(2)}×...`);
-          releaseAnalysis();
 
-          const analysis = wasmAnalyzeWithOptions(pcm, sampleRate, {
-            playback_rate: rate,
-          });
-          latestAnalysis = analysis;
+          if (!latestAnalysis || latestAnalysisRate !== rate) {
+            setStatus(`Analyzing at ${rate.toFixed(2)}×...`);
+            releaseAnalysis();
+            latestAnalysis = wasmAnalyzeWithOptions(pcm, sampleRate, {
+              playback_rate: rate,
+            });
+            latestAnalysisRate = rate;
+          }
 
-          const svgMarkup = wasmSvg(analysis, {
+          setStatus("Rendering...");
+          const svgMarkup = wasmSvg(latestAnalysis, {
             width: readWidth(),
             height: readHeight(),
             shape: shapeSelect.value,
@@ -317,7 +330,7 @@
 
           outputEl.innerHTML = svgMarkup;
           setStatus(
-            `Done: ${analysis.frame_count()} frames, ${analysis.channel_count()} channels at ${rate.toFixed(2)}×. (${duration.toFixed(1)}s at ${TARGET_SAMPLE_RATE} Hz mono)`,
+            `Done: ${latestAnalysis.frame_count()} frames, ${latestAnalysis.channel_count()} channels at ${rate.toFixed(2)}×. (${duration.toFixed(1)}s at ${TARGET_SAMPLE_RATE} Hz mono)`,
           );
           savePngButton.disabled = false;
         } catch (error) {
@@ -341,11 +354,14 @@
           return;
         }
 
-        outputEl.innerHTML = "";
-
         try {
           await ensureWasmInit();
-          await decodeAndCache(file);
+          if (decodedFile !== file || !cachedDecode) {
+            outputEl.innerHTML = "";
+            releaseAnalysis();
+            await decodeAndCache(file);
+            decodedFile = file;
+          }
           await new Promise((resolve) => requestAnimationFrame(resolve));
           await renderFromCache();
         } catch (error) {
@@ -354,6 +370,7 @@
           setStatus(`Failed: ${message}`, true);
           releaseAnalysis();
           cachedDecode = null;
+          decodedFile = null;
           playbackRateInput.disabled = true;
         }
       }
@@ -408,6 +425,12 @@
       playbackRateInput.addEventListener("input", () => {
         updatePlaybackRateReadout();
         scheduleRenderFromCache();
+      });
+
+      shapeSelect.addEventListener("change", () => {
+        if (cachedDecode) {
+          void renderFromCache();
+        }
       });
 
       wireDropZone();
