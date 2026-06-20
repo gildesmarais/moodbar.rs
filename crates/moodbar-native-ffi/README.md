@@ -1,33 +1,39 @@
 # moodbar-native-ffi
 
-The C ABI FFI layer for mobile native modules (iOS and Android).
+C ABI FFI for iOS and Android native modules.
 
-This crate exposes `#[no_mangle]` C functions that bridge the host languages (Swift/Kotlin) to the `moodbar-decode` and `moodbar-analysis` crates. It generates a C header (`include/moodbar_native_ffi.h`) automatically during the build using `cbindgen`.
+Bridges Swift/Kotlin to `moodbar-decode` (file/bytes → PCM → analysis) and `moodbar-analysis` (render). Generates `include/moodbar_native_ffi.h` via `cbindgen` on build.
 
-## Handle Registry (Thread Safety)
+## Flow
 
-To avoid forcing Swift or Kotlin to manage Rust object lifetimes across the FFI boundary, this crate uses a process-global handle registry:
+1. **Analyze** — decode audio, run analysis, store `MoodbarAnalysis` in a process-global registry, return a `u64` handle.
+2. **Render** — pass handle + options; Rust renders SVG or PNG via `moodbar-analysis`.
+3. **Dispose** — host removes the handle and frees analysis memory.
 
-```rust
-static ANALYSIS_REGISTRY: Lazy<Mutex<HashMap<u64, Arc<MoodbarAnalysis>>>> =
-    Lazy::new(|| Mutex::new(HashMap::new()));
-```
+No raw Rust pointers cross the FFI boundary — only handles and owned buffers.
 
-1. **Analysis:** The `analyze()` export decodes the audio, runs the FFT, and stores the resulting `MoodbarAnalysis` in the registry. It returns a `u64` handle.
-2. **Rendering:** Subsequent calls (like `render_png()`) pass the `u64` handle back to Rust. Rust acquires the mutex, looks up the analysis object, and generates the output.
-3. **Disposal:** The host is responsible for calling the disposal function with the handle when it's done, which removes the entry from the map and frees the memory.
-
-## Buffer Ownership Rules
-
-Heap buffers (like rendered PNG bytes) returned to the host follow strict ownership transfer rules:
+## Handle registry
 
 ```rust
-std::mem::forget(bytes); // transfer ownership
-*out_buffer = MoodbarNativeBuffer { ptr, len, cap };
+static ANALYSIS_REGISTRY: Lazy<Mutex<HashMap<u64, Arc<MoodbarAnalysis>>>> = ...;
 ```
 
-The host (Swift/Kotlin) **must** free this buffer exactly once by passing the struct back to `moodbar_native_buffer_free()`. On the Swift side, always register `defer { moodbar_native_buffer_free(&out) }` immediately before the first `try` in the same scope to ensure memory is not leaked upon failure.
+The registry mutex is held for the duration of render calls (renders are serialized in v1).
 
-## Panic Safety and Errors
+## Buffer ownership
 
-All FFI exports are wrapped in an `ffi_guard` (`std::panic::catch_unwind`) to prevent panics from crossing the C ABI boundary. A caught panic maps to a non-zero status code. On failure, the host must call `moodbar_native_last_error()` on the same thread to retrieve the string description of the error.
+Rendered PNG/SVG bytes are transferred with `std::mem::forget` into a `MoodbarNativeBuffer`. The host must free exactly once via `moodbar_native_buffer_free`.
+
+On Swift: register `defer { moodbar_native_buffer_free(&out) }` before the first `try` in the same scope.
+
+## Panic safety and errors
+
+All `#[no_mangle]` exports use `ffi_guard` (`catch_unwind`). Failures return a non-zero `MoodbarNativeStatus`; call `moodbar_native_last_error()` on the same thread before the next FFI call.
+
+## Android
+
+JNI entry points return a JSON envelope (`{"ok": true, ...}` / `{"ok": false, "status", "error"}`) parsed by Kotlin `NativeBridge`.
+
+## Render shapes
+
+Svg/Png options accept the same `SvgShape` values as `moodbar-analysis`: `Strip`, `Waveform`, and the five split variants (`SplitStacked`, `SplitWaveform`, `SplitLanes`, `SplitCentrifugal`, `SplitOverlapping`).

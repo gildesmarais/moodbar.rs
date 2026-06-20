@@ -2,34 +2,65 @@
 
 [![Crates.io](https://img.shields.io/crates/v/moodbar-analysis.svg)](https://crates.io/crates/moodbar-analysis)
 
-The core DSP, FFT, and rendering pipeline for the Moodbar visualizer.
+Source of truth for moodbar DSP, FFT, normalization, and rendering. Takes decoded mono PCM, produces spectral frames and colors, then renders to raw RGB bytes, SVG, or PNG.
 
-This crate is responsible for taking decoded mono PCM audio data, running the Fast Fourier Transform (using `rustfft`), and performing frequency band aggregation and normalization to produce the characteristic moodbar color sequences.
+No audio decoding and no `serde` — suitable for WASM, FFI, and native Rust callers that supply PCM themselves.
 
-It operates entirely independent of any audio decoding logic (and is decoupled from `symphonia`), making it lightweight and suitable for use in WASM, FFI, and native Rust applications where you handle audio decoding yourself.
+## Module layout
+
+| Module     | Role                                                              |
+| ---------- | ----------------------------------------------------------------- |
+| `options`  | `GenerateOptions`, `NormalizeMode`, `DetectionMode`               |
+| `types`    | `MoodbarAnalysis`, `SvgOptions`, `PngOptions`, `SvgShape`, errors |
+| `bands`    | `SpectralBands` (low/mid/high extraction for split renderers)     |
+| `analyze/` | `FrameAnalyzer` streaming path, FFT, normalization, color mapping |
+| `render/`  | `render_svg`, `render_png` (strip, waveform, split-band layouts)  |
 
 ## Features
 
-- **`png`**: Enables rendering the moodbar output directly to a PNG image (using the `image` crate).
-- SVG rendering is included by default.
+- **`png`** (default): PNG rendering via the `image` crate.
+- SVG rendering is always available (no feature gate).
 
-## Usage Example
+## Public API
+
+- `analyze_pcm_mono(sample_rate, samples, options)` — analyze pre-decoded mono PCM.
+- `analysis_to_raw_rgb_bytes(analysis)` — legacy `R G B …` byte output.
+- `render_svg(analysis, options)` — SVG markup.
+- `render_png(analysis, options)` — PNG bytes (`png` feature).
+
+Types re-exported from `options` and `types`: `GenerateOptions`, `MoodbarAnalysis`, `SvgOptions`, `PngOptions`, `SvgShape`, etc.
+
+## SvgShape variants
+
+| Variant            | Description                                     |
+| ------------------ | ----------------------------------------------- |
+| `Strip`            | Classic horizontal color strip (gradient fill). |
+| `Waveform`         | Amplitude-shaped path with gradient stroke.     |
+| `SplitStacked`     | Per-band stacked rectangles (low/mid/high).     |
+| `SplitWaveform`    | Per-band waveform paths.                        |
+| `SplitLanes`       | Horizontal lanes, one band per lane.            |
+| `SplitCentrifugal` | Centrifugal split layout.                       |
+| `SplitOverlapping` | Overlapping semi-transparent band layers.       |
+
+Split SVG renderers emit CSS classes (`mood-low`, `mood-mid`, `mood-high`) for styling. Split layouts derive band energy from `SpectralBands` (first three channels when more bands are configured).
+
+## Usage
 
 ```rust
-use moodbar_analysis::{analyze_pcm_mono, GenerateOptions};
+use moodbar_analysis::{analyze_pcm_mono, render_svg, GenerateOptions, SvgOptions, SvgShape};
 
-// In a real application, obtain PCM data from your audio decoder (e.g., moodbar-decode or Web Audio API)
 let sample_rate = 44_100;
-let pcm_data = vec![0.0f32; sample_rate as usize]; // 1 second of silence
+let pcm = vec![0.0f32; sample_rate as usize];
 
-let options = GenerateOptions::default();
+let analysis = analyze_pcm_mono(sample_rate, &pcm, &GenerateOptions::default());
 
-// Run the analysis pipeline
-let analysis = analyze_pcm_mono(sample_rate, &pcm_data, &options);
-
-println!("Generated {} frames of color data.", analysis.frames.len());
+let svg = render_svg(
+    &analysis,
+    &SvgOptions {
+        shape: SvgShape::SplitStacked,
+        ..SvgOptions::default()
+    },
+);
 ```
 
-## Rendering
-
-You can use `analysis` to generate raw RGB bytes, SVG markup, or PNG bytes (with the `png` feature). All rendering paths are provided directly by this crate.
+For file-based decode, use [`moodbar-decode`](https://crates.io/crates/moodbar-decode) or decode PCM in your host (Web Audio API, platform codecs).
