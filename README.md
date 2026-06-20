@@ -52,8 +52,9 @@ cargo install --path crates/moodbar-cli
 # generate legacy raw moodbar bytes (.mood)
 cargo run -p moodbar -- generate -i input.ogg -o output.mood
 
-# generate SVG output
+# generate SVG output (strip, waveform, or split-band shapes)
 cargo run -p moodbar -- generate -i input.ogg -o output.svg --format svg --svg-shape waveform
+cargo run -p moodbar -- generate -i input.ogg -o split.svg --format svg --svg-shape split-stacked
 
 # inspect a moodbar file
 cargo run -p moodbar -- inspect -i output.mood
@@ -79,13 +80,13 @@ cargo run -p moodbar -- batch -i ./music -o ./moods --progress
 
 ## Repository Layout
 
-- `crates/moodbar-analysis`: DSP, FFT, normalization, and rendering (SVG/PNG)
-- `crates/moodbar-decode`: Symphonia-based audio decoding
-- `crates/moodbar-bindings-schema`: Shared options schema and serde logic
-- `crates/moodbar-core`: Legacy monolithic implementation for backwards compatibility
+- `crates/moodbar-analysis`: Source of truth for DSP, FFT, normalization, and rendering (SVG/PNG, including split-band shapes)
+- `crates/moodbar-decode`: Symphonia decode → mono PCM → `analyze_pcm_mono`
+- `crates/moodbar-bindings-schema`: Serde option patches for WASM/FFI (no DSP)
+- `crates/moodbar-core`: Backward-compatible CLI API; rendering delegates to `moodbar-analysis`
 - `crates/moodbar-cli`: `generate`, `batch`, `inspect` commands
-- `crates/moodbar-wasm`: WebAssembly JS bindings for browser/Node usage
-- `crates/moodbar-native-ffi`: C ABI FFI layer for mobile native modules
+- `crates/moodbar-wasm`: WASM bindings — pre-decoded PCM only (browser decodes)
+- `crates/moodbar-native-ffi`: C ABI for mobile; uses `moodbar-decode` + `moodbar-analysis`
 - `packages/moodbar-native`: React Native/Expo module for iOS + Android
 - `tests/fixtures/legacy`: optional parity fixtures
 - `scripts/`: helper scripts

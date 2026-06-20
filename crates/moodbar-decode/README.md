@@ -2,13 +2,13 @@
 
 [![Crates.io](https://img.shields.io/crates/v/moodbar-decode.svg)](https://crates.io/crates/moodbar-decode)
 
-The Symphonia-based audio decoding layer for the Moodbar visualization pipeline.
+Symphonia-based audio decode for the moodbar pipeline.
 
-This crate is responsible for taking an audio file on disk, probing it using Symphonia, and decoding the track while streaming it directly into the `moodbar-analysis` DSP pipeline.
+Decodes an audio file or in-memory bytes to mono PCM, then calls `moodbar_analysis::analyze_pcm_mono`. Decode diagnostics (`decode_errors`, `zero_channel_packets`, `truncated_frames`) are copied onto the returned `MoodbarAnalysis`.
 
-By keeping this separated from the DSP code (`moodbar-analysis`), you can omit this crate entirely if you are building for a platform where you already have decoded audio data (such as the browser with the Web Audio API, or native mobile apps).
+Omit this crate when the host already provides PCM (browser Web Audio API, platform decoders).
 
-## Usage Example
+## Usage
 
 ```rust
 use moodbar_decode::analyze_path;
@@ -18,17 +18,20 @@ use std::path::Path;
 let path = Path::new("test.mp3");
 let options = GenerateOptions::default();
 
-// analyze_path decodes the file and runs the DSP pipeline
 match analyze_path(path, &options) {
     Ok(analysis) => {
-        println!("Generated {} frames of color data.", analysis.frames.len());
+        println!("Generated {} frames.", analysis.frames.len());
     }
-    Err(e) => {
-        eprintln!("Failed to decode audio: {}", e);
-    }
+    Err(e) => eprintln!("Failed: {e}"),
 }
 ```
 
-## Supported Formats
+Convenience helpers `generate_moodbar_from_path` and `generate_moodbar_from_bytes` return legacy raw RGB bytes.
 
-Supports all major formats enabled by default in Symphonia, including `mp3`, `ogg` (Vorbis), `flac`, `wav`, `aac`, and `mp4`.
+## Supported formats
+
+All formats enabled by default in Symphonia: `mp3`, `ogg` (Vorbis), `flac`, `wav`, `aac`, `mp4`, and others Symphonia probes.
+
+## Note on buffering
+
+The decode path collects the full mono PCM buffer before analysis. Streaming handoff into `FrameAnalyzer` is a future optimization; analysis itself supports chunked `feed_mono_samples` when driven directly via `moodbar-analysis`.
