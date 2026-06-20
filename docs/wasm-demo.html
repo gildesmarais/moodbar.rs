@@ -39,6 +39,25 @@
               <option value="Waveform">Waveform</option>
             </select>
 
+            <label for="playbackRate">Playback rate</label>
+            <div class="rate-control">
+              <input
+                id="playbackRate"
+                type="range"
+                min="0.90"
+                max="1.10"
+                step="0.01"
+                value="1.00"
+                disabled
+              />
+              <output id="playbackRateValue" for="playbackRate"
+                >1.00× (+0%)</output
+              >
+            </div>
+            <p class="rate-hint">
+              Vinyl pitch color shift — cooler when faster, warmer when slower.
+            </p>
+
             <details>
               <summary>Advanced size options</summary>
               <div class="advanced-grid">
@@ -80,15 +99,22 @@
       const widthInput = document.getElementById("width");
       const heightInput = document.getElementById("height");
       const shapeSelect = document.getElementById("shape");
+      const playbackRateInput = document.getElementById("playbackRate");
+      const playbackRateValue = document.getElementById("playbackRateValue");
 
       let initialized = false;
       let wasmInit;
       let wasmAnalyze;
+      let wasmAnalyzeWithOptions;
       let wasmSvg;
       let wasmPng;
       let selectedFile;
       let latestAnalysis;
+      let cachedDecode = null;
+      let busy = false;
+      let debounceTimer = null;
       const TARGET_SAMPLE_RATE = 11_025;
+      const SLIDER_DEBOUNCE_MS = 120;
 
       function setStatus(message, isError = false) {
         statusEl.textContent = message;
@@ -101,6 +127,21 @@
 
       function readHeight() {
         return Number(heightInput.value) || 96;
+      }
+
+      function readPlaybackRate() {
+        return Number(playbackRateInput.value) || 1;
+      }
+
+      function formatPlaybackRateReadout(rate) {
+        const pct = Math.round((rate - 1) * 100);
+        const signedPct = pct >= 0 ? `+${pct}%` : `${pct}%`;
+        return `${rate.toFixed(2)}× (${signedPct})`;
+      }
+
+      function updatePlaybackRateReadout() {
+        playbackRateValue.textContent =
+          formatPlaybackRateReadout(readPlaybackRate());
       }
 
       function setSelectedFile(file) {
@@ -177,6 +218,7 @@
             const mod = await import(url);
             wasmInit = mod.default;
             wasmAnalyze = mod.analyze;
+            wasmAnalyzeWithOptions = mod.analyze_with_options;
             wasmSvg = mod.svg;
             wasmPng = mod.png;
             break;
@@ -188,6 +230,12 @@
         if (!wasmInit || !wasmAnalyze || !wasmSvg || !wasmPng) {
           throw new Error(
             `WASM module not found. Ensure @moodbar/wasm is published (CDN) or build locally with make wasm. ${lastError ? `Last error: ${String(lastError)}` : ""}`,
+          );
+        }
+
+        if (!wasmAnalyzeWithOptions) {
+          throw new Error(
+            "WASM build is missing analyze_with_options. Run make wasm-docs for playback rate support.",
           );
         }
 
@@ -225,27 +273,34 @@
         };
       }
 
-      async function runDemo() {
-        const file = getSelectedFile();
-        if (!file) {
-          setStatus("Choose or drop an audio file first.", true);
+      async function decodeAndCache(file) {
+        setStatus("Decoding audio...");
+        cachedDecode = await decodeMonoPcm(file);
+        playbackRateInput.disabled = false;
+        return cachedDecode;
+      }
+
+      async function renderFromCache() {
+        if (!cachedDecode || busy) {
           return;
         }
 
+        busy = true;
         runButton.disabled = true;
         savePngButton.disabled = true;
-        outputEl.innerHTML = "";
+        playbackRateInput.disabled = true;
+
+        const { sampleRate, pcm, duration } = cachedDecode;
+        const rate = readPlaybackRate();
 
         try {
           await ensureWasmInit();
-          setStatus("Decoding audio...");
-          const { sampleRate, pcm, duration } = await decodeMonoPcm(file);
-
-          await new Promise((resolve) => requestAnimationFrame(resolve));
-
-          setStatus("Analyzing and rendering...");
+          setStatus(`Analyzing at ${rate.toFixed(2)}×...`);
           releaseAnalysis();
-          const analysis = wasmAnalyze(pcm, sampleRate);
+
+          const analysis = wasmAnalyzeWithOptions(pcm, sampleRate, {
+            playback_rate: rate,
+          });
           latestAnalysis = analysis;
 
           const svgMarkup = wasmSvg(analysis, {
@@ -257,7 +312,7 @@
 
           outputEl.innerHTML = svgMarkup;
           setStatus(
-            `Done: ${analysis.frame_count()} frames, ${analysis.channel_count()} channels. (${duration.toFixed(1)}s at ${TARGET_SAMPLE_RATE} Hz mono)`,
+            `Done: ${analysis.frame_count()} frames, ${analysis.channel_count()} channels at ${rate.toFixed(2)}×. (${duration.toFixed(1)}s at ${TARGET_SAMPLE_RATE} Hz mono)`,
           );
           savePngButton.disabled = false;
         } catch (error) {
@@ -266,8 +321,46 @@
           setStatus(`Failed: ${message}`, true);
           releaseAnalysis();
         } finally {
+          busy = false;
           runButton.disabled = false;
+          if (cachedDecode) {
+            playbackRateInput.disabled = false;
+          }
         }
+      }
+
+      async function runDemo() {
+        const file = getSelectedFile();
+        if (!file) {
+          setStatus("Choose or drop an audio file first.", true);
+          return;
+        }
+
+        outputEl.innerHTML = "";
+
+        try {
+          await ensureWasmInit();
+          await decodeAndCache(file);
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+          await renderFromCache();
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          setStatus(`Failed: ${message}`, true);
+          releaseAnalysis();
+          cachedDecode = null;
+          playbackRateInput.disabled = true;
+        }
+      }
+
+      function scheduleRenderFromCache() {
+        if (!cachedDecode || busy) {
+          return;
+        }
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          void renderFromCache();
+        }, SLIDER_DEBOUNCE_MS);
       }
 
       function downloadPng() {
@@ -307,7 +400,13 @@
 
       savePngButton.addEventListener("click", downloadPng);
 
+      playbackRateInput.addEventListener("input", () => {
+        updatePlaybackRateReadout();
+        scheduleRenderFromCache();
+      });
+
       wireDropZone();
+      updatePlaybackRateReadout();
       setStatus("Ready.");
     </script>
   </body>

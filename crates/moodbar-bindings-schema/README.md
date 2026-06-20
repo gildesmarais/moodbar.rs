@@ -21,6 +21,7 @@ When interacting with the WASM or Native bindings, you can pass a JSON string to
 - **`frames_per_color`** (integer, default: 1) - How many FFT frames aggregate into a single output color block.
 - **`band_edges_hz`** (array of floats) - Custom frequency band edges for the low/mid/high split. Defaults to `[0.0, 500.0, 2000.0, 22050.0]`.
 - **`max_target_frames`** (integer, optional) - Limits the total number of output frames by dynamically adjusting the FFT hop size. Useful for preventing excessive memory usage on long tracks.
+- **`playback_rate`** (float, optional) - Scales frequency-to-band mapping for vinyl-style pitch color shifts (e.g. `1.09` for +9% faster playback). Must be finite and greater than zero.
 
 Example JSON payload:
 

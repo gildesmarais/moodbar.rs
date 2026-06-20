@@ -29,6 +29,7 @@ fn analyze_pcm_contract_matches_analysis_crate() {
         normalize_mode: core::NormalizeMode::GlobalPeak,
         detection_mode: core::DetectionMode::SpectralFlux,
         frames_per_color: 2,
+        playback_rate: Some(1.09),
         ..core::GenerateOptions::default()
     };
 
@@ -46,6 +47,7 @@ fn analyze_pcm_contract_matches_analysis_crate() {
             frames_per_color: options.frames_per_color,
             band_edges_hz: options.band_edges_hz.clone(),
             max_target_frames: None,
+            playback_rate: options.playback_rate,
         },
     );
 

@@ -12,6 +12,7 @@ export interface AnalyzeOptions {
   frames_per_color?: number;
   band_edges_hz?: number[];
   max_target_frames?: number;
+  playback_rate?: number;
 }
 
 export interface RenderOptions {

@@ -96,6 +96,9 @@ struct DspArgs {
     frames_per_color: usize,
     #[arg(long, value_delimiter = ',')]
     band_edges_hz: Vec<f32>,
+    /// Effective playback rate for frequency-to-color mapping (e.g. 1.09 = +9% pitch).
+    #[arg(long)]
+    playback_rate: Option<f32>,
 }
 
 #[derive(Args, Debug, Clone)]
@@ -415,6 +418,7 @@ fn build_options(dsp: &DspArgs) -> GenerateOptions {
         detection_mode: dsp.detection_mode.into_core(),
         frames_per_color: dsp.frames_per_color,
         band_edges_hz: dsp.band_edges_hz.clone(),
+        playback_rate: dsp.playback_rate,
     }
 }
 

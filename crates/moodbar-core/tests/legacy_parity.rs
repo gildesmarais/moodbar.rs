@@ -131,6 +131,7 @@ fn run_fixture(manifest_path: &Path) -> Result<()> {
         detection_mode: DetectionMode::SpectralEnergy,
         frames_per_color: 1,
         band_edges_hz: vec![fixture.options.low_cut_hz, fixture.options.mid_cut_hz],
+        playback_rate: None,
     };
 
     let actual = generate_moodbar_from_path(&input_audio, &options)

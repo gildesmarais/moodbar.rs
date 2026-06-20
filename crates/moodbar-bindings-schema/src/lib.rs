@@ -15,6 +15,7 @@ pub struct GenerateOptionsPatch {
     pub frames_per_color: Option<usize>,
     pub band_edges_hz: Option<Vec<f32>>,
     pub max_target_frames: Option<usize>,
+    pub playback_rate: Option<f32>,
 }
 
 #[derive(Default, Deserialize)]
@@ -108,6 +109,9 @@ pub fn apply_generate_patch(options: &mut GenerateOptions, patch: GenerateOption
     if let Some(v) = patch.max_target_frames {
         options.max_target_frames = Some(v);
     }
+    if let Some(v) = patch.playback_rate {
+        options.playback_rate = Some(v);
+    }
 }
 
 pub fn apply_svg_patch(options: &mut SvgOptions, patch: SvgOptionsPatch) -> Result<(), String> {
@@ -149,5 +153,20 @@ pub fn parse_svg_background(background: &str) -> Result<&'static str, String> {
         "white" => Ok("white"),
         "none" => Ok("none"),
         _ => Err("unsupported background; use one of: transparent, black, white, none".to_string()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use moodbar_analysis::GenerateOptions;
+
+    #[test]
+    fn apply_generate_patch_sets_playback_rate() {
+        let patch: GenerateOptionsPatch =
+            serde_json::from_str(r#"{"playback_rate": 1.09}"#).unwrap();
+        let mut options = GenerateOptions::default();
+        apply_generate_patch(&mut options, patch);
+        assert_eq!(options.playback_rate, Some(1.09));
     }
 }

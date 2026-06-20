@@ -11,3 +11,6 @@ readme = "README.md"
 [dependencies]
 moodbar-analysis = { workspace = true, features = ["png"] }
 serde.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

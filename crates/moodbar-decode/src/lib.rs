@@ -206,6 +206,13 @@ fn validate_options(options: &GenerateOptions) -> Result<(), MoodbarDecodeError>
             "frames_per_color must be >= 1".to_string(),
         ));
     }
+    if let Some(rate) = options.playback_rate {
+        if !(rate.is_finite() && rate > 0.0) {
+            return Err(MoodbarDecodeError::InvalidOptions(
+                "playback_rate must be finite and > 0".to_string(),
+            ));
+        }
+    }
 
     let edges = if options.band_edges_hz.is_empty() {
         vec![options.low_cut_hz, options.mid_cut_hz]
