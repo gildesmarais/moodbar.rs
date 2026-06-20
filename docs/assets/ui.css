@@ -348,6 +348,36 @@ code {
   flex: 1 1 180px;
 }
 
+.page-demo .rate-control {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.page-demo .rate-control input[type="range"] {
+  flex: 1;
+  width: auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  accent-color: var(--accent);
+}
+
+.page-demo .rate-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.page-demo #playbackRateValue {
+  font-family: "IBM Plex Mono", monospace;
+  color: var(--accent);
+  font-size: 0.86rem;
+  min-width: 7.5ch;
+  white-space: nowrap;
+}
+
 @media (max-width: 820px) {
   .page-demo .panel-grid {
     grid-template-columns: 1fr;
