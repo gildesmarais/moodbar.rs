@@ -95,6 +95,11 @@ impl MoodbarAnalysis {
 pub enum SvgShape {
     Strip,
     Waveform,
+    SplitStacked,
+    SplitWaveform,
+    SplitLanes,
+    SplitCentrifugal,
+    SplitOverlapping,
 }
 
 /// SVG rendering options.
@@ -411,6 +416,264 @@ pub fn render_svg(analysis: &MoodbarAnalysis, options: &SvgOptions) -> String {
                 SVG_WAVEFORM_STROKE_WIDTH
             ));
         }
+        SvgShape::SplitStacked => {
+            let h_seg = height as f64 / 3.0;
+            for (i, frame) in analysis.frames.iter().enumerate() {
+                let x = i as f64 * step;
+
+                let b = frame.first().copied().unwrap_or(0.0).clamp(0.0, 1.0);
+                let g = frame.get(1).copied().unwrap_or(0.0).clamp(0.0, 1.0);
+                let t = frame.get(2).copied().unwrap_or(0.0).clamp(0.0, 1.0);
+
+                let h_b = h_seg * b;
+                let h_g = h_seg * g;
+                let h_t = h_seg * t;
+
+                if h_b > 0.0 {
+                    let y_b = height as f64 - h_b;
+                    let r = (220.0 * b).round() as u8;
+                    let gr = (20.0 * b).round() as u8;
+                    let bl = (180.0 * b).round() as u8;
+                    s.push_str(&format!(
+                        "<rect x=\"{:.6}\" y=\"{:.6}\" width=\"{:.6}\" height=\"{:.6}\" fill=\"rgb({},{},{})\"/>",
+                        x, y_b, step + 0.5, h_b, r, gr, bl
+                    ));
+                }
+
+                if h_g > 0.0 {
+                    let y_g = height as f64 - h_b - h_g;
+                    let r = (240.0 * g).round() as u8;
+                    let gr = (120.0 * g).round() as u8;
+                    let bl = (0.0 * g).round() as u8;
+                    s.push_str(&format!(
+                        "<rect x=\"{:.6}\" y=\"{:.6}\" width=\"{:.6}\" height=\"{:.6}\" fill=\"rgb({},{},{})\"/>",
+                        x, y_g, step + 0.5, h_g, r, gr, bl
+                    ));
+                }
+
+                if h_t > 0.0 {
+                    let y_t = height as f64 - h_b - h_g - h_t;
+                    let r = (0.0 * t).round() as u8;
+                    let gr = (160.0 * t).round() as u8;
+                    let bl = (240.0 * t).round() as u8;
+                    s.push_str(&format!(
+                        "<rect x=\"{:.6}\" y=\"{:.6}\" width=\"{:.6}\" height=\"{:.6}\" fill=\"rgb({},{},{})\"/>",
+                        x, y_t, step + 0.5, h_t, r, gr, bl
+                    ));
+                }
+            }
+        }
+        SvgShape::SplitWaveform => {
+            let mid = height as f64 / 2.0;
+            let h_seg = height as f64 / 3.0;
+            for (i, frame) in analysis.frames.iter().enumerate() {
+                let x = i as f64 * step;
+
+                let b = frame.first().copied().unwrap_or(0.0).clamp(0.0, 1.0);
+                let g = frame.get(1).copied().unwrap_or(0.0).clamp(0.0, 1.0);
+                let t = frame.get(2).copied().unwrap_or(0.0).clamp(0.0, 1.0);
+
+                let h_b = h_seg * b;
+                let h_g = h_seg * g;
+                let h_t = h_seg * t;
+
+                let y_b = mid - h_b / 2.0;
+
+                if h_b > 0.0 {
+                    let r = (220.0 * b).round() as u8;
+                    let gr = (20.0 * b).round() as u8;
+                    let bl = (180.0 * b).round() as u8;
+                    s.push_str(&format!(
+                        "<rect x=\"{:.6}\" y=\"{:.6}\" width=\"{:.6}\" height=\"{:.6}\" fill=\"rgb({},{},{})\"/>",
+                        x, y_b, step + 0.5, h_b, r, gr, bl
+                    ));
+                }
+
+                if h_g > 0.0 {
+                    let h_g_half = h_g / 2.0;
+                    let r = (240.0 * g).round() as u8;
+                    let gr = (120.0 * g).round() as u8;
+                    let bl = (0.0 * g).round() as u8;
+                    s.push_str(&format!(
+                        "<rect x=\"{:.6}\" y=\"{:.6}\" width=\"{:.6}\" height=\"{:.6}\" fill=\"rgb({},{},{})\"/>",
+                        x, y_b - h_g_half, step + 0.5, h_g_half, r, gr, bl
+                    ));
+                    s.push_str(&format!(
+                        "<rect x=\"{:.6}\" y=\"{:.6}\" width=\"{:.6}\" height=\"{:.6}\" fill=\"rgb({},{},{})\"/>",
+                        x, y_b + h_b, step + 0.5, h_g_half, r, gr, bl
+                    ));
+                }
+
+                if h_t > 0.0 {
+                    let h_t_half = h_t / 2.0;
+                    let h_g_half = h_g / 2.0;
+                    let r = (0.0 * t).round() as u8;
+                    let gr = (160.0 * t).round() as u8;
+                    let bl = (240.0 * t).round() as u8;
+                    s.push_str(&format!(
+                        "<rect x=\"{:.6}\" y=\"{:.6}\" width=\"{:.6}\" height=\"{:.6}\" fill=\"rgb({},{},{})\"/>",
+                        x, y_b - h_g_half - h_t_half, step + 0.5, h_t_half, r, gr, bl
+                    ));
+                    s.push_str(&format!(
+                        "<rect x=\"{:.6}\" y=\"{:.6}\" width=\"{:.6}\" height=\"{:.6}\" fill=\"rgb({},{},{})\"/>",
+                        x, y_b + h_b + h_g_half, step + 0.5, h_t_half, r, gr, bl
+                    ));
+                }
+            }
+        }
+        SvgShape::SplitLanes => {
+            let g_val = (height as f64 * 0.05).max(1.0).round();
+            let h_lane = (height as f64 - 2.0 * g_val) / 3.0;
+
+            let y_t_bottom = h_lane;
+            let y_g_bottom = 2.0 * h_lane + g_val;
+            let y_b_bottom = height as f64;
+
+            for (i, frame) in analysis.frames.iter().enumerate() {
+                let x = i as f64 * step;
+
+                let b = frame.first().copied().unwrap_or(0.0).clamp(0.0, 1.0);
+                let g = frame.get(1).copied().unwrap_or(0.0).clamp(0.0, 1.0);
+                let t = frame.get(2).copied().unwrap_or(0.0).clamp(0.0, 1.0);
+
+                let h_b = h_lane * b;
+                let h_g = h_lane * g;
+                let h_t = h_lane * t;
+
+                if h_b > 0.0 {
+                    let r = (220.0 * b).round() as u8;
+                    let gr = (20.0 * b).round() as u8;
+                    let bl = (180.0 * b).round() as u8;
+                    s.push_str(&format!(
+                        "<rect x=\"{:.6}\" y=\"{:.6}\" width=\"{:.6}\" height=\"{:.6}\" fill=\"rgb({},{},{})\"/>",
+                        x, y_b_bottom - h_b, step + 0.5, h_b, r, gr, bl
+                    ));
+                }
+
+                if h_g > 0.0 {
+                    let r = (240.0 * g).round() as u8;
+                    let gr = (120.0 * g).round() as u8;
+                    let bl = (0.0 * g).round() as u8;
+                    s.push_str(&format!(
+                        "<rect x=\"{:.6}\" y=\"{:.6}\" width=\"{:.6}\" height=\"{:.6}\" fill=\"rgb({},{},{})\"/>",
+                        x, y_g_bottom - h_g, step + 0.5, h_g, r, gr, bl
+                    ));
+                }
+
+                if h_t > 0.0 {
+                    let r = (0.0 * t).round() as u8;
+                    let gr = (160.0 * t).round() as u8;
+                    let bl = (240.0 * t).round() as u8;
+                    s.push_str(&format!(
+                        "<rect x=\"{:.6}\" y=\"{:.6}\" width=\"{:.6}\" height=\"{:.6}\" fill=\"rgb({},{},{})\"/>",
+                        x, y_t_bottom - h_t, step + 0.5, h_t, r, gr, bl
+                    ));
+                }
+            }
+        }
+        SvgShape::SplitCentrifugal => {
+            let mid = height as f64 / 2.0;
+            let h_seg = height as f64 / 3.0;
+            for (i, frame) in analysis.frames.iter().enumerate() {
+                let x = i as f64 * step;
+
+                let b = frame.first().copied().unwrap_or(0.0).clamp(0.0, 1.0);
+                let g = frame.get(1).copied().unwrap_or(0.0).clamp(0.0, 1.0);
+                let t = frame.get(2).copied().unwrap_or(0.0).clamp(0.0, 1.0);
+
+                let h_b = h_seg * b;
+                let h_g = h_seg * g;
+                let h_t = h_seg * t;
+
+                let y_t = mid - h_t / 2.0;
+
+                if h_t > 0.0 {
+                    let r = (0.0 * t).round() as u8;
+                    let gr = (160.0 * t).round() as u8;
+                    let bl = (240.0 * t).round() as u8;
+                    s.push_str(&format!(
+                        "<rect x=\"{:.6}\" y=\"{:.6}\" width=\"{:.6}\" height=\"{:.6}\" fill=\"rgb({},{},{})\"/>",
+                        x, y_t, step + 0.5, h_t, r, gr, bl
+                    ));
+                }
+
+                if h_g > 0.0 {
+                    let h_g_half = h_g / 2.0;
+                    let h_t_half = h_t / 2.0;
+                    let r = (240.0 * g).round() as u8;
+                    let gr = (120.0 * g).round() as u8;
+                    let bl = (0.0 * g).round() as u8;
+                    s.push_str(&format!(
+                        "<rect x=\"{:.6}\" y=\"{:.6}\" width=\"{:.6}\" height=\"{:.6}\" fill=\"rgb({},{},{})\"/>",
+                        x, mid - h_t_half - h_g_half, step + 0.5, h_g_half, r, gr, bl
+                    ));
+                    s.push_str(&format!(
+                        "<rect x=\"{:.6}\" y=\"{:.6}\" width=\"{:.6}\" height=\"{:.6}\" fill=\"rgb({},{},{})\"/>",
+                        x, mid + h_t_half, step + 0.5, h_g_half, r, gr, bl
+                    ));
+                }
+
+                if h_b > 0.0 {
+                    let h_b_half = h_b / 2.0;
+                    let h_g_half = h_g / 2.0;
+                    let h_t_half = h_t / 2.0;
+                    let r = (220.0 * b).round() as u8;
+                    let gr = (20.0 * b).round() as u8;
+                    let bl = (180.0 * b).round() as u8;
+                    s.push_str(&format!(
+                        "<rect x=\"{:.6}\" y=\"{:.6}\" width=\"{:.6}\" height=\"{:.6}\" fill=\"rgb({},{},{})\"/>",
+                        x, mid - h_t_half - h_g_half - h_b_half, step + 0.5, h_b_half, r, gr, bl
+                    ));
+                    s.push_str(&format!(
+                        "<rect x=\"{:.6}\" y=\"{:.6}\" width=\"{:.6}\" height=\"{:.6}\" fill=\"rgb({},{},{})\"/>",
+                        x, mid + h_t_half + h_g_half, step + 0.5, h_b_half, r, gr, bl
+                    ));
+                }
+            }
+        }
+        SvgShape::SplitOverlapping => {
+            for (i, frame) in analysis.frames.iter().enumerate() {
+                let x = i as f64 * step;
+
+                let b = frame.first().copied().unwrap_or(0.0).clamp(0.0, 1.0);
+                let g = frame.get(1).copied().unwrap_or(0.0).clamp(0.0, 1.0);
+                let t = frame.get(2).copied().unwrap_or(0.0).clamp(0.0, 1.0);
+
+                let h_b = height as f64 * b;
+                let h_g = height as f64 * g;
+                let h_t = height as f64 * t;
+
+                if h_b > 0.0 {
+                    let r = (220.0 * b).round() as u8;
+                    let gr = (20.0 * b).round() as u8;
+                    let bl = (180.0 * b).round() as u8;
+                    s.push_str(&format!(
+                        "<rect x=\"{:.6}\" y=\"{:.6}\" width=\"{:.6}\" height=\"{:.6}\" fill=\"rgb({},{},{})\" fill-opacity=\"0.40\"/>",
+                        x, height as f64 - h_b, step + 0.5, h_b, r, gr, bl
+                    ));
+                }
+
+                if h_g > 0.0 {
+                    let r = (240.0 * g).round() as u8;
+                    let gr = (120.0 * g).round() as u8;
+                    let bl = (0.0 * g).round() as u8;
+                    s.push_str(&format!(
+                        "<rect x=\"{:.6}\" y=\"{:.6}\" width=\"{:.6}\" height=\"{:.6}\" fill=\"rgb({},{},{})\" fill-opacity=\"0.40\"/>",
+                        x, height as f64 - h_g, step + 0.5, h_g, r, gr, bl
+                    ));
+                }
+
+                if h_t > 0.0 {
+                    let r = (0.0 * t).round() as u8;
+                    let gr = (160.0 * t).round() as u8;
+                    let bl = (240.0 * t).round() as u8;
+                    s.push_str(&format!(
+                        "<rect x=\"{:.6}\" y=\"{:.6}\" width=\"{:.6}\" height=\"{:.6}\" fill=\"rgb({},{},{})\" fill-opacity=\"0.40\"/>",
+                        x, height as f64 - h_t, step + 0.5, h_t, r, gr, bl
+                    ));
+                }
+            }
+        }
     }
 
     s.push_str("</svg>");
@@ -468,6 +731,277 @@ pub fn render_png(
                         210
                     };
                     img.put_pixel(x, y, Rgba([r, g, b, alpha]));
+                }
+            }
+        }
+        SvgShape::SplitStacked => {
+            let h_seg = height as f64 / 3.0;
+            for x in 0..width {
+                let idx = frame_at_x(x);
+                let frame = &analysis.frames[idx];
+                let b = frame.first().copied().unwrap_or(0.0).clamp(0.0, 1.0);
+                let g = frame.get(1).copied().unwrap_or(0.0).clamp(0.0, 1.0);
+                let t = frame.get(2).copied().unwrap_or(0.0).clamp(0.0, 1.0);
+
+                let h_b = h_seg * b;
+                let h_g = h_seg * g;
+                let h_t = h_seg * t;
+
+                let y_bass_start = height as f64 - h_b;
+                let y_mid_start = y_bass_start - h_g;
+                let y_treble_start = y_mid_start - h_t;
+
+                let r_b = (220.0 * b).round() as u8;
+                let g_b = (20.0 * b).round() as u8;
+                let b_b = (180.0 * b).round() as u8;
+
+                let r_g = (240.0 * g).round() as u8;
+                let g_g = (120.0 * g).round() as u8;
+                let b_g = (0.0 * g).round() as u8;
+
+                let r_t = (0.0 * t).round() as u8;
+                let g_t = (160.0 * t).round() as u8;
+                let b_t = (240.0 * t).round() as u8;
+
+                for y in 0..height {
+                    let y_f = y as f64;
+                    if y_f >= y_bass_start {
+                        img.put_pixel(x, y, Rgba([r_b, g_b, b_b, 255]));
+                    } else if y_f >= y_mid_start {
+                        img.put_pixel(x, y, Rgba([r_g, g_g, b_g, 255]));
+                    } else if y_f >= y_treble_start {
+                        img.put_pixel(x, y, Rgba([r_t, g_t, b_t, 255]));
+                    }
+                }
+            }
+        }
+        SvgShape::SplitWaveform => {
+            let mid = height as f64 / 2.0;
+            let h_seg = height as f64 / 3.0;
+            for x in 0..width {
+                let idx = frame_at_x(x);
+                let frame = &analysis.frames[idx];
+                let b = frame.first().copied().unwrap_or(0.0).clamp(0.0, 1.0);
+                let g = frame.get(1).copied().unwrap_or(0.0).clamp(0.0, 1.0);
+                let t = frame.get(2).copied().unwrap_or(0.0).clamp(0.0, 1.0);
+
+                let h_b = h_seg * b;
+                let h_g = h_seg * g;
+                let h_t = h_seg * t;
+
+                let y_b_start = mid - h_b / 2.0;
+                let y_b_end = mid + h_b / 2.0;
+
+                let h_g_half = h_g / 2.0;
+                let h_t_half = h_t / 2.0;
+
+                let y_g_top_start = y_b_start - h_g_half;
+                let y_t_top_start = y_g_top_start - h_t_half;
+
+                let y_g_bot_end = y_b_end + h_g_half;
+                let y_t_bot_end = y_g_bot_end + h_t_half;
+
+                let r_b = (220.0 * b).round() as u8;
+                let g_b = (20.0 * b).round() as u8;
+                let b_b = (180.0 * b).round() as u8;
+
+                let r_g = (240.0 * g).round() as u8;
+                let g_g = (120.0 * g).round() as u8;
+                let b_g = (0.0 * g).round() as u8;
+
+                let r_t = (0.0 * t).round() as u8;
+                let g_t = (160.0 * t).round() as u8;
+                let b_t = (240.0 * t).round() as u8;
+
+                for y in 0..height {
+                    let y_f = y as f64;
+                    if y_f >= y_b_start && y_f < y_b_end {
+                        img.put_pixel(x, y, Rgba([r_b, g_b, b_b, 255]));
+                    } else if (y_f >= y_g_top_start && y_f < y_b_start)
+                        || (y_f >= y_b_end && y_f < y_g_bot_end)
+                    {
+                        img.put_pixel(x, y, Rgba([r_g, g_g, b_g, 255]));
+                    } else if (y_f >= y_t_top_start && y_f < y_g_top_start)
+                        || (y_f >= y_g_bot_end && y_f < y_t_bot_end)
+                    {
+                        img.put_pixel(x, y, Rgba([r_t, g_t, b_t, 255]));
+                    }
+                }
+            }
+        }
+        SvgShape::SplitLanes => {
+            let g_val = (height as f64 * 0.05).max(1.0).round();
+            let h_lane = (height as f64 - 2.0 * g_val) / 3.0;
+
+            let y_t_bottom = h_lane;
+            let y_g_bottom = 2.0 * h_lane + g_val;
+            let y_b_bottom = height as f64;
+
+            for x in 0..width {
+                let idx = frame_at_x(x);
+                let frame = &analysis.frames[idx];
+                let b = frame.first().copied().unwrap_or(0.0).clamp(0.0, 1.0);
+                let g = frame.get(1).copied().unwrap_or(0.0).clamp(0.0, 1.0);
+                let t = frame.get(2).copied().unwrap_or(0.0).clamp(0.0, 1.0);
+
+                let h_b = h_lane * b;
+                let h_g = h_lane * g;
+                let h_t = h_lane * t;
+
+                let y_b_start = y_b_bottom - h_b;
+                let y_g_start = y_g_bottom - h_g;
+                let y_t_start = y_t_bottom - h_t;
+
+                let r_b = (220.0 * b).round() as u8;
+                let g_b = (20.0 * b).round() as u8;
+                let b_b = (180.0 * b).round() as u8;
+
+                let r_g = (240.0 * g).round() as u8;
+                let g_g = (120.0 * g).round() as u8;
+                let b_g = (0.0 * g).round() as u8;
+
+                let r_t = (0.0 * t).round() as u8;
+                let g_t = (160.0 * t).round() as u8;
+                let b_t = (240.0 * t).round() as u8;
+
+                for y in 0..height {
+                    let y_f = y as f64;
+                    if y_f >= y_b_start && y_f < y_b_bottom {
+                        img.put_pixel(x, y, Rgba([r_b, g_b, b_b, 255]));
+                    } else if y_f >= y_g_start && y_f < y_g_bottom {
+                        img.put_pixel(x, y, Rgba([r_g, g_g, b_g, 255]));
+                    } else if y_f >= y_t_start && y_f < y_t_bottom {
+                        img.put_pixel(x, y, Rgba([r_t, g_t, b_t, 255]));
+                    }
+                }
+            }
+        }
+        SvgShape::SplitCentrifugal => {
+            let mid = height as f64 / 2.0;
+            let h_seg = height as f64 / 3.0;
+            for x in 0..width {
+                let idx = frame_at_x(x);
+                let frame = &analysis.frames[idx];
+                let b = frame.first().copied().unwrap_or(0.0).clamp(0.0, 1.0);
+                let g = frame.get(1).copied().unwrap_or(0.0).clamp(0.0, 1.0);
+                let t = frame.get(2).copied().unwrap_or(0.0).clamp(0.0, 1.0);
+
+                let h_b = h_seg * b;
+                let h_g = h_seg * g;
+                let h_t = h_seg * t;
+
+                let y_t_start = mid - h_t / 2.0;
+                let y_t_end = mid + h_t / 2.0;
+
+                let h_g_half = h_g / 2.0;
+                let h_b_half = h_b / 2.0;
+                let h_t_half = h_t / 2.0;
+
+                let y_g_top_start = mid - h_t_half - h_g_half;
+                let y_g_bot_end = mid + h_t_half + h_g_half;
+
+                let y_b_top_start = y_g_top_start - h_b_half;
+                let y_b_bot_end = y_g_bot_end + h_b_half;
+
+                let r_b = (220.0 * b).round() as u8;
+                let g_b = (20.0 * b).round() as u8;
+                let b_b = (180.0 * b).round() as u8;
+
+                let r_g = (240.0 * g).round() as u8;
+                let g_g = (120.0 * g).round() as u8;
+                let b_g = (0.0 * g).round() as u8;
+
+                let r_t = (0.0 * t).round() as u8;
+                let g_t = (160.0 * t).round() as u8;
+                let b_t = (240.0 * t).round() as u8;
+
+                for y in 0..height {
+                    let y_f = y as f64;
+                    if y_f >= y_t_start && y_f < y_t_end {
+                        img.put_pixel(x, y, Rgba([r_t, g_t, b_t, 255]));
+                    } else if (y_f >= y_g_top_start && y_f < y_t_start)
+                        || (y_f >= y_t_end && y_f < y_g_bot_end)
+                    {
+                        img.put_pixel(x, y, Rgba([r_g, g_g, b_g, 255]));
+                    } else if (y_f >= y_b_top_start && y_f < y_g_top_start)
+                        || (y_f >= y_g_bot_end && y_f < y_b_bot_end)
+                    {
+                        img.put_pixel(x, y, Rgba([r_b, g_b, b_b, 255]));
+                    }
+                }
+            }
+        }
+        SvgShape::SplitOverlapping => {
+            let blend_px = |bg: Rgba<u8>, fg: Rgba<u8>| -> Rgba<u8> {
+                let alpha_fg = fg.0[3] as f32 / 255.0;
+                let alpha_bg = bg.0[3] as f32 / 255.0;
+                let out_alpha = alpha_fg + alpha_bg * (1.0 - alpha_fg);
+                if out_alpha <= 0.0 {
+                    return Rgba([0, 0, 0, 0]);
+                }
+                let blend = |c_fg: u8, c_bg: u8| -> u8 {
+                    let f = c_fg as f32 / 255.0;
+                    let b = c_bg as f32 / 255.0;
+                    let out = (f * alpha_fg + b * alpha_bg * (1.0 - alpha_fg)) / out_alpha;
+                    (out * 255.0).round() as u8
+                };
+                Rgba([
+                    blend(fg.0[0], bg.0[0]),
+                    blend(fg.0[1], bg.0[1]),
+                    blend(fg.0[2], bg.0[2]),
+                    (out_alpha * 255.0).round() as u8,
+                ])
+            };
+
+            for x in 0..width {
+                let idx = frame_at_x(x);
+                let frame = &analysis.frames[idx];
+                let b = frame.first().copied().unwrap_or(0.0).clamp(0.0, 1.0);
+                let g = frame.get(1).copied().unwrap_or(0.0).clamp(0.0, 1.0);
+                let t = frame.get(2).copied().unwrap_or(0.0).clamp(0.0, 1.0);
+
+                let h_b = height as f64 * b;
+                let h_g = height as f64 * g;
+                let h_t = height as f64 * t;
+
+                let y_b_start = height as f64 - h_b;
+                let y_g_start = height as f64 - h_g;
+                let y_t_start = height as f64 - h_t;
+
+                let r_b = (220.0 * b).round() as u8;
+                let g_b = (20.0 * b).round() as u8;
+                let b_b = (180.0 * b).round() as u8;
+
+                let r_g = (240.0 * g).round() as u8;
+                let g_g = (120.0 * g).round() as u8;
+                let b_g = (0.0 * g).round() as u8;
+
+                let r_t = (0.0 * t).round() as u8;
+                let g_t = (160.0 * t).round() as u8;
+                let b_t = (240.0 * t).round() as u8;
+
+                for y in 0..height {
+                    let y_f = y as f64;
+                    let mut current = Rgba([0, 0, 0, 0]);
+
+                    if h_b > 0.0 && y_f >= y_b_start {
+                        let fg = Rgba([r_b, g_b, b_b, 102]);
+                        current = blend_px(current, fg);
+                    }
+
+                    if h_g > 0.0 && y_f >= y_g_start {
+                        let fg = Rgba([r_g, g_g, b_g, 102]);
+                        current = blend_px(current, fg);
+                    }
+
+                    if h_t > 0.0 && y_f >= y_t_start {
+                        let fg = Rgba([r_t, g_t, b_t, 102]);
+                        current = blend_px(current, fg);
+                    }
+
+                    if current.0[3] > 0 {
+                        img.put_pixel(x, y, current);
+                    }
                 }
             }
         }
@@ -920,6 +1454,35 @@ mod tests {
         );
         assert!(waveform.contains("<path"));
         assert!(waveform.contains("url(#mood-gradient)"));
+
+        let split = render_svg(
+            &analysis,
+            &SvgOptions {
+                shape: SvgShape::SplitStacked,
+                ..SvgOptions::default()
+            },
+        );
+        assert!(split.contains("<svg"));
+        assert!(split.contains("<rect"));
+        assert!(split.matches("<rect ").count() > 1);
+
+        for shape in &[
+            SvgShape::SplitWaveform,
+            SvgShape::SplitLanes,
+            SvgShape::SplitCentrifugal,
+            SvgShape::SplitOverlapping,
+        ] {
+            let split_variant = render_svg(
+                &analysis,
+                &SvgOptions {
+                    shape: *shape,
+                    ..SvgOptions::default()
+                },
+            );
+            assert!(split_variant.contains("<svg"));
+            assert!(split_variant.contains("<rect"));
+            assert!(split_variant.matches("<rect ").count() > 1);
+        }
     }
 
     #[test]
@@ -986,5 +1549,34 @@ mod tests {
         )
         .expect("render png");
         assert!(png.starts_with(b"\x89PNG\r\n\x1a\n"));
+
+        let png_split = render_png(
+            &analysis,
+            &PngOptions {
+                width: 64,
+                height: 24,
+                shape: SvgShape::SplitStacked,
+            },
+        )
+        .expect("render png split");
+        assert!(png_split.starts_with(b"\x89PNG\r\n\x1a\n"));
+
+        for shape in &[
+            SvgShape::SplitWaveform,
+            SvgShape::SplitLanes,
+            SvgShape::SplitCentrifugal,
+            SvgShape::SplitOverlapping,
+        ] {
+            let png_variant = render_png(
+                &analysis,
+                &PngOptions {
+                    width: 64,
+                    height: 24,
+                    shape: *shape,
+                },
+            )
+            .expect("render png variant");
+            assert!(png_variant.starts_with(b"\x89PNG\r\n\x1a\n"));
+        }
     }
 }
