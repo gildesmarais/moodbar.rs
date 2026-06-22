@@ -11,7 +11,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.6.0"
+version = "0.7.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/gildesmarais/moodbar.rs"
@@ -48,10 +48,10 @@ base64 = "0.22"
 jni = "0.21"
 cbindgen = "0.27"
 once_cell = "1.21"
-moodbar-analysis = { version = "0.6.0", path = "crates/moodbar-analysis", default-features = false }
-moodbar-bindings-schema = { version = "0.6.0", path = "crates/moodbar-bindings-schema" }
-moodbar-decode = { version = "0.6.0", path = "crates/moodbar-decode" }
-moodbar-core = { version = "0.6.0", path = "crates/moodbar-core" }
+moodbar-analysis = { version = "0.7.0", path = "crates/moodbar-analysis", default-features = false }
+moodbar-bindings-schema = { version = "0.7.0", path = "crates/moodbar-bindings-schema" }
+moodbar-decode = { version = "0.7.0", path = "crates/moodbar-decode" }
+moodbar-core = { version = "0.7.0", path = "crates/moodbar-core" }
 
 [profile.mobile-release]
 inherits = "release"
@@ -69,6 +69,7 @@ panic = "abort"
 
 [profile.release.package.moodbar-wasm]
 opt-level = "s"
+
 
 
 
