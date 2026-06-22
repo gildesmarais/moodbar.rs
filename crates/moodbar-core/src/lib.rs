@@ -1,4 +1,4 @@
-// Rust guideline compliant 2026-02-21
+// Rust guideline compliant 2026-06-22
 
 #[cfg(feature = "decode")]
 use std::path::Path;
@@ -76,7 +76,7 @@ pub struct AnalysisDiagnostics {
 #[derive(Debug, Clone)]
 pub struct MoodbarAnalysis {
     pub channel_count: usize,
-    pub frames: Vec<Vec<f64>>,
+    pub frames: Vec<f64>,
     pub colors: Vec<[u8; 3]>,
     pub diagnostics: AnalysisDiagnostics,
     pub band_colors: Vec<[u8; 3]>,
@@ -373,12 +373,13 @@ mod tests {
 
     #[test]
     fn svg_gradient_stop_count_is_capped() {
-        let frames = (0..5000)
-            .map(|i| {
-                let t = i as f64 / 5000.0;
-                vec![t, 1.0 - t, (0.5 + 0.5 * (t * 10.0).sin()).clamp(0.0, 1.0)]
-            })
-            .collect::<Vec<_>>();
+        let mut frames = Vec::with_capacity(5000 * 3);
+        for i in 0..5000 {
+            let t = i as f64 / 5000.0;
+            frames.push(t);
+            frames.push(1.0 - t);
+            frames.push((0.5 + 0.5 * (t * 10.0).sin()).clamp(0.0, 1.0));
+        }
         let analysis = MoodbarAnalysis {
             channel_count: 3,
             frames,
@@ -403,11 +404,7 @@ mod tests {
     fn png_render_produces_valid_png_signature() {
         let analysis = MoodbarAnalysis {
             channel_count: 3,
-            frames: vec![
-                vec![1.0, 0.0, 0.0],
-                vec![0.0, 1.0, 0.0],
-                vec![0.0, 0.0, 1.0],
-            ],
+            frames: vec![1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0],
             colors: vec![[255, 0, 0], [0, 255, 0], [0, 0, 255]],
             diagnostics: AnalysisDiagnostics::default(),
             band_colors: vec![[255, 0, 0], [0, 255, 0], [0, 0, 255]],
@@ -453,5 +450,3 @@ mod tests {
         }
     }
 }
-
-// Rust guideline compliant 2026-02-21

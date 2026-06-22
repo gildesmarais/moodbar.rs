@@ -1,7 +1,15 @@
+// Rust guideline compliant 2026-06-22
+
 use crate::bands::SpectralBands;
 use crate::bands::SPLIT_OVERLAP_FILL_OPACITY;
 use crate::render::util::write_split_rect;
 use crate::types::{MoodbarAnalysis, SvgShape};
+
+/// Slight extra width added to adjacent SVG elements to prevent subpixel gaps in browser rendering.
+const SVG_SUBPIXEL_OVERLAP: f64 = 0.5;
+
+/// Split margin ratio relative to the total height.
+const SPLIT_MARGIN_RATIO: f64 = 0.05;
 
 pub(crate) fn is_split_shape(shape: SvgShape) -> bool {
     matches!(
@@ -35,8 +43,12 @@ pub(crate) fn render_split(
 
 fn render_split_stacked(out: &mut String, analysis: &MoodbarAnalysis, height: u32, step: f64) {
     let h_seg = height as f64 / 3.0;
-    for (i, frame) in analysis.frames.iter().enumerate() {
+    let channels = analysis.channel_count.max(1);
+    let frame_count = analysis.frames.len() / channels;
+    for i in 0..frame_count {
         let x = i as f64 * step;
+        let offset = i * channels;
+        let frame = &analysis.frames[offset..offset + channels];
         let bands = SpectralBands::from_frame(frame);
         let h_b = h_seg * bands.low;
         let h_g = h_seg * bands.mid;
@@ -44,15 +56,39 @@ fn render_split_stacked(out: &mut String, analysis: &MoodbarAnalysis, height: u3
 
         if h_b > 0.0 {
             let y_b = height as f64 - h_b;
-            let _ = write_split_rect(out, "mb-bass", x, y_b, step + 0.5, h_b, bands.low);
+            let _ = write_split_rect(
+                out,
+                "mb-bass",
+                x,
+                y_b,
+                step + SVG_SUBPIXEL_OVERLAP,
+                h_b,
+                bands.low,
+            );
         }
         if h_g > 0.0 {
             let y_g = height as f64 - h_b - h_g;
-            let _ = write_split_rect(out, "mb-mid", x, y_g, step + 0.5, h_g, bands.mid);
+            let _ = write_split_rect(
+                out,
+                "mb-mid",
+                x,
+                y_g,
+                step + SVG_SUBPIXEL_OVERLAP,
+                h_g,
+                bands.mid,
+            );
         }
         if h_t > 0.0 {
             let y_t = height as f64 - h_b - h_g - h_t;
-            let _ = write_split_rect(out, "mb-treble", x, y_t, step + 0.5, h_t, bands.high);
+            let _ = write_split_rect(
+                out,
+                "mb-treble",
+                x,
+                y_t,
+                step + SVG_SUBPIXEL_OVERLAP,
+                h_t,
+                bands.high,
+            );
         }
     }
 }
@@ -60,8 +96,12 @@ fn render_split_stacked(out: &mut String, analysis: &MoodbarAnalysis, height: u3
 fn render_split_waveform(out: &mut String, analysis: &MoodbarAnalysis, height: u32, step: f64) {
     let mid = height as f64 / 2.0;
     let h_seg = height as f64 / 3.0;
-    for (i, frame) in analysis.frames.iter().enumerate() {
+    let channels = analysis.channel_count.max(1);
+    let frame_count = analysis.frames.len() / channels;
+    for i in 0..frame_count {
         let x = i as f64 * step;
+        let offset = i * channels;
+        let frame = &analysis.frames[offset..offset + channels];
         let bands = SpectralBands::from_frame(frame);
         let h_b = h_seg * bands.low;
         let h_g = h_seg * bands.mid;
@@ -69,7 +109,15 @@ fn render_split_waveform(out: &mut String, analysis: &MoodbarAnalysis, height: u
         let y_b = mid - h_b / 2.0;
 
         if h_b > 0.0 {
-            let _ = write_split_rect(out, "mb-bass", x, y_b, step + 0.5, h_b, bands.low);
+            let _ = write_split_rect(
+                out,
+                "mb-bass",
+                x,
+                y_b,
+                step + SVG_SUBPIXEL_OVERLAP,
+                h_b,
+                bands.low,
+            );
         }
         if h_g > 0.0 {
             let h_g_half = h_g / 2.0;
@@ -78,11 +126,19 @@ fn render_split_waveform(out: &mut String, analysis: &MoodbarAnalysis, height: u
                 "mb-mid",
                 x,
                 y_b - h_g_half,
-                step + 0.5,
+                step + SVG_SUBPIXEL_OVERLAP,
                 h_g_half,
                 bands.mid,
             );
-            let _ = write_split_rect(out, "mb-mid", x, y_b + h_b, step + 0.5, h_g_half, bands.mid);
+            let _ = write_split_rect(
+                out,
+                "mb-mid",
+                x,
+                y_b + h_b,
+                step + SVG_SUBPIXEL_OVERLAP,
+                h_g_half,
+                bands.mid,
+            );
         }
         if h_t > 0.0 {
             let h_g_half = h_g / 2.0;
@@ -92,7 +148,7 @@ fn render_split_waveform(out: &mut String, analysis: &MoodbarAnalysis, height: u
                 "mb-treble",
                 x,
                 y_b - h_g_half - h_t_half,
-                step + 0.5,
+                step + SVG_SUBPIXEL_OVERLAP,
                 h_t_half,
                 bands.high,
             );
@@ -101,7 +157,7 @@ fn render_split_waveform(out: &mut String, analysis: &MoodbarAnalysis, height: u
                 "mb-treble",
                 x,
                 y_b + h_b + h_g_half,
-                step + 0.5,
+                step + SVG_SUBPIXEL_OVERLAP,
                 h_t_half,
                 bands.high,
             );
@@ -110,14 +166,18 @@ fn render_split_waveform(out: &mut String, analysis: &MoodbarAnalysis, height: u
 }
 
 fn render_split_lanes(out: &mut String, analysis: &MoodbarAnalysis, height: u32, step: f64) {
-    let g_val = (height as f64 * 0.05).max(1.0).round();
+    let g_val = (height as f64 * SPLIT_MARGIN_RATIO).max(1.0).round();
     let h_lane = (height as f64 - 2.0 * g_val) / 3.0;
     let y_t_bottom = h_lane;
     let y_g_bottom = 2.0 * h_lane + g_val;
     let y_b_bottom = height as f64;
 
-    for (i, frame) in analysis.frames.iter().enumerate() {
+    let channels = analysis.channel_count.max(1);
+    let frame_count = analysis.frames.len() / channels;
+    for i in 0..frame_count {
         let x = i as f64 * step;
+        let offset = i * channels;
+        let frame = &analysis.frames[offset..offset + channels];
         let bands = SpectralBands::from_frame(frame);
         let h_b = h_lane * bands.low;
         let h_g = h_lane * bands.mid;
@@ -129,7 +189,7 @@ fn render_split_lanes(out: &mut String, analysis: &MoodbarAnalysis, height: u32,
                 "mb-bass",
                 x,
                 y_b_bottom - h_b,
-                step + 0.5,
+                step + SVG_SUBPIXEL_OVERLAP,
                 h_b,
                 bands.low,
             );
@@ -140,7 +200,7 @@ fn render_split_lanes(out: &mut String, analysis: &MoodbarAnalysis, height: u32,
                 "mb-mid",
                 x,
                 y_g_bottom - h_g,
-                step + 0.5,
+                step + SVG_SUBPIXEL_OVERLAP,
                 h_g,
                 bands.mid,
             );
@@ -151,7 +211,7 @@ fn render_split_lanes(out: &mut String, analysis: &MoodbarAnalysis, height: u32,
                 "mb-treble",
                 x,
                 y_t_bottom - h_t,
-                step + 0.5,
+                step + SVG_SUBPIXEL_OVERLAP,
                 h_t,
                 bands.high,
             );
@@ -162,8 +222,12 @@ fn render_split_lanes(out: &mut String, analysis: &MoodbarAnalysis, height: u32,
 fn render_split_centrifugal(out: &mut String, analysis: &MoodbarAnalysis, height: u32, step: f64) {
     let mid = height as f64 / 2.0;
     let h_seg = height as f64 / 3.0;
-    for (i, frame) in analysis.frames.iter().enumerate() {
+    let channels = analysis.channel_count.max(1);
+    let frame_count = analysis.frames.len() / channels;
+    for i in 0..frame_count {
         let x = i as f64 * step;
+        let offset = i * channels;
+        let frame = &analysis.frames[offset..offset + channels];
         let bands = SpectralBands::from_frame(frame);
         let h_b = h_seg * bands.low;
         let h_g = h_seg * bands.mid;
@@ -171,7 +235,15 @@ fn render_split_centrifugal(out: &mut String, analysis: &MoodbarAnalysis, height
         let y_t = mid - h_t / 2.0;
 
         if h_t > 0.0 {
-            let _ = write_split_rect(out, "mb-treble", x, y_t, step + 0.5, h_t, bands.high);
+            let _ = write_split_rect(
+                out,
+                "mb-treble",
+                x,
+                y_t,
+                step + SVG_SUBPIXEL_OVERLAP,
+                h_t,
+                bands.high,
+            );
         }
         if h_g > 0.0 {
             let h_g_half = h_g / 2.0;
@@ -181,7 +253,7 @@ fn render_split_centrifugal(out: &mut String, analysis: &MoodbarAnalysis, height
                 "mb-mid",
                 x,
                 mid - h_t_half - h_g_half,
-                step + 0.5,
+                step + SVG_SUBPIXEL_OVERLAP,
                 h_g_half,
                 bands.mid,
             );
@@ -190,7 +262,7 @@ fn render_split_centrifugal(out: &mut String, analysis: &MoodbarAnalysis, height
                 "mb-mid",
                 x,
                 mid + h_t_half,
-                step + 0.5,
+                step + SVG_SUBPIXEL_OVERLAP,
                 h_g_half,
                 bands.mid,
             );
@@ -204,7 +276,7 @@ fn render_split_centrifugal(out: &mut String, analysis: &MoodbarAnalysis, height
                 "mb-bass",
                 x,
                 mid - h_t_half - h_g_half - h_b_half,
-                step + 0.5,
+                step + SVG_SUBPIXEL_OVERLAP,
                 h_b_half,
                 bands.low,
             );
@@ -213,7 +285,7 @@ fn render_split_centrifugal(out: &mut String, analysis: &MoodbarAnalysis, height
                 "mb-bass",
                 x,
                 mid + h_t_half + h_g_half,
-                step + 0.5,
+                step + SVG_SUBPIXEL_OVERLAP,
                 h_b_half,
                 bands.low,
             );
@@ -222,8 +294,12 @@ fn render_split_centrifugal(out: &mut String, analysis: &MoodbarAnalysis, height
 }
 
 fn render_split_overlapping(out: &mut String, analysis: &MoodbarAnalysis, height: u32, step: f64) {
-    for (i, frame) in analysis.frames.iter().enumerate() {
+    let channels = analysis.channel_count.max(1);
+    let frame_count = analysis.frames.len() / channels;
+    for i in 0..frame_count {
         let x = i as f64 * step;
+        let offset = i * channels;
+        let frame = &analysis.frames[offset..offset + channels];
         let bands = SpectralBands::from_frame(frame);
         let h_b = height as f64 * bands.low;
         let h_g = height as f64 * bands.mid;
@@ -235,7 +311,7 @@ fn render_split_overlapping(out: &mut String, analysis: &MoodbarAnalysis, height
                 "mb-bass",
                 x,
                 height as f64 - h_b,
-                step + 0.5,
+                step + SVG_SUBPIXEL_OVERLAP,
                 h_b,
                 SPLIT_OVERLAP_FILL_OPACITY,
             );
@@ -246,7 +322,7 @@ fn render_split_overlapping(out: &mut String, analysis: &MoodbarAnalysis, height
                 "mb-mid",
                 x,
                 height as f64 - h_g,
-                step + 0.5,
+                step + SVG_SUBPIXEL_OVERLAP,
                 h_g,
                 SPLIT_OVERLAP_FILL_OPACITY,
             );
@@ -257,7 +333,7 @@ fn render_split_overlapping(out: &mut String, analysis: &MoodbarAnalysis, height
                 "mb-treble",
                 x,
                 height as f64 - h_t,
-                step + 0.5,
+                step + SVG_SUBPIXEL_OVERLAP,
                 h_t,
                 SPLIT_OVERLAP_FILL_OPACITY,
             );
@@ -273,11 +349,7 @@ mod tests {
     fn fixture_analysis() -> MoodbarAnalysis {
         MoodbarAnalysis {
             channel_count: 3,
-            frames: vec![
-                vec![1.0, 0.5, 0.25],
-                vec![0.8, 0.6, 0.4],
-                vec![0.2, 0.9, 0.1],
-            ],
+            frames: vec![1.0, 0.5, 0.25, 0.8, 0.6, 0.4, 0.2, 0.9, 0.1],
             colors: vec![],
             diagnostics: AnalysisDiagnostics::default(),
             band_colors: vec![[220, 20, 180], [240, 120, 0], [0, 160, 240]],

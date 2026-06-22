@@ -1,3 +1,5 @@
+// Rust guideline compliant 2026-06-22
+
 mod analyze;
 mod bands;
 mod options;
@@ -113,7 +115,7 @@ mod tests {
         );
 
         assert!(baseline.frames.len() > dense.frames.len());
-        assert_eq!(dense.frames.len(), 1);
+        assert_eq!(dense.frames.len() / dense.channel_count.max(1), 1);
     }
 
     #[test]
@@ -138,8 +140,8 @@ mod tests {
             },
         );
 
-        let energy_sum: f64 = energy.frames.iter().flatten().sum();
-        let flux_sum: f64 = flux.frames.iter().flatten().sum();
+        let energy_sum: f64 = energy.frames.iter().copied().sum();
+        let flux_sum: f64 = flux.frames.iter().copied().sum();
         assert!(flux_sum < energy_sum);
     }
 
@@ -171,7 +173,11 @@ mod tests {
         );
 
         let total_band_energy = |analysis: &MoodbarAnalysis, band: usize| -> f64 {
-            analysis.frames.iter().map(|frame| frame[band]).sum()
+            analysis
+                .frames
+                .chunks_exact(analysis.channel_count)
+                .map(|frame| frame[band])
+                .sum()
         };
 
         let high_baseline = total_band_energy(&baseline, 2);
@@ -191,12 +197,13 @@ mod tests {
 
     #[test]
     fn svg_gradient_stop_count_is_capped() {
-        let frames = (0..5000)
-            .map(|i| {
-                let t = i as f64 / 5000.0;
-                vec![t, 1.0 - t, (0.5 + 0.5 * (t * 10.0).sin()).clamp(0.0, 1.0)]
-            })
-            .collect::<Vec<_>>();
+        let mut frames = Vec::with_capacity(5000 * 3);
+        for i in 0..5000 {
+            let t = i as f64 / 5000.0;
+            frames.push(t);
+            frames.push(1.0 - t);
+            frames.push((0.5 + 0.5 * (t * 10.0).sin()).clamp(0.0, 1.0));
+        }
         let analysis = MoodbarAnalysis {
             channel_count: 3,
             frames,

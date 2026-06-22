@@ -1,3 +1,5 @@
+// Rust guideline compliant 2026-06-22
+
 mod png;
 mod png_split;
 mod svg;
@@ -13,10 +15,12 @@ use crate::types::{MoodbarAnalysis, MoodbarError, SvgOptions, SvgShape};
 pub fn render_svg(analysis: &MoodbarAnalysis, options: &SvgOptions) -> String {
     let width = options.width.max(1);
     let height = options.height.max(1);
-    let count = analysis.frames.len().max(1) as f64;
+    let channels = analysis.channel_count.max(1);
+    let frame_count = analysis.frames.len() / channels;
+    let count = frame_count.max(1) as f64;
     let step = width as f64 / count;
 
-    let mut s = String::with_capacity(svg_capacity(analysis.frames.len(), options.shape));
+    let mut s = String::with_capacity(svg_capacity(frame_count, options.shape));
     write_svg_shell(&mut s, options);
     let include_style = is_split_shape(options.shape);
     let gradient_id = write_gradient_defs(&mut s, analysis, options, width, include_style);
@@ -51,7 +55,7 @@ pub fn render_png(
 
     let mut buf = new_rgba_buffer(width, height);
     render_shape_png(&mut buf, analysis, options);
-    encode_png(&buf, width, height)
+    encode_png(buf, width, height)
 }
 
 #[cfg(test)]
@@ -62,12 +66,13 @@ mod bench_tests {
     use std::time::Instant;
 
     fn bench_analysis(frame_count: usize) -> MoodbarAnalysis {
-        let frames = (0..frame_count)
-            .map(|i| {
-                let t = i as f64 / frame_count as f64;
-                vec![t, 1.0 - t, (0.5 + 0.5 * (t * 10.0).sin()).clamp(0.0, 1.0)]
-            })
-            .collect();
+        let mut frames = Vec::with_capacity(frame_count * 3);
+        for i in 0..frame_count {
+            let t = i as f64 / frame_count as f64;
+            frames.push(t);
+            frames.push(1.0 - t);
+            frames.push((0.5 + 0.5 * (t * 10.0).sin()).clamp(0.0, 1.0));
+        }
         MoodbarAnalysis {
             channel_count: 3,
             frames,

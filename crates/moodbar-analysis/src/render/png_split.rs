@@ -1,3 +1,5 @@
+// Rust guideline compliant 2026-06-22
+
 #[cfg(feature = "png")]
 use crate::bands::{
     SpectralBands, SPLIT_BAND_HIGH_RGB, SPLIT_BAND_LOW_RGB, SPLIT_BAND_MID_RGB,
@@ -5,6 +7,9 @@ use crate::bands::{
 };
 use crate::render::util::{blend_rgba_over, fill_column_raw, frame_at_x, ColumnFrameCache};
 use crate::types::{MoodbarAnalysis, PngOptions, SvgShape};
+
+/// Split margin ratio relative to the total height.
+const SPLIT_MARGIN_RATIO: f64 = 0.05;
 
 #[cfg(feature = "png")]
 pub(crate) fn render_split_png(buf: &mut [u8], analysis: &MoodbarAnalysis, options: &PngOptions) {
@@ -49,11 +54,12 @@ fn band_rgba(bands: &SpectralBands, band: &str, band_colors: &[[u8; 3]]) -> [u8;
 #[cfg(feature = "png")]
 fn render_split_stacked_png(buf: &mut [u8], analysis: &MoodbarAnalysis, width: u32, height: u32) {
     let h_seg = height as f64 / 3.0;
-    let len = analysis.frames.len();
+    let channels = analysis.channel_count.max(1);
+    let len = analysis.frames.len() / channels;
     let mut cache = ColumnFrameCache::new();
     for x in 0..width {
         let idx = frame_at_x(x, width, len);
-        let (_, bands) = cache.resolve(idx, &analysis.frames);
+        let (_, bands) = cache.resolve(idx, &analysis.frames, channels);
         let y_bass = (height as f64 - h_seg * bands.low).max(0.0).floor() as u32;
         let y_mid = (y_bass as f64 - h_seg * bands.mid).max(0.0).floor() as u32;
         let y_treble = (y_mid as f64 - h_seg * bands.high).max(0.0).floor() as u32;
@@ -94,11 +100,12 @@ fn render_split_stacked_png(buf: &mut [u8], analysis: &MoodbarAnalysis, width: u
 fn render_split_waveform_png(buf: &mut [u8], analysis: &MoodbarAnalysis, width: u32, height: u32) {
     let mid = height as f64 / 2.0;
     let h_seg = height as f64 / 3.0;
-    let len = analysis.frames.len();
+    let channels = analysis.channel_count.max(1);
+    let len = analysis.frames.len() / channels;
     let mut cache = ColumnFrameCache::new();
     for x in 0..width {
         let idx = frame_at_x(x, width, len);
-        let (_, bands) = cache.resolve(idx, &analysis.frames);
+        let (_, bands) = cache.resolve(idx, &analysis.frames, channels);
         let h_b = h_seg * bands.low;
         let h_g = h_seg * bands.mid;
         let h_t = h_seg * bands.high;
@@ -164,16 +171,17 @@ fn render_split_waveform_png(buf: &mut [u8], analysis: &MoodbarAnalysis, width: 
 
 #[cfg(feature = "png")]
 fn render_split_lanes_png(buf: &mut [u8], analysis: &MoodbarAnalysis, width: u32, height: u32) {
-    let g_val = (height as f64 * 0.05).max(1.0).round();
+    let g_val = (height as f64 * SPLIT_MARGIN_RATIO).max(1.0).round();
     let h_lane = (height as f64 - 2.0 * g_val) / 3.0;
     let y_t_bottom = h_lane.ceil() as u32;
     let y_g_bottom = (2.0 * h_lane + g_val).ceil() as u32;
     let y_b_bottom = height;
-    let len = analysis.frames.len();
+    let channels = analysis.channel_count.max(1);
+    let len = analysis.frames.len() / channels;
     let mut cache = ColumnFrameCache::new();
     for x in 0..width {
         let idx = frame_at_x(x, width, len);
-        let (_, bands) = cache.resolve(idx, &analysis.frames);
+        let (_, bands) = cache.resolve(idx, &analysis.frames, channels);
         let y_b_start = (y_b_bottom as f64 - h_lane * bands.low).max(0.0).floor() as u32;
         let y_g_start = (y_g_bottom as f64 - h_lane * bands.mid).max(0.0).floor() as u32;
         let y_t_start = (y_t_bottom as f64 - h_lane * bands.high).max(0.0).floor() as u32;
@@ -219,11 +227,12 @@ fn render_split_centrifugal_png(
 ) {
     let mid = height as f64 / 2.0;
     let h_seg = height as f64 / 3.0;
-    let len = analysis.frames.len();
+    let channels = analysis.channel_count.max(1);
+    let len = analysis.frames.len() / channels;
     let mut cache = ColumnFrameCache::new();
     for x in 0..width {
         let idx = frame_at_x(x, width, len);
-        let (_, bands) = cache.resolve(idx, &analysis.frames);
+        let (_, bands) = cache.resolve(idx, &analysis.frames, channels);
         let h_b = h_seg * bands.low;
         let h_g = h_seg * bands.mid;
         let h_t = h_seg * bands.high;
@@ -295,11 +304,12 @@ fn render_split_overlapping_png(
     width: u32,
     height: u32,
 ) {
-    let len = analysis.frames.len();
+    let channels = analysis.channel_count.max(1);
+    let len = analysis.frames.len() / channels;
     let mut cache = ColumnFrameCache::new();
     for x in 0..width {
         let idx = frame_at_x(x, width, len);
-        let (_, bands) = cache.resolve(idx, &analysis.frames);
+        let (_, bands) = cache.resolve(idx, &analysis.frames, channels);
         let h_b = height as f64 * bands.low;
         let h_g = height as f64 * bands.mid;
         let h_t = height as f64 * bands.high;
@@ -390,7 +400,7 @@ mod tests {
     fn split_stacked_png_layout_is_deterministic() {
         let analysis = MoodbarAnalysis {
             channel_count: 3,
-            frames: vec![vec![1.0, 0.5, 0.25], vec![0.8, 0.6, 0.4]],
+            frames: vec![1.0, 0.5, 0.25, 0.8, 0.6, 0.4],
             colors: vec![],
             diagnostics: AnalysisDiagnostics::default(),
             band_colors: vec![[220, 20, 180], [240, 120, 0], [0, 160, 240]],
@@ -404,5 +414,3 @@ mod tests {
         assert_eq!(a, b);
     }
 }
-
-// Rust guideline compliant 2026-02-21

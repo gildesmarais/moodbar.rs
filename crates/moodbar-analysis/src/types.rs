@@ -1,3 +1,5 @@
+// Rust guideline compliant 2026-06-22
+
 use thiserror::Error;
 
 /// Non-fatal decoder diagnostics collected during analysis.
@@ -12,7 +14,7 @@ pub struct AnalysisDiagnostics {
 #[derive(Debug, Clone)]
 pub struct MoodbarAnalysis {
     pub channel_count: usize,
-    pub frames: Vec<Vec<f64>>,
+    pub frames: Vec<f64>,
     pub colors: Vec<[u8; 3]>,
     pub diagnostics: AnalysisDiagnostics,
     pub band_colors: Vec<[u8; 3]>,
