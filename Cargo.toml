@@ -62,10 +62,13 @@ strip = true
 panic = "abort"
 
 [profile.release]
-opt-level = "s"
+opt-level = 3
 lto = true
 codegen-units = 1
 panic = "abort"
+
+[profile.release.package.moodbar-wasm]
+opt-level = "s"
 
 
 
