@@ -563,7 +563,7 @@ dependencies = [
 
 [[package]]
 name = "moodbar"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -577,7 +577,7 @@ dependencies = [
 
 [[package]]
 name = "moodbar-analysis"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "anyhow",
  "image",
@@ -590,7 +590,7 @@ dependencies = [
 
 [[package]]
 name = "moodbar-bindings-schema"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "moodbar-analysis",
  "serde",
@@ -599,7 +599,7 @@ dependencies = [
 
 [[package]]
 name = "moodbar-core"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "anyhow",
  "image",
@@ -615,7 +615,7 @@ dependencies = [
 
 [[package]]
 name = "moodbar-decode"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "moodbar-analysis",
  "symphonia",
@@ -624,7 +624,7 @@ dependencies = [
 
 [[package]]
 name = "moodbar-native-ffi"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "anyhow",
  "base64",
@@ -641,7 +641,7 @@ dependencies = [
 
 [[package]]
 name = "moodbar-wasm"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "console_error_panic_hook",
  "moodbar-analysis",
