@@ -1,15 +1,10 @@
 /// Visual theme presets.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Theme {
+    #[default]
     Classic,
     Cool,
     Light,
-}
-
-impl Default for Theme {
-    fn default() -> Self {
-        Self::Classic
-    }
 }
 
 /// Tunable DSP options used by raw and SVG rendering paths.
