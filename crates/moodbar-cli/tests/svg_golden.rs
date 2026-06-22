@@ -143,3 +143,60 @@ fn generate_svg_strip_contains_mood_stops() {
     assert!(svg.contains("fill=\"transparent\""));
     assert!(svg.contains("<rect"));
 }
+
+#[test]
+fn generate_svg_with_custom_colors_and_themes() {
+    let temp = unique_temp_dir("custom_theme");
+
+    let input = temp.join("input_theme.wav");
+    let output_cool = temp.join("output-cool.svg");
+    let output_custom = temp.join("output-custom.svg");
+    write_test_wav(&input);
+
+    let bin = moodbar_bin_path();
+
+    // 1. Theme "cool" splitstacked shape (contains CSS style classes)
+    let status_cool = Command::new(&bin)
+        .arg("generate")
+        .arg("-i")
+        .arg(&input)
+        .arg("-o")
+        .arg(&output_cool)
+        .arg("--format")
+        .arg("svg")
+        .arg("--svg-shape")
+        .arg("split-stacked")
+        .arg("--theme")
+        .arg("cool")
+        .status()
+        .unwrap();
+    assert!(status_cool.success());
+
+    let svg_cool = fs::read_to_string(&output_cool).expect("read cool svg");
+    // Default cool bass color: [220, 20, 180] -> rgb(220,20,180)
+    assert!(svg_cool.contains(".mb-bass{fill:rgb(220,20,180)}"));
+    assert!(svg_cool.contains(".mb-mid{fill:rgb(240,120,0)}"));
+    assert!(svg_cool.contains(".mb-treble{fill:rgb(0,160,240)}"));
+
+    // 2. Custom colors --colors "FF00FF,00FF00,FFFF00"
+    let status_custom = Command::new(&bin)
+        .arg("generate")
+        .arg("-i")
+        .arg(&input)
+        .arg("-o")
+        .arg(&output_custom)
+        .arg("--format")
+        .arg("svg")
+        .arg("--svg-shape")
+        .arg("split-stacked")
+        .arg("--colors")
+        .arg("FF00FF,00FF00,FFFF00")
+        .status()
+        .unwrap();
+    assert!(status_custom.success());
+
+    let svg_custom = fs::read_to_string(&output_custom).expect("read custom svg");
+    assert!(svg_custom.contains(".mb-bass{fill:rgb(255,0,255)}"));
+    assert!(svg_custom.contains(".mb-mid{fill:rgb(0,255,0)}"));
+    assert!(svg_custom.contains(".mb-treble{fill:rgb(255,255,0)}"));
+}
