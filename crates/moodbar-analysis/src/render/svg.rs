@@ -1,6 +1,5 @@
 use std::fmt::Write as _;
 
-use crate::analyze::{frame_to_rgb, frame_to_svg_rgb, scale_to_u8};
 use crate::render::util::{
     gradient_stop_indices, SVG_WAVEFORM_FILL_OPACITY, SVG_WAVEFORM_STROKE_OPACITY,
     SVG_WAVEFORM_STROKE_WIDTH,
@@ -34,7 +33,7 @@ pub(crate) fn write_gradient_defs(
 ) -> &'static str {
     if include_style {
         out.push_str("<defs>");
-        crate::render::util::write_split_style_block(out);
+        crate::render::util::write_split_style_block(out, &analysis.band_colors);
     } else {
         out.push_str("<defs>");
     }
@@ -45,10 +44,10 @@ pub(crate) fn write_gradient_defs(
     )
     .unwrap();
     for i in gradient_stop_indices(analysis.frames.len(), options.max_gradient_stops.max(2)) {
-        let frame = &analysis.frames[i];
         let denom = (analysis.frames.len().saturating_sub(1)).max(1) as f64;
         let offset = (i as f64 / denom) * 100.0;
-        let (r, g, b) = frame_to_svg_rgb(frame);
+        let rgb = analysis.colors.get(i).copied().unwrap_or([0, 0, 0]);
+        let (r, g, b) = crate::analyze::rgb_to_svg_rgb(rgb);
         write!(
             out,
             "<stop offset=\"{offset:.3}%\" stop-color=\"rgb({r},{g},{b})\"/>"
@@ -66,16 +65,16 @@ pub(crate) fn render_strip(
     height: u32,
     step: f64,
 ) {
-    for (i, frame) in analysis.frames.iter().enumerate() {
+    for (i, _frame) in analysis.frames.iter().enumerate() {
         let x = i as f64 * step;
-        let (r, g, b) = frame_to_rgb(frame);
+        let rgb = analysis.colors.get(i).copied().unwrap_or([0, 0, 0]);
         write!(
             out,
             "<rect x=\"{x:.6}\" y=\"0\" width=\"{:.6}\" height=\"{height}\" fill=\"rgb({},{},{})\"/>",
             step + 0.5,
-            scale_to_u8(r),
-            scale_to_u8(g),
-            scale_to_u8(b)
+            rgb[0],
+            rgb[1],
+            rgb[2]
         )
         .unwrap();
     }
@@ -134,6 +133,7 @@ mod tests {
             ],
             colors: vec![[255, 0, 0], [0, 255, 51], [0, 25, 255]],
             diagnostics: AnalysisDiagnostics::default(),
+            band_colors: vec![[255, 0, 0], [0, 255, 0], [0, 0, 255]],
         };
 
         let mut strip = String::new();
@@ -167,3 +167,5 @@ mod tests {
         assert!(waveform.contains("url(#mood-gradient)"));
     }
 }
+
+// Rust guideline compliant 2026-02-21
