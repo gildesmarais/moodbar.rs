@@ -1,9 +1,9 @@
 use moodbar_analysis::{
     DetectionMode, GenerateOptions, NormalizeMode, PngOptions, SvgOptions, SvgShape, Theme,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Default, Deserialize)]
+#[derive(Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct GenerateOptionsPatch {
     pub fft_size: Option<usize>,
@@ -20,7 +20,7 @@ pub struct GenerateOptionsPatch {
     pub custom_colors: Option<Vec<String>>,
 }
 
-#[derive(Default, Deserialize)]
+#[derive(Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct SvgOptionsPatch {
     pub width: Option<u32>,
@@ -30,7 +30,7 @@ pub struct SvgOptionsPatch {
     pub max_gradient_stops: Option<usize>,
 }
 
-#[derive(Default, Deserialize)]
+#[derive(Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct PngOptionsPatch {
     pub width: Option<u32>,
@@ -38,19 +38,19 @@ pub struct PngOptionsPatch {
     pub shape: Option<SvgShapeInput>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub enum NormalizeModeInput {
     PerChannelPeak,
     GlobalPeak,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub enum DetectionModeInput {
     SpectralEnergy,
     SpectralFlux,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub enum SvgShapeInput {
     Strip,
     Waveform,
@@ -61,7 +61,7 @@ pub enum SvgShapeInput {
     SplitOverlapping,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub enum ThemeInput {
     Classic,
     Cool,

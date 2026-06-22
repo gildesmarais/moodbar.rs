@@ -15,6 +15,9 @@ pub(crate) fn parse_generate_options(
     let input: GenerateOptionsPatch = parse_optional_json(options_json)?;
     let mut options = GenerateOptions::default();
     apply_generate_patch(&mut options, input);
+    options
+        .validate()
+        .map_err(|e| FfiError::InvalidArgument(e.to_string()))?;
     Ok(options)
 }
 

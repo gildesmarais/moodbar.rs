@@ -40,7 +40,7 @@ const svgMarkup = svg(analysis, {
   shape: "SplitStacked",
 });
 
-const pngBytes = png(analysis, 600, 64); // shape defaults to Strip; use svg() opts pattern via bindings if extended
+const pngBytes = png(analysis, { width: 600, height: 64, shape: "SplitStacked" });
 
 const legacyBytes = raw_rgb(analysis);
 ```

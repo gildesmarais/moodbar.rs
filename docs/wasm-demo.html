@@ -463,7 +463,11 @@
         }
 
         try {
-          const pngBytes = wasmPng(latestAnalysis, readWidth(), readHeight());
+          const pngBytes = wasmPng(latestAnalysis, {
+            width: readWidth(),
+            height: readHeight(),
+            shape: shapeSelect.value,
+          });
           const blob = new Blob([pngBytes], { type: "image/png" });
           const link = document.createElement("a");
           link.href = URL.createObjectURL(blob);

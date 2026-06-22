@@ -14,8 +14,12 @@
       const sampleRate = 44100;
       const pcm = new Float32Array(sampleRate).fill(0);
       const analysis = analyze(pcm, sampleRate);
-      const markup = svg(analysis, { width: 800, height: 64, shape: "Waveform" });
-      document.getElementById("root").innerHTML = markup;
+      try {
+        const markup = svg(analysis, { width: 800, height: 64, shape: "Waveform" });
+        document.getElementById("root").innerHTML = markup;
+      } finally {
+        analysis.free();
+      }
     </script>
   </body>
 </html>
