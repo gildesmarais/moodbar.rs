@@ -52,20 +52,98 @@
               <option value="Custom">Custom Colors</option>
             </select>
 
-            <div id="customColorsWrapper" style="display: none; margin-top: 0.6rem; border: 1px solid var(--line); padding: 0.75rem; background: #000;">
-              <label style="font-size: 0.82rem; margin-bottom: 0.5rem; display: block; color: var(--muted); font-family: 'IBM Plex Mono', monospace;">CUSTOM COLORS (LOW / MID / HIGH)</label>
-              <div style="display: flex; gap: 1rem; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 0.4rem;">
-                  <span style="font-size: 0.78rem; font-family: 'IBM Plex Mono', monospace; color: var(--muted);">LOW</span>
-                  <input id="customColorLow" type="color" value="#dc14b4" style="padding: 0; width: 36px; height: 36px; border: 1px solid var(--line); cursor: pointer; background: transparent; flex: none;" />
+            <div
+              id="customColorsWrapper"
+              style="
+                display: none;
+                margin-top: 0.6rem;
+                border: 1px solid var(--line);
+                padding: 0.75rem;
+                background: #000;
+              "
+            >
+              <label
+                style="
+                  font-size: 0.82rem;
+                  margin-bottom: 0.5rem;
+                  display: block;
+                  color: var(--muted);
+                  font-family: &quot;IBM Plex Mono&quot;, monospace;
+                "
+                >CUSTOM COLORS (LOW / MID / HIGH)</label
+              >
+              <div style="display: flex; gap: 1rem; align-items: center">
+                <div style="display: flex; align-items: center; gap: 0.4rem">
+                  <span
+                    style="
+                      font-size: 0.78rem;
+                      font-family: &quot;IBM Plex Mono&quot;, monospace;
+                      color: var(--muted);
+                    "
+                    >LOW</span
+                  >
+                  <input
+                    id="customColorLow"
+                    type="color"
+                    value="#dc14b4"
+                    style="
+                      padding: 0;
+                      width: 36px;
+                      height: 36px;
+                      border: 1px solid var(--line);
+                      cursor: pointer;
+                      background: transparent;
+                      flex: none;
+                    "
+                  />
                 </div>
-                <div style="display: flex; align-items: center; gap: 0.4rem;">
-                  <span style="font-size: 0.78rem; font-family: 'IBM Plex Mono', monospace; color: var(--muted);">MID</span>
-                  <input id="customColorMid" type="color" value="#f07800" style="padding: 0; width: 36px; height: 36px; border: 1px solid var(--line); cursor: pointer; background: transparent; flex: none;" />
+                <div style="display: flex; align-items: center; gap: 0.4rem">
+                  <span
+                    style="
+                      font-size: 0.78rem;
+                      font-family: &quot;IBM Plex Mono&quot;, monospace;
+                      color: var(--muted);
+                    "
+                    >MID</span
+                  >
+                  <input
+                    id="customColorMid"
+                    type="color"
+                    value="#f07800"
+                    style="
+                      padding: 0;
+                      width: 36px;
+                      height: 36px;
+                      border: 1px solid var(--line);
+                      cursor: pointer;
+                      background: transparent;
+                      flex: none;
+                    "
+                  />
                 </div>
-                <div style="display: flex; align-items: center; gap: 0.4rem;">
-                  <span style="font-size: 0.78rem; font-family: 'IBM Plex Mono', monospace; color: var(--muted);">HIGH</span>
-                  <input id="customColorHigh" type="color" value="#00a0f0" style="padding: 0; width: 36px; height: 36px; border: 1px solid var(--line); cursor: pointer; background: transparent; flex: none;" />
+                <div style="display: flex; align-items: center; gap: 0.4rem">
+                  <span
+                    style="
+                      font-size: 0.78rem;
+                      font-family: &quot;IBM Plex Mono&quot;, monospace;
+                      color: var(--muted);
+                    "
+                    >HIGH</span
+                  >
+                  <input
+                    id="customColorHigh"
+                    type="color"
+                    value="#00a0f0"
+                    style="
+                      padding: 0;
+                      width: 36px;
+                      height: 36px;
+                      border: 1px solid var(--line);
+                      cursor: pointer;
+                      background: transparent;
+                      flex: none;
+                    "
+                  />
                 </div>
               </div>
             </div>
@@ -113,7 +191,7 @@
 
       <section class="section">
         <div class="action-buttons">
-          <button id="runButton" class="btn primary">Analyze + Render</button>
+          <button id="runButton" class="btn primary">Render Moodbar</button>
           <button id="savePngButton" class="btn" disabled>Save PNG</button>
         </div>
       </section>
@@ -131,7 +209,9 @@
       const heightInput = document.getElementById("height");
       const shapeSelect = document.getElementById("shape");
       const themeSelect = document.getElementById("theme");
-      const customColorsWrapper = document.getElementById("customColorsWrapper");
+      const customColorsWrapper = document.getElementById(
+        "customColorsWrapper",
+      );
       const customColorLow = document.getElementById("customColorLow");
       const customColorMid = document.getElementById("customColorMid");
       const customColorHigh = document.getElementById("customColorHigh");
@@ -193,6 +273,10 @@
           releaseAnalysis();
           playbackRateInput.disabled = true;
           savePngButton.disabled = true;
+
+          if (file) {
+            void runDemo();
+          }
         }
       }
 
@@ -316,17 +400,19 @@
 
       async function decodeMonoPcm(file) {
         const arrayBuffer = await file.arrayBuffer();
-        const audioCtx = new AudioContext();
-        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-        await audioCtx.close();
 
-        const offlineLength = Math.max(
-          1,
-          Math.floor(audioBuffer.duration * TARGET_SAMPLE_RATE),
-        );
+        // 1. Decode and resample in a single step using an OfflineAudioContext configured
+        // at the target sample rate (11,025 Hz). The browser's native decoder will
+        // resample the compressed audio during decoding, saving CPU and memory.
+        const decodeCtx = new OfflineAudioContext(1, 1, TARGET_SAMPLE_RATE);
+        const audioBuffer = await decodeCtx.decodeAudioData(arrayBuffer);
+
+        // 2. Downmix the resampled multi-channel AudioBuffer to mono.
+        // Since the sample rate of audioBuffer already matches TARGET_SAMPLE_RATE,
+        // this rendering has no resampling/interpolation overhead and runs extremely fast.
         const offline = new OfflineAudioContext(
           1,
-          offlineLength,
+          audioBuffer.length,
           TARGET_SAMPLE_RATE,
         );
         const source = offline.createBufferSource();
@@ -346,7 +432,9 @@
 
       async function decodeAndCache(file) {
         setStatus("Decoding audio...");
+        const t0 = performance.now();
         cachedDecode = await decodeMonoPcm(file);
+        cachedDecode.decodeTimeMs = performance.now() - t0;
         playbackRateInput.disabled = false;
         return cachedDecode;
       }
@@ -361,7 +449,7 @@
         savePngButton.disabled = true;
         playbackRateInput.disabled = true;
 
-        const { sampleRate, pcm, duration } = cachedDecode;
+        const { sampleRate, pcm, duration, decodeTimeMs } = cachedDecode;
         const rate = readPlaybackRate();
         const theme = readTheme();
         const customColors = readCustomColors();
@@ -369,13 +457,14 @@
         try {
           await ensureWasmInit();
 
+          let analyzeTimeMs = 0;
           if (
             !latestAnalysis ||
             latestAnalysisRate !== rate ||
             latestAnalysisTheme !== theme ||
             colorsChanged(latestAnalysisColors, customColors)
           ) {
-            setStatus(`Analyzing at ${rate.toFixed(2)}×...`);
+            setStatus(`Rendering at ${rate.toFixed(2)}×...`);
             releaseAnalysis();
             const genOpts = {
               playback_rate: rate,
@@ -385,23 +474,35 @@
             } else {
               genOpts.theme = theme;
             }
+            const t0 = performance.now();
             latestAnalysis = wasmAnalyzeWithOptions(pcm, sampleRate, genOpts);
+            analyzeTimeMs = performance.now() - t0;
             latestAnalysisRate = rate;
             latestAnalysisTheme = theme;
             latestAnalysisColors = customColors ? [...customColors] : null;
+            latestAnalysis.analyzeTimeMs = analyzeTimeMs;
+          } else {
+            analyzeTimeMs = latestAnalysis.analyzeTimeMs || 0;
           }
 
           setStatus("Rendering...");
+          const t1 = performance.now();
           const svgMarkup = wasmSvg(latestAnalysis, {
             width: readWidth(),
             height: readHeight(),
             shape: shapeSelect.value,
             background: "transparent",
           });
+          const renderTimeMs = performance.now() - t1;
 
           outputEl.innerHTML = svgMarkup;
+
+          const decodeStr =
+            decodeTimeMs !== undefined
+              ? `Decode: ${(decodeTimeMs / 1000).toFixed(2)}s, `
+              : "";
           setStatus(
-            `Done: ${latestAnalysis.frame_count()} frames, ${latestAnalysis.channel_count()} channels at ${rate.toFixed(2)}×. (${duration.toFixed(1)}s at ${TARGET_SAMPLE_RATE} Hz mono)`,
+            `Done in ${(((decodeTimeMs || 0) + analyzeTimeMs + renderTimeMs) / 1000).toFixed(2)}s (${decodeStr}Analyze: ${(analyzeTimeMs / 1000).toFixed(2)}s, Render: ${(renderTimeMs / 1000).toFixed(2)}s) | ${latestAnalysis.frame_count()} frames, ${latestAnalysis.channel_count()} channels at ${rate.toFixed(2)}×. (${duration.toFixed(1)}s at ${TARGET_SAMPLE_RATE} Hz mono)`,
           );
           savePngButton.disabled = false;
         } catch (error) {
@@ -458,12 +559,16 @@
 
       function downloadPng() {
         if (!latestAnalysis) {
-          setStatus("Analyze a file first, then save PNG.", true);
+          setStatus("Render a moodbar first, then save PNG.", true);
           return;
         }
 
         try {
-          const pngBytes = wasmPng(latestAnalysis, readWidth(), readHeight());
+          const pngBytes = wasmPng(latestAnalysis, {
+            width: readWidth(),
+            height: readHeight(),
+            shape: shapeSelect.value,
+          });
           const blob = new Blob([pngBytes], { type: "image/png" });
           const link = document.createElement("a");
           link.href = URL.createObjectURL(blob);

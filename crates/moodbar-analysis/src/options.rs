@@ -56,6 +56,56 @@ impl GenerateOptions {
         let rate = self.playback_rate.unwrap_or(1.0) as f64;
         sample_rate as f64 / 2.0 * rate
     }
+
+    /// Validates the generate options, ensuring mathematical and physical constraints are met.
+    ///
+    /// # Errors
+    ///
+    /// Returns `MoodbarError::InvalidOptions` if validation fails.
+    pub fn validate(&self) -> Result<(), crate::types::MoodbarError> {
+        if !self.fft_size.is_power_of_two() || self.fft_size < 64 {
+            return Err(crate::types::MoodbarError::InvalidOptions(
+                "fft_size must be a power of two and >= 64".to_string(),
+            ));
+        }
+        if !(self.deterministic_floor.is_finite() && self.deterministic_floor > 0.0) {
+            return Err(crate::types::MoodbarError::InvalidOptions(
+                "deterministic_floor must be finite and > 0".to_string(),
+            ));
+        }
+        if self.frames_per_color == 0 {
+            return Err(crate::types::MoodbarError::InvalidOptions(
+                "frames_per_color must be >= 1".to_string(),
+            ));
+        }
+        if let Some(rate) = self.playback_rate {
+            if !(rate.is_finite() && rate > 0.0) {
+                return Err(crate::types::MoodbarError::InvalidOptions(
+                    "playback_rate must be finite and > 0".to_string(),
+                ));
+            }
+        }
+
+        let edges = if self.band_edges_hz.is_empty() {
+            vec![self.low_cut_hz, self.mid_cut_hz]
+        } else {
+            self.band_edges_hz.clone()
+        };
+
+        if edges.is_empty() {
+            return Err(crate::types::MoodbarError::InvalidOptions(
+                "at least one band edge is required".to_string(),
+            ));
+        }
+        for pair in edges.windows(2) {
+            if pair[0] >= pair[1] {
+                return Err(crate::types::MoodbarError::InvalidOptions(
+                    "band edges must be strictly increasing".to_string(),
+                ));
+            }
+        }
+        Ok(())
+    }
 }
 
 /// Band normalization strategy.

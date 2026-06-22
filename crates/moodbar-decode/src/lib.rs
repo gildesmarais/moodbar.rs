@@ -41,7 +41,9 @@ pub fn analyze_path(
     path: &Path,
     options: &GenerateOptions,
 ) -> Result<MoodbarAnalysis, MoodbarDecodeError> {
-    validate_options(options)?;
+    options
+        .validate()
+        .map_err(|e| MoodbarDecodeError::InvalidOptions(e.to_string()))?;
 
     let file = File::open(path)?;
     let mss = MediaSourceStream::new(Box::new(file), Default::default());
@@ -59,7 +61,9 @@ pub fn analyze_bytes(
     extension: Option<&str>,
     options: &GenerateOptions,
 ) -> Result<MoodbarAnalysis, MoodbarDecodeError> {
-    validate_options(options)?;
+    options
+        .validate()
+        .map_err(|e| MoodbarDecodeError::InvalidOptions(e.to_string()))?;
 
     let cursor = Cursor::new(bytes.to_vec());
     let mss = MediaSourceStream::new(Box::new(cursor), Default::default());
@@ -205,49 +209,4 @@ fn analyze_media_source(
     analysis.diagnostics.zero_channel_packets = diagnostics.zero_channel_packets;
     analysis.diagnostics.truncated_frames = diagnostics.truncated_frames;
     Ok(analysis)
-}
-
-fn validate_options(options: &GenerateOptions) -> Result<(), MoodbarDecodeError> {
-    if !options.fft_size.is_power_of_two() || options.fft_size < 64 {
-        return Err(MoodbarDecodeError::InvalidOptions(
-            "fft_size must be a power of two and >= 64".to_string(),
-        ));
-    }
-    if !(options.deterministic_floor.is_finite() && options.deterministic_floor > 0.0) {
-        return Err(MoodbarDecodeError::InvalidOptions(
-            "deterministic_floor must be finite and > 0".to_string(),
-        ));
-    }
-    if options.frames_per_color == 0 {
-        return Err(MoodbarDecodeError::InvalidOptions(
-            "frames_per_color must be >= 1".to_string(),
-        ));
-    }
-    if let Some(rate) = options.playback_rate {
-        if !(rate.is_finite() && rate > 0.0) {
-            return Err(MoodbarDecodeError::InvalidOptions(
-                "playback_rate must be finite and > 0".to_string(),
-            ));
-        }
-    }
-
-    let edges = if options.band_edges_hz.is_empty() {
-        vec![options.low_cut_hz, options.mid_cut_hz]
-    } else {
-        options.band_edges_hz.clone()
-    };
-
-    if edges.is_empty() {
-        return Err(MoodbarDecodeError::InvalidOptions(
-            "at least one band edge is required".to_string(),
-        ));
-    }
-    for pair in edges.windows(2) {
-        if pair[0] >= pair[1] {
-            return Err(MoodbarDecodeError::InvalidOptions(
-                "band edges must be strictly increasing".to_string(),
-            ));
-        }
-    }
-    Ok(())
 }
