@@ -40,21 +40,9 @@ impl SpectralBands {
             },
         }
     }
-
-    pub(crate) fn low_rgb(&self) -> [u8; 3] {
-        scale_rgb(SPLIT_BAND_LOW_RGB, self.low)
-    }
-
-    pub(crate) fn mid_rgb(&self) -> [u8; 3] {
-        scale_rgb(SPLIT_BAND_MID_RGB, self.mid)
-    }
-
-    pub(crate) fn high_rgb(&self) -> [u8; 3] {
-        scale_rgb(SPLIT_BAND_HIGH_RGB, self.high)
-    }
 }
 
-fn scale_rgb(base: [u8; 3], energy: f64) -> [u8; 3] {
+pub(crate) fn scale_rgb(base: [u8; 3], energy: f64) -> [u8; 3] {
     [
         (base[0] as f64 * energy).round() as u8,
         (base[1] as f64 * energy).round() as u8,

@@ -29,8 +29,10 @@ pub(crate) fn frame_to_rgb(frame: &[f64]) -> (f64, f64, f64) {
     hsv_to_rgb(hue, 0.85, intensity)
 }
 
-pub(crate) fn frame_to_svg_rgb(frame: &[f64]) -> (u8, u8, u8) {
-    let (r, g, b) = frame_to_rgb(frame);
+pub(crate) fn rgb_to_svg_rgb(rgb: [u8; 3]) -> (u8, u8, u8) {
+    let r = rgb[0] as f64 / 255.0;
+    let g = rgb[1] as f64 / 255.0;
+    let b = rgb[2] as f64 / 255.0;
     let peak = r.max(g).max(b);
     if peak <= 1e-12 {
         return (0, 0, 0);
@@ -53,7 +55,7 @@ pub(crate) fn scale_to_u8(v: f64) -> u8 {
     (v.clamp(0.0, 1.0) * 255.0).round() as u8
 }
 
-fn hsv_to_rgb(h: f64, s: f64, v: f64) -> (f64, f64, f64) {
+pub(crate) fn hsv_to_rgb(h: f64, s: f64, v: f64) -> (f64, f64, f64) {
     let h = (h.fract() * 6.0).max(0.0);
     let c = v * s;
     let x = c * (1.0 - ((h % 2.0) - 1.0).abs());
@@ -73,3 +75,5 @@ fn hsv_to_rgb(h: f64, s: f64, v: f64) -> (f64, f64, f64) {
     let m = v - c;
     (r1 + m, g1 + m, b1 + m)
 }
+
+// Rust guideline compliant 2026-02-21

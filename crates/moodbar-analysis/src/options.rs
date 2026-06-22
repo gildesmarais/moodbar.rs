@@ -1,3 +1,17 @@
+/// Visual theme presets.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Theme {
+    Classic,
+    Cool,
+    Light,
+}
+
+impl Default for Theme {
+    fn default() -> Self {
+        Self::Classic
+    }
+}
+
 /// Tunable DSP options used by raw and SVG rendering paths.
 #[derive(Debug, Clone)]
 pub struct GenerateOptions {
@@ -11,6 +25,8 @@ pub struct GenerateOptions {
     pub band_edges_hz: Vec<f32>,
     pub max_target_frames: Option<usize>,
     pub playback_rate: Option<f32>,
+    pub theme: Theme,
+    pub custom_colors: Option<Vec<[u8; 3]>>,
 }
 
 impl Default for GenerateOptions {
@@ -26,6 +42,8 @@ impl Default for GenerateOptions {
             band_edges_hz: vec![500.0, 2000.0],
             max_target_frames: Some(2000),
             playback_rate: None,
+            theme: Theme::Classic,
+            custom_colors: None,
         }
     }
 }
@@ -58,3 +76,5 @@ pub enum DetectionMode {
     SpectralEnergy,
     SpectralFlux,
 }
+
+// Rust guideline compliant 2026-02-21

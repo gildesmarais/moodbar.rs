@@ -15,6 +15,7 @@ pub struct MoodbarAnalysis {
     pub frames: Vec<Vec<f64>>,
     pub colors: Vec<[u8; 3]>,
     pub diagnostics: AnalysisDiagnostics,
+    pub band_colors: Vec<[u8; 3]>,
 }
 
 impl MoodbarAnalysis {

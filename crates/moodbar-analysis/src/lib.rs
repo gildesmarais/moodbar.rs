@@ -5,7 +5,7 @@ mod render;
 mod types;
 
 use analyze::frame_analyzer::FrameAnalyzer;
-pub use options::{DetectionMode, GenerateOptions, NormalizeMode};
+pub use options::{DetectionMode, GenerateOptions, NormalizeMode, Theme};
 #[doc(inline)]
 pub use render::{render_png, render_svg};
 #[doc(inline)]
@@ -202,6 +202,7 @@ mod tests {
             frames,
             colors: Vec::new(),
             diagnostics: AnalysisDiagnostics::default(),
+            band_colors: vec![[255, 0, 0], [0, 255, 0], [0, 0, 255]],
         };
         let svg = render_svg(
             &analysis,
@@ -213,5 +214,74 @@ mod tests {
         let stop_count = svg.matches("<stop ").count();
         assert!(stop_count <= 256);
         assert!(stop_count > 1);
+    }
+
+    #[test]
+    fn custom_themes_and_colors_work() {
+        let sample_rate = 44_100;
+        let pcm = sine(400.0, sample_rate, 0.5);
+
+        // 1. Cool theme
+        let options_cool = GenerateOptions {
+            theme: Theme::Cool,
+            ..GenerateOptions::default()
+        };
+        let analysis_cool = analyze_pcm_mono(sample_rate, &pcm, &options_cool);
+        assert_eq!(
+            analysis_cool.band_colors,
+            vec![[220, 20, 180], [240, 120, 0], [0, 160, 240]]
+        );
+
+        // 2. Light theme
+        let options_light = GenerateOptions {
+            theme: Theme::Light,
+            ..GenerateOptions::default()
+        };
+        let analysis_light = analyze_pcm_mono(sample_rate, &pcm, &options_light);
+        assert_eq!(
+            analysis_light.band_colors,
+            vec![[240, 128, 128], [144, 238, 144], [173, 216, 230]]
+        );
+
+        // 3. Custom colors
+        let options_custom = GenerateOptions {
+            custom_colors: Some(vec![[255, 0, 255], [0, 255, 0], [255, 255, 0]]),
+            ..GenerateOptions::default()
+        };
+        let analysis_custom = analyze_pcm_mono(sample_rate, &pcm, &options_custom);
+        assert_eq!(
+            analysis_custom.band_colors,
+            vec![[255, 0, 255], [0, 255, 0], [255, 255, 0]]
+        );
+
+        // 4. Render standard SVG/PNG shapes with custom colors and check outputs
+        let svg_strip = render_svg(
+            &analysis_custom,
+            &SvgOptions {
+                shape: SvgShape::Strip,
+                ..SvgOptions::default()
+            },
+        );
+        // Ensure the custom color from analysis_custom.colors is present in the SVG strip
+        let first_color = analysis_custom.colors[0];
+        let expected_color = format!(
+            "rgb({},{},{})",
+            first_color[0], first_color[1], first_color[2]
+        );
+        assert!(svg_strip.contains(&expected_color));
+
+        let svg_waveform = render_svg(
+            &analysis_custom,
+            &SvgOptions {
+                shape: SvgShape::Waveform,
+                ..SvgOptions::default()
+            },
+        );
+        let boosted = crate::analyze::rgb_to_svg_rgb(first_color);
+        let expected_stop = format!(
+            "stop-color=\"rgb({},{},{})\"",
+            boosted.0, boosted.1, boosted.2
+        );
+        assert!(svg_waveform.contains(&expected_stop));
     }
 }
