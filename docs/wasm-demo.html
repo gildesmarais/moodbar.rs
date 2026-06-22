@@ -44,6 +44,32 @@
               <option value="SplitOverlapping">Split Overlapping</option>
             </select>
 
+            <label for="theme">Theme</label>
+            <select id="theme">
+              <option value="Classic">Classic</option>
+              <option value="Cool">Cool</option>
+              <option value="Light">Light</option>
+              <option value="Custom">Custom Colors</option>
+            </select>
+
+            <div id="customColorsWrapper" style="display: none; margin-top: 0.6rem; border: 1px solid var(--line); padding: 0.75rem; background: #000;">
+              <label style="font-size: 0.82rem; margin-bottom: 0.5rem; display: block; color: var(--muted); font-family: 'IBM Plex Mono', monospace;">CUSTOM COLORS (LOW / MID / HIGH)</label>
+              <div style="display: flex; gap: 1rem; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                  <span style="font-size: 0.78rem; font-family: 'IBM Plex Mono', monospace; color: var(--muted);">LOW</span>
+                  <input id="customColorLow" type="color" value="#dc14b4" style="padding: 0; width: 36px; height: 36px; border: 1px solid var(--line); cursor: pointer; background: transparent; flex: none;" />
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                  <span style="font-size: 0.78rem; font-family: 'IBM Plex Mono', monospace; color: var(--muted);">MID</span>
+                  <input id="customColorMid" type="color" value="#f07800" style="padding: 0; width: 36px; height: 36px; border: 1px solid var(--line); cursor: pointer; background: transparent; flex: none;" />
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                  <span style="font-size: 0.78rem; font-family: 'IBM Plex Mono', monospace; color: var(--muted);">HIGH</span>
+                  <input id="customColorHigh" type="color" value="#00a0f0" style="padding: 0; width: 36px; height: 36px; border: 1px solid var(--line); cursor: pointer; background: transparent; flex: none;" />
+                </div>
+              </div>
+            </div>
+
             <label for="playbackRate">Playback rate</label>
             <div class="rate-control">
               <input
@@ -104,6 +130,11 @@
       const widthInput = document.getElementById("width");
       const heightInput = document.getElementById("height");
       const shapeSelect = document.getElementById("shape");
+      const themeSelect = document.getElementById("theme");
+      const customColorsWrapper = document.getElementById("customColorsWrapper");
+      const customColorLow = document.getElementById("customColorLow");
+      const customColorMid = document.getElementById("customColorMid");
+      const customColorHigh = document.getElementById("customColorHigh");
       const playbackRateInput = document.getElementById("playbackRate");
       const playbackRateValue = document.getElementById("playbackRateValue");
 
@@ -117,6 +148,8 @@
       let decodedFile = null;
       let latestAnalysis = null;
       let latestAnalysisRate = null;
+      let latestAnalysisTheme = null;
+      let latestAnalysisColors = null;
       let cachedDecode = null;
       let busy = false;
       let debounceTimer = null;
@@ -213,6 +246,29 @@
         }
         latestAnalysis = null;
         latestAnalysisRate = null;
+        latestAnalysisTheme = null;
+        latestAnalysisColors = null;
+      }
+
+      function readTheme() {
+        return themeSelect.value;
+      }
+
+      function readCustomColors() {
+        if (readTheme() !== "Custom") {
+          return null;
+        }
+        return [
+          customColorLow.value,
+          customColorMid.value,
+          customColorHigh.value,
+        ];
+      }
+
+      function colorsChanged(a, b) {
+        if (!a && !b) return false;
+        if (!a || !b) return true;
+        return a[0] !== b[0] || a[1] !== b[1] || a[2] !== b[2];
       }
 
       async function ensureWasmInit() {
@@ -307,17 +363,32 @@
 
         const { sampleRate, pcm, duration } = cachedDecode;
         const rate = readPlaybackRate();
+        const theme = readTheme();
+        const customColors = readCustomColors();
 
         try {
           await ensureWasmInit();
 
-          if (!latestAnalysis || latestAnalysisRate !== rate) {
+          if (
+            !latestAnalysis ||
+            latestAnalysisRate !== rate ||
+            latestAnalysisTheme !== theme ||
+            colorsChanged(latestAnalysisColors, customColors)
+          ) {
             setStatus(`Analyzing at ${rate.toFixed(2)}×...`);
             releaseAnalysis();
-            latestAnalysis = wasmAnalyzeWithOptions(pcm, sampleRate, {
+            const genOpts = {
               playback_rate: rate,
-            });
+            };
+            if (theme === "Custom") {
+              genOpts.custom_colors = customColors;
+            } else {
+              genOpts.theme = theme;
+            }
+            latestAnalysis = wasmAnalyzeWithOptions(pcm, sampleRate, genOpts);
             latestAnalysisRate = rate;
+            latestAnalysisTheme = theme;
+            latestAnalysisColors = customColors ? [...customColors] : null;
           }
 
           setStatus("Rendering...");
@@ -431,6 +502,25 @@
         if (cachedDecode) {
           void renderFromCache();
         }
+      });
+
+      themeSelect.addEventListener("change", () => {
+        if (themeSelect.value === "Custom") {
+          customColorsWrapper.style.display = "block";
+        } else {
+          customColorsWrapper.style.display = "none";
+        }
+        if (cachedDecode) {
+          void renderFromCache();
+        }
+      });
+
+      [customColorLow, customColorMid, customColorHigh].forEach((input) => {
+        input.addEventListener("input", () => {
+          if (cachedDecode) {
+            scheduleRenderFromCache();
+          }
+        });
       });
 
       wireDropZone();
