@@ -1,3 +1,5 @@
+// Rust guideline compliant 2026-06-22
+
 use image::load_from_memory;
 use moodbar_analysis as analysis;
 use moodbar_core as core;
@@ -89,15 +91,12 @@ fn analyze_pcm_contract_matches_analysis_crate() {
     assert_eq!(core_analysis.channel_count, analysis_analysis.channel_count);
     assert_eq!(core_analysis.frames.len(), analysis_analysis.frames.len());
 
-    for (a, b) in core_analysis
+    for (x, y) in core_analysis
         .frames
         .iter()
         .zip(analysis_analysis.frames.iter())
     {
-        assert_eq!(a.len(), b.len());
-        for (x, y) in a.iter().zip(b.iter()) {
-            assert!((x - y).abs() < 1e-12, "frame mismatch: {x} vs {y}");
-        }
+        assert!((x - y).abs() < 1e-12, "frame mismatch: {x} vs {y}");
     }
 }
 

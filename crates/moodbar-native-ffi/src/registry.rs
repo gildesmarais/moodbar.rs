@@ -1,3 +1,5 @@
+// Rust guideline compliant 2026-06-22
+
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
@@ -15,7 +17,7 @@ static ANALYSIS_REGISTRY: Lazy<Mutex<HashMap<u64, std::sync::Arc<MoodbarAnalysis
 pub(crate) fn store_analysis(
     analysis: MoodbarAnalysis,
 ) -> Result<MoodbarNativeAnalysisSummary, FfiError> {
-    let frame_count = analysis.frames.len() as u32;
+    let frame_count = (analysis.frames.len() / analysis.channel_count.max(1)) as u32;
     let channel_count = analysis.channel_count as u32;
     let decode_errors = analysis.diagnostics.decode_errors as u32;
     let zero_channel_packets = analysis.diagnostics.zero_channel_packets as u32;

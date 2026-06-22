@@ -1,3 +1,5 @@
+// Rust guideline compliant 2026-06-22
+
 use std::ffi::c_char;
 use std::path::Path;
 
@@ -252,14 +254,10 @@ pub extern "C" fn moodbar_native_get_frames(
 ) -> MoodbarNativeStatus {
     ffi_guard(|| {
         let bytes = with_analysis(handle, |analysis| {
-            let frame_count = analysis.frames.len();
-            let channel_count = analysis.channel_count;
             let mut out =
-                Vec::<u8>::with_capacity(frame_count * channel_count * std::mem::size_of::<f64>());
-            for frame in &analysis.frames {
-                for &val in frame {
-                    out.extend_from_slice(&val.to_ne_bytes());
-                }
+                Vec::<u8>::with_capacity(analysis.frames.len() * std::mem::size_of::<f64>());
+            for &val in &analysis.frames {
+                out.extend_from_slice(&val.to_ne_bytes());
             }
             Ok(out)
         })?;
@@ -380,9 +378,7 @@ mod tests {
         let mut expected_flat_frames = Vec::new();
         let ref_status = with_analysis(summary.handle, |analysis| {
             expected_colors = analysis.colors().to_vec();
-            for frame in &analysis.frames {
-                expected_flat_frames.extend_from_slice(frame);
-            }
+            expected_flat_frames = analysis.frames.clone();
             Ok(())
         });
         assert!(ref_status.is_ok());

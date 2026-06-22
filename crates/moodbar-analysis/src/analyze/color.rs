@@ -76,4 +76,4 @@ pub(crate) fn hsv_to_rgb(h: f64, s: f64, v: f64) -> (f64, f64, f64) {
     (r1 + m, g1 + m, b1 + m)
 }
 
-// Rust guideline compliant 2026-02-21
+// Rust guideline compliant 2026-06-22

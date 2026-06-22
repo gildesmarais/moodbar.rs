@@ -1,3 +1,5 @@
+// Rust guideline compliant 2026-06-22
+
 use std::fmt::Write as _;
 
 use crate::bands::SpectralBands;
@@ -159,10 +161,16 @@ impl<'a> ColumnFrameCache<'a> {
     pub(crate) fn resolve(
         &mut self,
         idx: usize,
-        frames: &'a [Vec<f64>],
+        frames: &'a [f64],
+        channel_count: usize,
     ) -> (&'a [f64], SpectralBands) {
         if self.last_idx != Some(idx) {
-            let frame = frames.get(idx).map(|f| f.as_slice()).unwrap_or(&[]);
+            let offset = idx * channel_count;
+            let frame = if offset + channel_count <= frames.len() {
+                &frames[offset..offset + channel_count]
+            } else {
+                &[]
+            };
             self.bands = SpectralBands::from_frame(frame);
             self.frame = Some(frame);
             self.last_idx = Some(idx);
@@ -190,5 +198,3 @@ mod tests {
         assert!(out.is_empty());
     }
 }
-
-// Rust guideline compliant 2026-02-21

@@ -1,8 +1,20 @@
+// Rust guideline compliant 2026-06-22
+
 #[cfg(feature = "png")]
 use image::{ImageBuffer, Rgba};
 
 use crate::render::util::{fill_column_raw, frame_at_x};
 use crate::types::{MoodbarAnalysis, PngOptions, SvgShape};
+
+/// Waveform vertical scaling factor.
+/// Prevents waveform peaks from clipping against the image borders.
+const WAVEFORM_SCALE: f64 = 0.95;
+
+/// Alpha transparency value for the main waveform body.
+const WAVEFORM_FILL_ALPHA: u8 = 210;
+
+/// Alpha transparency value for the waveform border.
+const WAVEFORM_BORDER_ALPHA: u8 = 255;
 
 #[cfg(feature = "png")]
 pub(crate) fn render_strip_png(
@@ -11,7 +23,7 @@ pub(crate) fn render_strip_png(
     width: u32,
     height: u32,
 ) {
-    let len = analysis.frames.len();
+    let len = analysis.frames.len() / analysis.channel_count.max(1);
     for x in 0..width {
         let idx = frame_at_x(x, width, len);
         let rgb = analysis.colors.get(idx).copied().unwrap_or([0, 0, 0]);
@@ -28,23 +40,46 @@ pub(crate) fn render_waveform_png(
     height: u32,
 ) {
     let mid = height as f64 / 2.0;
-    let len = analysis.frames.len();
+    let channels = analysis.channel_count.max(1);
+    let len = analysis.frames.len() / channels;
     for x in 0..width {
         let idx = frame_at_x(x, width, len);
-        let frame = &analysis.frames[idx];
-        let energy = (frame.iter().sum::<f64>() / frame.len().max(1) as f64).clamp(0.0, 1.0);
-        let amp = energy * mid * 0.95;
+        let offset = idx * channels;
+        let frame = &analysis.frames[offset..offset + channels];
+        let energy = (frame.iter().sum::<f64>() / channels as f64).clamp(0.0, 1.0);
+        let amp = energy * mid * WAVEFORM_SCALE;
         let y_top = (mid - amp).max(0.0).floor() as u32;
         let y_bottom = (mid + amp).min((height - 1) as f64).ceil() as u32;
         let rgb = analysis.colors.get(idx).copied().unwrap_or([0, 0, 0]);
         let (r, g, b) = crate::analyze::rgb_to_svg_rgb(rgb);
         if y_top <= y_bottom {
-            fill_column_raw(buf, width, x, y_top, y_bottom + 1, [r, g, b, 210]);
+            fill_column_raw(
+                buf,
+                width,
+                x,
+                y_top,
+                y_bottom + 1,
+                [r, g, b, WAVEFORM_FILL_ALPHA],
+            );
             if y_top > 0 {
-                fill_column_raw(buf, width, x, y_top - 1, y_top, [r, g, b, 255]);
+                fill_column_raw(
+                    buf,
+                    width,
+                    x,
+                    y_top - 1,
+                    y_top,
+                    [r, g, b, WAVEFORM_BORDER_ALPHA],
+                );
             }
             if y_bottom + 1 < height {
-                fill_column_raw(buf, width, x, y_bottom + 1, y_bottom + 2, [r, g, b, 255]);
+                fill_column_raw(
+                    buf,
+                    width,
+                    x,
+                    y_bottom + 1,
+                    y_bottom + 2,
+                    [r, g, b, WAVEFORM_BORDER_ALPHA],
+                );
             }
         }
     }
@@ -52,13 +87,13 @@ pub(crate) fn render_waveform_png(
 
 #[cfg(feature = "png")]
 pub(crate) fn encode_png(
-    buf: &[u8],
+    buf: Vec<u8>,
     width: u32,
     height: u32,
 ) -> Result<Vec<u8>, crate::types::MoodbarError> {
     use image::ImageEncoder;
     let img: ImageBuffer<Rgba<u8>, Vec<u8>> =
-        ImageBuffer::from_raw(width, height, buf.to_vec()).expect("valid rgba buffer");
+        ImageBuffer::from_raw(width, height, buf).expect("valid rgba buffer");
     let mut out = Vec::new();
     let encoder = image::codecs::png::PngEncoder::new(&mut out);
     encoder.write_image(img.as_raw(), width, height, image::ColorType::Rgba8.into())?;
@@ -69,7 +104,7 @@ pub(crate) fn encode_png(
 pub(crate) fn empty_png(width: u32, height: u32) -> Result<Vec<u8>, crate::types::MoodbarError> {
     let img: ImageBuffer<Rgba<u8>, Vec<u8>> =
         ImageBuffer::from_pixel(width, height, Rgba([0, 0, 0, 0]));
-    encode_png(img.as_raw(), width, height)
+    encode_png(img.into_raw(), width, height)
 }
 
 #[cfg(feature = "png")]
@@ -99,11 +134,7 @@ mod tests {
     fn png_render_produces_valid_png_signature() {
         let analysis = MoodbarAnalysis {
             channel_count: 3,
-            frames: vec![
-                vec![1.0, 0.0, 0.0],
-                vec![0.0, 1.0, 0.0],
-                vec![0.0, 0.0, 1.0],
-            ],
+            frames: vec![1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0],
             colors: vec![[255, 0, 0], [0, 255, 0], [0, 0, 255]],
             diagnostics: AnalysisDiagnostics::default(),
             band_colors: vec![[255, 0, 0], [0, 255, 0], [0, 0, 255]],
@@ -130,10 +161,8 @@ mod tests {
                     shape,
                 },
             );
-            let png = encode_png(&buf, width, height).expect("encode png");
+            let png = encode_png(buf, width, height).expect("encode png");
             assert!(png.starts_with(b"\x89PNG\r\n\x1a\n"), "shape {shape:?}");
         }
     }
 }
-
-// Rust guideline compliant 2026-02-21

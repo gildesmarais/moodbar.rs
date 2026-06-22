@@ -1,3 +1,5 @@
+// Rust guideline compliant 2026-06-22
+
 use std::fs::File;
 use std::io::Cursor;
 use std::path::Path;
@@ -115,7 +117,8 @@ fn analyze_media_source(
 
     let mut decoder =
         symphonia::default::get_codecs().make(&track.codec_params, &DecoderOptions::default())?;
-    let mut samples = Vec::<f32>::new();
+    let estimated_samples = track.codec_params.n_frames.unwrap_or(0) as usize;
+    let mut samples = Vec::<f32>::with_capacity(estimated_samples);
     let mut saw_samples = false;
     let mut diagnostics = DecodeDiagnostics::default();
     let mut sample_buf: Option<SampleBuffer<f32>> = None;
@@ -155,15 +158,29 @@ fn analyze_media_source(
                     continue;
                 }
 
-                let max_channels = channels.min(2);
-                for frame in interleaved.chunks(channels) {
-                    if frame.len() != channels {
-                        diagnostics.truncated_frames += 1;
-                        continue;
+                if channels == 1 {
+                    samples.extend_from_slice(interleaved);
+                    if !interleaved.is_empty() {
+                        saw_samples = true;
                     }
-                    let sum = frame[..max_channels].iter().copied().sum::<f32>();
-                    samples.push(sum / max_channels as f32);
-                    saw_samples = true;
+                } else if channels == 2 {
+                    for pair in interleaved.chunks_exact(2) {
+                        samples.push((pair[0] + pair[1]) * 0.5);
+                    }
+                    if !interleaved.is_empty() {
+                        saw_samples = true;
+                    }
+                } else {
+                    let max_channels = channels.min(2);
+                    for frame in interleaved.chunks(channels) {
+                        if frame.len() != channels {
+                            diagnostics.truncated_frames += 1;
+                            continue;
+                        }
+                        let sum = frame[..max_channels].iter().copied().sum::<f32>();
+                        samples.push(sum / max_channels as f32);
+                        saw_samples = true;
+                    }
                 }
             }
             Err(SymphoniaError::DecodeError(_)) => {

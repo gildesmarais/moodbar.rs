@@ -72,4 +72,4 @@ pub enum DetectionMode {
     SpectralFlux,
 }
 
-// Rust guideline compliant 2026-02-21
+// Rust guideline compliant 2026-06-22

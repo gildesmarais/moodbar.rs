@@ -1,3 +1,8 @@
+// Rust guideline compliant 2026-06-22
+
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 use std::ffi::OsStr;
 use std::fs;
 use std::io::Read;
@@ -314,7 +319,7 @@ fn run(cli: Cli) -> Result<i32> {
                     .unwrap_or_else(|| "<stdin>".to_string()),
                 output: output.display().to_string(),
                 bytes_written,
-                frames: analysis.frames.len(),
+                frames: analysis.frames.len() / analysis.channel_count.max(1),
                 channels: analysis.channel_count,
                 format: match render.format {
                     OutputFormat::RawRgbV1 => "raw_rgb_v1",

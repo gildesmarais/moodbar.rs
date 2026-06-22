@@ -1,3 +1,5 @@
+// Rust guideline compliant 2026-06-22
+
 use moodbar_analysis::{
     analysis_to_raw_rgb_bytes, analyze_pcm_mono, render_png, render_svg, GenerateOptions,
     MoodbarAnalysis, PngOptions, SvgOptions, SvgShape,
@@ -13,7 +15,7 @@ pub struct WasmAnalysis(MoodbarAnalysis);
 #[wasm_bindgen]
 impl WasmAnalysis {
     pub fn frame_count(&self) -> usize {
-        self.0.frames.len()
+        self.0.frames.len() / self.0.channel_count.max(1)
     }
 
     pub fn channel_count(&self) -> usize {
