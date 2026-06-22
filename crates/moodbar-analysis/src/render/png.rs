@@ -1,7 +1,6 @@
 #[cfg(feature = "png")]
 use image::{ImageBuffer, Rgba};
 
-use crate::analyze::frame_to_svg_rgb;
 use crate::render::util::{fill_column_raw, frame_at_x};
 use crate::types::{MoodbarAnalysis, PngOptions, SvgShape};
 
@@ -15,7 +14,8 @@ pub(crate) fn render_strip_png(
     let len = analysis.frames.len();
     for x in 0..width {
         let idx = frame_at_x(x, width, len);
-        let (r, g, b) = frame_to_svg_rgb(&analysis.frames[idx]);
+        let rgb = analysis.colors.get(idx).copied().unwrap_or([0, 0, 0]);
+        let (r, g, b) = crate::analyze::rgb_to_svg_rgb(rgb);
         fill_column_raw(buf, width, x, 0, height, [r, g, b, 255]);
     }
 }
@@ -36,7 +36,8 @@ pub(crate) fn render_waveform_png(
         let amp = energy * mid * 0.95;
         let y_top = (mid - amp).max(0.0).floor() as u32;
         let y_bottom = (mid + amp).min((height - 1) as f64).ceil() as u32;
-        let (r, g, b) = frame_to_svg_rgb(frame);
+        let rgb = analysis.colors.get(idx).copied().unwrap_or([0, 0, 0]);
+        let (r, g, b) = crate::analyze::rgb_to_svg_rgb(rgb);
         if y_top <= y_bottom {
             fill_column_raw(buf, width, x, y_top, y_bottom + 1, [r, g, b, 210]);
             if y_top > 0 {
@@ -105,6 +106,7 @@ mod tests {
             ],
             colors: vec![[255, 0, 0], [0, 255, 0], [0, 0, 255]],
             diagnostics: AnalysisDiagnostics::default(),
+            band_colors: vec![[255, 0, 0], [0, 255, 0], [0, 0, 255]],
         };
 
         for shape in [
@@ -133,3 +135,5 @@ mod tests {
         }
     }
 }
+
+// Rust guideline compliant 2026-02-21

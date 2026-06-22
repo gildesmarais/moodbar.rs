@@ -73,6 +73,7 @@ mod bench_tests {
             frames,
             colors: Vec::new(),
             diagnostics: AnalysisDiagnostics::default(),
+            band_colors: vec![[255, 0, 0], [0, 255, 0], [0, 0, 255]],
         }
     }
 

@@ -10,11 +10,12 @@ readme = "README.md"
 
 [features]
 default = ["decode", "png"]
-decode = ["dep:symphonia"]
+decode = ["dep:symphonia", "dep:moodbar-decode"]
 png = ["dep:image"]
 
 [dependencies]
 moodbar-analysis = { workspace = true, features = ["png"] }
+moodbar-decode = { workspace = true, optional = true }
 num-complex.workspace = true
 rustfft.workspace = true
 thiserror.workspace = true

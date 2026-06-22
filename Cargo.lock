@@ -575,6 +575,7 @@ dependencies = [
  "anyhow",
  "image",
  "moodbar-analysis",
+ "moodbar-decode",
  "num-complex",
  "rustfft",
  "serde",

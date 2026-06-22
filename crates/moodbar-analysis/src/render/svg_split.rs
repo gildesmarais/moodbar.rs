@@ -280,6 +280,7 @@ mod tests {
             ],
             colors: vec![],
             diagnostics: AnalysisDiagnostics::default(),
+            band_colors: vec![[220, 20, 180], [240, 120, 0], [0, 160, 240]],
         }
     }
 

@@ -1,5 +1,8 @@
 #[cfg(feature = "png")]
-use crate::bands::{SpectralBands, SPLIT_OVERLAP_PNG_ALPHA};
+use crate::bands::{
+    SpectralBands, SPLIT_BAND_HIGH_RGB, SPLIT_BAND_LOW_RGB, SPLIT_BAND_MID_RGB,
+    SPLIT_OVERLAP_PNG_ALPHA,
+};
 use crate::render::util::{blend_rgba_over, fill_column_raw, frame_at_x, ColumnFrameCache};
 use crate::types::{MoodbarAnalysis, PngOptions, SvgShape};
 
@@ -26,13 +29,20 @@ pub(crate) fn render_split_png(buf: &mut [u8], analysis: &MoodbarAnalysis, optio
 }
 
 #[cfg(feature = "png")]
-fn band_rgba(bands: &SpectralBands, band: &str) -> [u8; 4] {
-    let rgb = match band {
-        "low" => bands.low_rgb(),
-        "mid" => bands.mid_rgb(),
-        "high" => bands.high_rgb(),
+fn band_rgba(bands: &SpectralBands, band: &str, band_colors: &[[u8; 3]]) -> [u8; 4] {
+    let base = match band {
+        "low" => band_colors.first().copied().unwrap_or(SPLIT_BAND_LOW_RGB),
+        "mid" => band_colors.get(1).copied().unwrap_or(SPLIT_BAND_MID_RGB),
+        "high" => band_colors.get(2).copied().unwrap_or(SPLIT_BAND_HIGH_RGB),
         _ => [0, 0, 0],
     };
+    let energy = match band {
+        "low" => bands.low,
+        "mid" => bands.mid,
+        "high" => bands.high,
+        _ => 0.0,
+    };
+    let rgb = crate::bands::scale_rgb(base, energy);
     [rgb[0], rgb[1], rgb[2], 255]
 }
 
@@ -48,13 +58,34 @@ fn render_split_stacked_png(buf: &mut [u8], analysis: &MoodbarAnalysis, width: u
         let y_mid = (y_bass as f64 - h_seg * bands.mid).max(0.0).floor() as u32;
         let y_treble = (y_mid as f64 - h_seg * bands.high).max(0.0).floor() as u32;
         if bands.low > 0.0 {
-            fill_column_raw(buf, width, x, y_bass, height, band_rgba(&bands, "low"));
+            fill_column_raw(
+                buf,
+                width,
+                x,
+                y_bass,
+                height,
+                band_rgba(&bands, "low", &analysis.band_colors),
+            );
         }
         if bands.mid > 0.0 {
-            fill_column_raw(buf, width, x, y_mid, y_bass, band_rgba(&bands, "mid"));
+            fill_column_raw(
+                buf,
+                width,
+                x,
+                y_mid,
+                y_bass,
+                band_rgba(&bands, "mid", &analysis.band_colors),
+            );
         }
         if bands.high > 0.0 {
-            fill_column_raw(buf, width, x, y_treble, y_mid, band_rgba(&bands, "high"));
+            fill_column_raw(
+                buf,
+                width,
+                x,
+                y_treble,
+                y_mid,
+                band_rgba(&bands, "high", &analysis.band_colors),
+            );
         }
     }
 }
@@ -83,7 +114,14 @@ fn render_split_waveform_png(buf: &mut [u8], analysis: &MoodbarAnalysis, width: 
             .ceil() as u32;
 
         if h_b > 0.0 {
-            fill_column_raw(buf, width, x, y_b_start, y_b_end, band_rgba(&bands, "low"));
+            fill_column_raw(
+                buf,
+                width,
+                x,
+                y_b_start,
+                y_b_end,
+                band_rgba(&bands, "low", &analysis.band_colors),
+            );
         }
         if h_g > 0.0 {
             fill_column_raw(
@@ -92,7 +130,7 @@ fn render_split_waveform_png(buf: &mut [u8], analysis: &MoodbarAnalysis, width: 
                 x,
                 y_g_top_start,
                 y_b_start,
-                band_rgba(&bands, "mid"),
+                band_rgba(&bands, "mid", &analysis.band_colors),
             );
             fill_column_raw(
                 buf,
@@ -100,7 +138,7 @@ fn render_split_waveform_png(buf: &mut [u8], analysis: &MoodbarAnalysis, width: 
                 x,
                 y_b_end,
                 y_g_bot_end,
-                band_rgba(&bands, "mid"),
+                band_rgba(&bands, "mid", &analysis.band_colors),
             );
         }
         if h_t > 0.0 {
@@ -110,7 +148,7 @@ fn render_split_waveform_png(buf: &mut [u8], analysis: &MoodbarAnalysis, width: 
                 x,
                 y_t_top_start,
                 y_g_top_start,
-                band_rgba(&bands, "high"),
+                band_rgba(&bands, "high", &analysis.band_colors),
             );
             fill_column_raw(
                 buf,
@@ -118,7 +156,7 @@ fn render_split_waveform_png(buf: &mut [u8], analysis: &MoodbarAnalysis, width: 
                 x,
                 y_g_bot_end,
                 y_t_bot_end,
-                band_rgba(&bands, "high"),
+                band_rgba(&bands, "high", &analysis.band_colors),
             );
         }
     }
@@ -146,7 +184,7 @@ fn render_split_lanes_png(buf: &mut [u8], analysis: &MoodbarAnalysis, width: u32
                 x,
                 y_b_start,
                 y_b_bottom,
-                band_rgba(&bands, "low"),
+                band_rgba(&bands, "low", &analysis.band_colors),
             );
         }
         if bands.mid > 0.0 {
@@ -156,7 +194,7 @@ fn render_split_lanes_png(buf: &mut [u8], analysis: &MoodbarAnalysis, width: u32
                 x,
                 y_g_start,
                 y_g_bottom,
-                band_rgba(&bands, "mid"),
+                band_rgba(&bands, "mid", &analysis.band_colors),
             );
         }
         if bands.high > 0.0 {
@@ -166,7 +204,7 @@ fn render_split_lanes_png(buf: &mut [u8], analysis: &MoodbarAnalysis, width: u32
                 x,
                 y_t_start,
                 y_t_bottom,
-                band_rgba(&bands, "high"),
+                band_rgba(&bands, "high", &analysis.band_colors),
             );
         }
     }
@@ -202,7 +240,14 @@ fn render_split_centrifugal_png(
             .ceil() as u32;
 
         if h_t > 0.0 {
-            fill_column_raw(buf, width, x, y_t_start, y_t_end, band_rgba(&bands, "high"));
+            fill_column_raw(
+                buf,
+                width,
+                x,
+                y_t_start,
+                y_t_end,
+                band_rgba(&bands, "high", &analysis.band_colors),
+            );
         }
         if h_g > 0.0 {
             fill_column_raw(
@@ -211,7 +256,7 @@ fn render_split_centrifugal_png(
                 x,
                 y_g_top_start,
                 y_t_start,
-                band_rgba(&bands, "mid"),
+                band_rgba(&bands, "mid", &analysis.band_colors),
             );
             fill_column_raw(
                 buf,
@@ -219,7 +264,7 @@ fn render_split_centrifugal_png(
                 x,
                 y_t_end,
                 y_g_bot_end,
-                band_rgba(&bands, "mid"),
+                band_rgba(&bands, "mid", &analysis.band_colors),
             );
         }
         if h_b > 0.0 {
@@ -229,7 +274,7 @@ fn render_split_centrifugal_png(
                 x,
                 y_b_top_start,
                 y_g_top_start,
-                band_rgba(&bands, "low"),
+                band_rgba(&bands, "low", &analysis.band_colors),
             );
             fill_column_raw(
                 buf,
@@ -237,7 +282,7 @@ fn render_split_centrifugal_png(
                 x,
                 y_g_bot_end,
                 y_b_bot_end,
-                band_rgba(&bands, "low"),
+                band_rgba(&bands, "low", &analysis.band_colors),
             );
         }
     }
@@ -280,12 +325,28 @@ fn render_split_overlapping_png(
         let low_rgba =
             |rgb: [u8; 3]| -> [u8; 4] { [rgb[0], rgb[1], rgb[2], SPLIT_OVERLAP_PNG_ALPHA] };
 
+        let low_base = analysis
+            .band_colors
+            .first()
+            .copied()
+            .unwrap_or(SPLIT_BAND_LOW_RGB);
+        let mid_base = analysis
+            .band_colors
+            .get(1)
+            .copied()
+            .unwrap_or(SPLIT_BAND_MID_RGB);
+        let treble_base = analysis
+            .band_colors
+            .get(2)
+            .copied()
+            .unwrap_or(SPLIT_BAND_HIGH_RGB);
+
         for y in y_min..height {
             let mut layers = 0u8;
             let mut current = [0u8; 4];
 
             if bands.low > 0.0 && y >= y_b_start {
-                let fg = low_rgba(bands.low_rgb());
+                let fg = low_rgba(crate::bands::scale_rgb(low_base, bands.low));
                 current = if layers == 0 {
                     fg
                 } else {
@@ -294,7 +355,7 @@ fn render_split_overlapping_png(
                 layers += 1;
             }
             if bands.mid > 0.0 && y >= y_g_start {
-                let fg = low_rgba(bands.mid_rgb());
+                let fg = low_rgba(crate::bands::scale_rgb(mid_base, bands.mid));
                 current = if layers == 0 {
                     fg
                 } else {
@@ -303,7 +364,7 @@ fn render_split_overlapping_png(
                 layers += 1;
             }
             if bands.high > 0.0 && y >= y_t_start {
-                let fg = low_rgba(bands.high_rgb());
+                let fg = low_rgba(crate::bands::scale_rgb(treble_base, bands.high));
                 current = if layers == 0 {
                     fg
                 } else {
@@ -332,6 +393,7 @@ mod tests {
             frames: vec![vec![1.0, 0.5, 0.25], vec![0.8, 0.6, 0.4]],
             colors: vec![],
             diagnostics: AnalysisDiagnostics::default(),
+            band_colors: vec![[220, 20, 180], [240, 120, 0], [0, 160, 240]],
         };
         let width = 64;
         let height = 24;
@@ -342,3 +404,5 @@ mod tests {
         assert_eq!(a, b);
     }
 }
+
+// Rust guideline compliant 2026-02-21

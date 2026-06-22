@@ -37,10 +37,24 @@ pub(crate) fn svg_capacity(frame_count: usize, shape: SvgShape) -> usize {
     }
 }
 
-pub(crate) fn write_split_style_block(out: &mut String) {
-    out.push_str(
-        "<style>.mb-bass{fill:rgb(220,20,180)}.mb-mid{fill:rgb(240,120,0)}.mb-treble{fill:rgb(0,160,240)}</style>",
-    );
+pub(crate) fn write_split_style_block(out: &mut String, band_colors: &[[u8; 3]]) {
+    let bass = band_colors.first().copied().unwrap_or([220, 20, 180]);
+    let mid = band_colors.get(1).copied().unwrap_or([240, 120, 0]);
+    let treble = band_colors.get(2).copied().unwrap_or([0, 160, 240]);
+    write!(
+        out,
+        "<style>.mb-bass{{fill:rgb({},{},{})}}.mb-mid{{fill:rgb({},{},{})}}.mb-treble{{fill:rgb({},{},{})}}</style>",
+        bass[0],
+        bass[1],
+        bass[2],
+        mid[0],
+        mid[1],
+        mid[2],
+        treble[0],
+        treble[1],
+        treble[2]
+    )
+    .unwrap();
 }
 
 pub(crate) fn write_split_rect(
@@ -176,3 +190,5 @@ mod tests {
         assert!(out.is_empty());
     }
 }
+
+// Rust guideline compliant 2026-02-21

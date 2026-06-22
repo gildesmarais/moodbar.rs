@@ -99,6 +99,10 @@ struct DspArgs {
     /// Effective playback rate for frequency-to-color mapping (e.g. 1.09 = +9% pitch).
     #[arg(long)]
     playback_rate: Option<f32>,
+    #[arg(long, value_enum, default_value_t = ThemeArg::Classic)]
+    theme: ThemeArg,
+    #[arg(long, value_delimiter = ',')]
+    colors: Vec<String>,
 }
 
 #[derive(Args, Debug, Clone)]
@@ -131,6 +135,23 @@ impl NormalizeModeArg {
         match self {
             NormalizeModeArg::PerChannelPeak => NormalizeMode::PerChannelPeak,
             NormalizeModeArg::GlobalPeak => NormalizeMode::GlobalPeak,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, ValueEnum)]
+enum ThemeArg {
+    Classic,
+    Cool,
+    Light,
+}
+
+impl ThemeArg {
+    fn into_core(self) -> moodbar_core::Theme {
+        match self {
+            ThemeArg::Classic => moodbar_core::Theme::Classic,
+            ThemeArg::Cool => moodbar_core::Theme::Cool,
+            ThemeArg::Light => moodbar_core::Theme::Light,
         }
     }
 }
@@ -242,7 +263,7 @@ fn run(cli: Cli) -> Result<i32> {
             }
             ensure_can_write(&output, force)?;
 
-            let options = build_options(&dsp);
+            let options = build_options(&dsp)?;
             let analysis = if stdin {
                 let mono = read_stdin_pcm_mono(stdin_format, channels)?;
                 analyze_pcm_mono(sample_rate, &mono, &options)
@@ -315,7 +336,7 @@ fn run(cli: Cli) -> Result<i32> {
             progress,
             force,
         } => {
-            let options = build_options(&dsp);
+            let options = build_options(&dsp)?;
             let candidates = WalkDir::new(&input_dir)
                 .follow_links(false)
                 .into_iter()
@@ -417,9 +438,21 @@ fn run(cli: Cli) -> Result<i32> {
         }
     }
 }
+fn build_options(dsp: &DspArgs) -> Result<GenerateOptions> {
+    use anyhow::Context as _;
+    let custom_colors = if dsp.colors.is_empty() {
+        None
+    } else {
+        let mut parsed = Vec::new();
+        for s in &dsp.colors {
+            let color = parse_cli_hex_color(s)
+                .with_context(|| format!("invalid color hex value: '{}'", s))?;
+            parsed.push(color);
+        }
+        Some(parsed)
+    };
 
-fn build_options(dsp: &DspArgs) -> GenerateOptions {
-    GenerateOptions {
+    Ok(GenerateOptions {
         fft_size: dsp.fft_size,
         low_cut_hz: dsp.low_cut_hz,
         mid_cut_hz: dsp.mid_cut_hz,
@@ -429,7 +462,20 @@ fn build_options(dsp: &DspArgs) -> GenerateOptions {
         frames_per_color: dsp.frames_per_color,
         band_edges_hz: dsp.band_edges_hz.clone(),
         playback_rate: dsp.playback_rate,
+        theme: dsp.theme.into_core(),
+        custom_colors,
+    })
+}
+
+fn parse_cli_hex_color(s: &str) -> Result<[u8; 3]> {
+    let cleaned = s.trim().trim_start_matches('#');
+    if cleaned.len() != 6 {
+        anyhow::bail!("length must be exactly 6 characters (e.g. #FF0000 or FF0000)");
     }
+    let r = u8::from_str_radix(&cleaned[0..2], 16).context("invalid red channel hex")?;
+    let g = u8::from_str_radix(&cleaned[2..4], 16).context("invalid green channel hex")?;
+    let b = u8::from_str_radix(&cleaned[4..6], 16).context("invalid blue channel hex")?;
+    Ok([r, g, b])
 }
 
 #[derive(Copy, Clone)]

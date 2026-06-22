@@ -1,7 +1,7 @@
 use num_complex::Complex32;
 use rustfft::FftPlanner;
 
-use crate::analyze::color::{frame_to_rgb, scale_to_u8};
+use crate::analyze::color::{frame_to_rgb, hsv_to_rgb, scale_to_u8};
 use crate::analyze::fft::{build_bin_to_band, hann_window};
 use crate::analyze::normalize::{aggregate_frames, normalize_frames};
 use crate::options::{DetectionMode, GenerateOptions};
@@ -10,7 +10,7 @@ use crate::types::{AnalysisDiagnostics, MoodbarAnalysis};
 pub(crate) struct FrameAnalyzer<'a> {
     options: &'a GenerateOptions,
     fft_size: usize,
-    hop_size: usize,
+    pub(crate) hop_size: usize,
     channel_count: usize,
     hann: Vec<f32>,
     fft: std::sync::Arc<dyn rustfft::Fft<f32>>,
@@ -91,18 +91,31 @@ impl<'a> FrameAnalyzer<'a> {
             .collect::<Vec<_>>();
         let aggregated = aggregate_frames(&frames, self.options.frames_per_color.max(1));
         let normalized = normalize_frames(&aggregated, self.options);
-        let colors = normalized
-            .iter()
-            .map(|frame| {
-                let (r, g, b) = frame_to_rgb(frame);
-                [scale_to_u8(r), scale_to_u8(g), scale_to_u8(b)]
-            })
-            .collect();
+
+        let band_colors = resolve_band_colors(self.channel_count, self.options);
+        let colors = if self.options.theme == crate::options::Theme::Classic
+            && self.options.custom_colors.is_none()
+        {
+            normalized
+                .iter()
+                .map(|frame| {
+                    let (r, g, b) = frame_to_rgb(frame);
+                    [scale_to_u8(r), scale_to_u8(g), scale_to_u8(b)]
+                })
+                .collect()
+        } else {
+            normalized
+                .iter()
+                .map(|frame| blend_frame_colors(frame, &band_colors))
+                .collect()
+        };
+
         MoodbarAnalysis {
             channel_count: self.channel_count,
             frames: normalized,
             colors,
             diagnostics: AnalysisDiagnostics::default(),
+            band_colors,
         }
     }
 
@@ -156,6 +169,65 @@ impl<'a> FrameAnalyzer<'a> {
             self.pending_start = 0;
         }
     }
+}
+
+fn resolve_band_colors(channel_count: usize, options: &GenerateOptions) -> Vec<[u8; 3]> {
+    let mut colors = Vec::new();
+    if let Some(ref custom) = options.custom_colors {
+        colors.extend_from_slice(custom);
+    } else {
+        match options.theme {
+            crate::options::Theme::Classic => {
+                colors.push([255, 0, 0]);
+                colors.push([0, 255, 0]);
+                colors.push([0, 0, 255]);
+            }
+            crate::options::Theme::Cool => {
+                colors.push([220, 20, 180]);
+                colors.push([240, 120, 0]);
+                colors.push([0, 160, 240]);
+            }
+            crate::options::Theme::Light => {
+                colors.push([240, 128, 128]);
+                colors.push([144, 238, 144]);
+                colors.push([173, 216, 230]);
+            }
+        }
+    }
+
+    while colors.len() < channel_count {
+        let i = colors.len();
+        let color = if channel_count <= 3 {
+            match i {
+                0 => [255, 0, 0],
+                1 => [0, 255, 0],
+                2 => [0, 0, 255],
+                _ => [0, 0, 0],
+            }
+        } else {
+            let (r, g, b) = hsv_to_rgb(i as f64 / channel_count as f64, 0.85, 1.0);
+            [scale_to_u8(r), scale_to_u8(g), scale_to_u8(b)]
+        };
+        colors.push(color);
+    }
+
+    colors.truncate(channel_count);
+    colors
+}
+
+fn blend_frame_colors(frame: &[f64], band_colors: &[[u8; 3]]) -> [u8; 3] {
+    let mut r_sum = 0.0;
+    let mut g_sum = 0.0;
+    let mut b_sum = 0.0;
+    for (i, &energy) in frame.iter().enumerate() {
+        if let Some(&color) = band_colors.get(i) {
+            let energy = energy.clamp(0.0, 1.0);
+            r_sum += energy * (color[0] as f64 / 255.0);
+            g_sum += energy * (color[1] as f64 / 255.0);
+            b_sum += energy * (color[2] as f64 / 255.0);
+        }
+    }
+    [scale_to_u8(r_sum), scale_to_u8(g_sum), scale_to_u8(b_sum)]
 }
 
 #[cfg(test)]
