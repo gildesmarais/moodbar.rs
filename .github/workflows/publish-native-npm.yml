@@ -15,6 +15,7 @@ jobs:
       NODE_VERSION: "22.22.0"
       NPM_VERSION: "11.8.0"
       ANDROID_NDK_VERSION: "27.1.12297006"
+      GITHUB_REF_NAME: ${{ github.event.release.tag_name }}
 
     steps:
       - name: Checkout

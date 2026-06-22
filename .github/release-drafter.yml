@@ -1,28 +1,29 @@
-name-template: 'v$RESOLVED_VERSION'
-tag-template: 'v$RESOLVED_VERSION'
+name-template: "v$RESOLVED_VERSION"
+tag-template: "v$RESOLVED_VERSION"
+commitish: main
 
 version-resolver:
   major:
     labels:
-      - 'semver:major'
+      - "semver:major"
   minor:
     labels:
-      - 'semver:minor'
+      - "semver:minor"
   patch:
     labels:
-      - 'semver:patch'
+      - "semver:patch"
   default: patch
 
 categories:
-  - title: 'Features'
+  - title: "Features"
     labels:
-      - 'semver:minor'
-      - 'semver:major'
-  - title: 'Fixes'
+      - "semver:minor"
+      - "semver:major"
+  - title: "Fixes"
     labels:
-      - 'semver:patch'
+      - "semver:patch"
 
-change-template: '- $TITLE (#$NUMBER) @$AUTHOR'
+change-template: "- $TITLE (#$NUMBER) @$AUTHOR"
 change-title-escapes: '\\<*_&'
 template: |
   > Release checklist: run the `prepare-release` workflow (`workflow_dispatch`) and merge its PR before publishing this release tag.

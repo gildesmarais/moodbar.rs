@@ -11,6 +11,8 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    env:
+      GITHUB_REF_NAME: ${{ github.event.release.tag_name }}
 
     steps:
       - name: Checkout
