@@ -38,6 +38,12 @@ fn analysis_options_from_core(options: &core::GenerateOptions) -> analysis::Gene
         band_edges_hz: options.band_edges_hz.clone(),
         max_target_frames: None,
         playback_rate: options.playback_rate,
+        theme: match options.theme {
+            core::Theme::Classic => analysis::Theme::Classic,
+            core::Theme::Cool => analysis::Theme::Cool,
+            core::Theme::Light => analysis::Theme::Light,
+        },
+        custom_colors: options.custom_colors.clone(),
     }
 }
 
