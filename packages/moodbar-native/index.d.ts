@@ -13,6 +13,8 @@ export interface AnalyzeOptions {
   band_edges_hz?: number[];
   max_target_frames?: number;
   playback_rate?: number;
+  theme?: "Classic" | "Cool" | "Light";
+  custom_colors?: string[];
 }
 
 export interface RenderOptions {

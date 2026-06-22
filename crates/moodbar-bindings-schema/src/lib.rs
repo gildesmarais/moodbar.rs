@@ -1,5 +1,5 @@
 use moodbar_analysis::{
-    DetectionMode, GenerateOptions, NormalizeMode, PngOptions, SvgOptions, SvgShape,
+    DetectionMode, GenerateOptions, NormalizeMode, PngOptions, SvgOptions, SvgShape, Theme,
 };
 use serde::Deserialize;
 
@@ -16,6 +16,8 @@ pub struct GenerateOptionsPatch {
     pub band_edges_hz: Option<Vec<f32>>,
     pub max_target_frames: Option<usize>,
     pub playback_rate: Option<f32>,
+    pub theme: Option<ThemeInput>,
+    pub custom_colors: Option<Vec<String>>,
 }
 
 #[derive(Default, Deserialize)]
@@ -59,6 +61,13 @@ pub enum SvgShapeInput {
     SplitOverlapping,
 }
 
+#[derive(Deserialize)]
+pub enum ThemeInput {
+    Classic,
+    Cool,
+    Light,
+}
+
 impl From<NormalizeModeInput> for NormalizeMode {
     fn from(value: NormalizeModeInput) -> Self {
         match value {
@@ -87,6 +96,16 @@ impl From<SvgShapeInput> for SvgShape {
             SvgShapeInput::SplitLanes => SvgShape::SplitLanes,
             SvgShapeInput::SplitCentrifugal => SvgShape::SplitCentrifugal,
             SvgShapeInput::SplitOverlapping => SvgShape::SplitOverlapping,
+        }
+    }
+}
+
+impl From<ThemeInput> for Theme {
+    fn from(value: ThemeInput) -> Self {
+        match value {
+            ThemeInput::Classic => Theme::Classic,
+            ThemeInput::Cool => Theme::Cool,
+            ThemeInput::Light => Theme::Light,
         }
     }
 }
@@ -122,6 +141,27 @@ pub fn apply_generate_patch(options: &mut GenerateOptions, patch: GenerateOption
     if let Some(v) = patch.playback_rate {
         options.playback_rate = Some(v);
     }
+    if let Some(v) = patch.theme {
+        options.theme = v.into();
+    }
+    if let Some(v) = patch.custom_colors {
+        let colors = v.iter().map(|s| parse_hex_color(s)).collect::<Vec<_>>();
+        options.custom_colors = Some(colors);
+    }
+}
+
+fn parse_hex_color(s: &str) -> [u8; 3] {
+    let s = s.trim().trim_start_matches('#');
+    if s.len() == 6 {
+        if let (Ok(r), Ok(g), Ok(b)) = (
+            u8::from_str_radix(&s[0..2], 16),
+            u8::from_str_radix(&s[2..4], 16),
+            u8::from_str_radix(&s[4..6], 16),
+        ) {
+            return [r, g, b];
+        }
+    }
+    [0, 0, 0]
 }
 
 pub fn apply_svg_patch(options: &mut SvgOptions, patch: SvgOptionsPatch) -> Result<(), String> {
