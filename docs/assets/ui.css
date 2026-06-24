@@ -716,6 +716,14 @@ input[type="range"]::-moz-range-thumb {
   gap: 2rem;
 }
 
+.docs-grid > * {
+  min-width: 0;
+}
+
+.board > * {
+  min-width: 0;
+}
+
 @media (max-width: 900px) {
   .docs-grid {
     grid-template-columns: 1fr;
