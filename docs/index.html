@@ -82,8 +82,8 @@
               <div class="control-group">
                 <label for="shape">Active Shape</label>
                 <select id="shape">
-                  <option value="Waveform" selected>Waveform</option>
-                  <option value="Strip">Strip</option>
+                  <option value="Waveform">Waveform</option>
+                  <option value="Strip" selected>Strip (Classic Moodbar)</option>
                   <option value="SplitStacked">Split Stacked (New)</option>
                   <option value="SplitWaveform">Split Waveform (New)</option>
                   <option value="SplitLanes">Split Lanes (New)</option>
@@ -643,6 +643,7 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
       let animationFrameId = null;
 
       const TARGET_SAMPLE_RATE = 11025;
+      const PRESET_DURATION = 90;
 
       // Status helper
       function setStatus(message, isError = false) {
@@ -726,7 +727,7 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
 
       // Audio presets generators
       function generateSyntheticAudio(type) {
-        const duration = 10;
+        const duration = PRESET_DURATION;
         const totalSamples = TARGET_SAMPLE_RATE * duration;
         const pcm = new Float32Array(totalSamples);
 
@@ -828,7 +829,7 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
         cachedDecode = {
           pcm: pcm,
           sampleRate: TARGET_SAMPLE_RATE,
-          duration: 10,
+          duration: PRESET_DURATION,
           decodeTimeMs: elapsed
         };
 
