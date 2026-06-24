@@ -591,7 +591,7 @@ input[type="range"]::-moz-range-thumb {
 /* Showcase Grid */
 .showcase-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
   gap: 1.5rem;
 }
 
@@ -760,7 +760,7 @@ code span.number { color: #b48ead; }
 /* Grid Features in concepts */
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
   gap: 1.5rem;
 }
 
@@ -877,16 +877,17 @@ details.card:not([open]) summary span::after {
 
 .lightbox-close {
   position: absolute;
-  top: -40px;
-  right: -3px;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
   background: var(--accent);
   border: 2px solid var(--accent);
   color: #000000;
   font-family: var(--font-mono);
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -899,5 +900,49 @@ details.card:not([open]) summary span::after {
   background-color: var(--accent-hover);
   transform: translate(1px, 1px);
   box-shadow: 1px 1px 0 var(--border);
+}
+
+/* Scroll Offset for Hash targets */
+section[id] {
+  scroll-margin-top: 80px;
+}
+
+/* Additional Responsive Styling */
+@media (max-width: 768px) {
+  .nav-container {
+    padding: 0.75rem 1.25rem;
+    gap: 0.75rem;
+  }
+  nav {
+    gap: 1rem;
+  }
+  main {
+    gap: 3.5rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .nav-container {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+  }
+  nav {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.2rem;
+  }
+  section[id] {
+    scroll-margin-top: 110px;
+  }
+  main {
+    padding: 1.5rem 1rem 4rem;
+    gap: 3rem;
+  }
+  pre {
+    font-size: 0.78rem;
+    padding: 1rem;
+  }
 }
 
