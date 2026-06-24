@@ -29,7 +29,7 @@
 
     <main>
       <!-- Hero Section -->
-      <section class="hero-grid">
+      <section class="hero">
         <div>
           <span class="topline" style="border: 2px solid var(--accent); padding: 0.25rem 0.5rem; font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent); text-transform: uppercase; font-weight: 700; margin-bottom: 1rem; display: inline-block;">
             Cross-Platform Audio Blueprint
@@ -41,12 +41,6 @@
           <div class="hero-cta">
             <a href="#playground" class="btn primary">Try live playground</a>
             <a href="https://github.com/gildesmarais/moodbar.rs" class="btn" target="_blank" rel="noopener noreferrer">View Github</a>
-          </div>
-        </div>
-        <div class="hero-preview">
-          <!-- A static preview or dynamic SVG will be rendered here on load -->
-          <div id="heroSvgContainer" style="min-height: 120px; display: flex; align-items: center; justify-content: center;">
-            <div style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-muted);">Initializing DSP core...</div>
           </div>
         </div>
       </section>
@@ -88,9 +82,9 @@
               <div class="control-group">
                 <label for="shape">Active Shape</label>
                 <select id="shape">
-                  <option value="Waveform">Waveform</option>
+                  <option value="Waveform" selected>Waveform</option>
                   <option value="Strip">Strip</option>
-                  <option value="SplitStacked" selected>Split Stacked (New)</option>
+                  <option value="SplitStacked">Split Stacked (New)</option>
                   <option value="SplitWaveform">Split Waveform (New)</option>
                   <option value="SplitLanes">Split Lanes (New)</option>
                   <option value="SplitCentrifugal">Split Centrifugal (New)</option>
@@ -246,10 +240,10 @@
         </div>
       </section>
 
-      <!-- Pre-rendered Rick Astley Gallery Section -->
+      <!-- Pre-rendered Showcase Gallery Section -->
       <section id="gallery">
-        <h2>Rick Astley Gallery</h2>
-        <p class="lede">Visual footprints of Rick Astley's legendary <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank" rel="noopener noreferrer"><em>"Never Gonna Give You Up"</em></a> generated using the native CLI compiler.</p>
+        <h2>Showcase Gallery</h2>
+        <p class="lede">Visual footprints of <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank" rel="noopener noreferrer">a certain legendary 1980s internet anthem</a>. Can you recognize the song's structure and drops from its color signatures? (Try to guess the track before clicking the link!)</p>
         
         <div class="showcase-grid">
           <!-- Item 1: Classic Waveform -->
@@ -259,7 +253,7 @@
               <span class="showcase-badge">Classic Theme</span>
             </div>
             <div class="showcase-preview" style="background-color: #020202; padding: 0.5rem; display: flex; align-items: center; justify-content: center;">
-              <img src="./assets/rick/classic-waveform.png" alt="Rick Astley Waveform Classic" style="width: 100%; height: auto; display: block;" />
+              <img src="./assets/rick/classic-waveform.png" alt="Legendary Anthem Waveform Classic" style="width: 100%; height: auto; display: block;" />
             </div>
             <div class="showcase-desc">Rendered with <code>--svg-shape waveform --theme classic</code>. An amplitude envelope styled with frequency color stops.</div>
           </div>
@@ -271,7 +265,7 @@
               <span class="showcase-badge">Classic Theme</span>
             </div>
             <div class="showcase-preview" style="background-color: #020202; padding: 0.5rem; display: flex; align-items: center; justify-content: center;">
-              <img src="./assets/rick/classic-split-stacked.png" alt="Rick Astley Split Stacked Classic" style="width: 100%; height: auto; display: block;" />
+              <img src="./assets/rick/classic-split-stacked.png" alt="Legendary Anthem Split Stacked Classic" style="width: 100%; height: auto; display: block;" />
             </div>
             <div class="showcase-desc">Rendered with <code>--svg-shape split-stacked --theme classic</code>. Separate bass, midrange, and treble columns stacked vertically.</div>
           </div>
@@ -283,7 +277,7 @@
               <span class="showcase-badge">Cool Theme</span>
             </div>
             <div class="showcase-preview" style="background-color: #020202; padding: 0.5rem; display: flex; align-items: center; justify-content: center;">
-              <img src="./assets/rick/cool-split-lanes.png" alt="Rick Astley Split Lanes Cool" style="width: 100%; height: auto; display: block;" />
+              <img src="./assets/rick/cool-split-lanes.png" alt="Legendary Anthem Split Lanes Cool" style="width: 100%; height: auto; display: block;" />
             </div>
             <div class="showcase-desc">Rendered with <code>--svg-shape split-lanes --theme cool</code>. Cyan/blue/green color mapping separating frequency lanes.</div>
           </div>
@@ -295,7 +289,7 @@
               <span class="showcase-badge">Light Theme</span>
             </div>
             <div class="showcase-preview" style="background-color: #020202; padding: 0.5rem; display: flex; align-items: center; justify-content: center;">
-              <img src="./assets/rick/light-split-centrifugal.png" alt="Rick Astley Split Centrifugal Light" style="width: 100%; height: auto; display: block;" />
+              <img src="./assets/rick/light-split-centrifugal.png" alt="Legendary Anthem Split Centrifugal Light" style="width: 100%; height: auto; display: block;" />
             </div>
             <div class="showcase-desc">Rendered with <code>--svg-shape split-centrifugal --theme light</code>. Pastel tone distribution pushing lows and mids outward.</div>
           </div>
@@ -307,7 +301,7 @@
               <span class="showcase-badge">Custom Colors</span>
             </div>
             <div class="showcase-preview" style="background-color: #020202; padding: 0.5rem; display: flex; align-items: center; justify-content: center;">
-              <img src="./assets/rick/custom-split-overlapping.png" alt="Rick Astley Split Overlapping Custom" style="width: 100%; height: auto; display: block;" />
+              <img src="./assets/rick/custom-split-overlapping.png" alt="Legendary Anthem Split Overlapping Custom" style="width: 100%; height: auto; display: block;" />
             </div>
             <div class="showcase-desc">Rendered with <code>--svg-shape split-overlapping --colors "#e91e63,#00ffcc,#ffeb3b"</code>. Translucent overlapping channels.</div>
           </div>
@@ -319,87 +313,9 @@
               <span class="showcase-badge">Classic Theme</span>
             </div>
             <div class="showcase-preview" style="background-color: #020202; padding: 0.5rem; display: flex; align-items: center; justify-content: center;">
-              <img src="./assets/rick/classic-strip.png" alt="Rick Astley Classic Strip" style="width: 100%; height: auto; display: block;" />
+              <img src="./assets/rick/classic-strip.png" alt="Legendary Anthem Classic Strip" style="width: 100%; height: auto; display: block;" />
             </div>
             <div class="showcase-desc">Rendered with <code>--svg-shape strip --theme classic</code>. Flat legacy bar representation of track frequencies.</div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Shape Showcase Section -->
-      <section id="showcase">
-        <h2>Visual Shape Showcase</h2>
-        <p class="lede">All 7 visual blueprints rendered in real-time from the active audio source using the selected color theme.</p>
-        
-        <div class="showcase-grid">
-          <!-- Card 1: Strip -->
-          <div class="showcase-card">
-            <div class="showcase-header">
-              <span class="showcase-title">Classic Strip</span>
-              <span class="showcase-badge">Traditional</span>
-            </div>
-            <div class="showcase-preview" id="showcase-Strip"></div>
-            <div class="showcase-desc">Classic legacy bar. Maps chronological frequency colors into flat visual bands. Great for compact seekbars.</div>
-          </div>
-
-          <!-- Card 2: Waveform -->
-          <div class="showcase-card">
-            <div class="showcase-header">
-              <span class="showcase-title">Continuous Waveform</span>
-              <span class="showcase-badge">Envelope</span>
-            </div>
-            <div class="showcase-preview" id="showcase-Waveform"></div>
-            <div class="showcase-desc">Combines amplitude envelopes with frequency color stops. Perfect for visual song navigation.</div>
-          </div>
-
-          <!-- Card 3: Split Stacked -->
-          <div class="showcase-card">
-            <div class="showcase-header">
-              <span class="showcase-title">Split Stacked</span>
-              <span class="showcase-badge">Split Core</span>
-            </div>
-            <div class="showcase-preview" id="showcase-SplitStacked"></div>
-            <div class="showcase-desc">Stacked bars dividing bass (bottom), mid (middle), and treble (top) levels independently per column.</div>
-          </div>
-
-          <!-- Card 4: Split Waveform -->
-          <div class="showcase-card">
-            <div class="showcase-header">
-              <span class="showcase-title">Split Waveform</span>
-              <span class="showcase-badge">Symmetrical</span>
-            </div>
-            <div class="showcase-preview" id="showcase-SplitWaveform"></div>
-            <div class="showcase-desc">Draws amplitude bands expanding symmetrically out from the center line. Distinct bands for clear footprints.</div>
-          </div>
-
-          <!-- Card 5: Split Lanes -->
-          <div class="showcase-card">
-            <div class="showcase-header">
-              <span class="showcase-title">Split Lanes</span>
-              <span class="showcase-badge">Isolated</span>
-            </div>
-            <div class="showcase-preview" id="showcase-SplitLanes"></div>
-            <div class="showcase-desc">Splits the canvas into three distinct horizontal lanes, cleanly isolating bass, mids, and treble.</div>
-          </div>
-
-          <!-- Card 6: Split Centrifugal -->
-          <div class="showcase-card">
-            <div class="showcase-header">
-              <span class="showcase-title">Split Centrifugal</span>
-              <span class="showcase-badge">Outer Bounds</span>
-            </div>
-            <div class="showcase-preview" id="showcase-SplitCentrifugal"></div>
-            <div class="showcase-desc">Highs sit at the center center-line, while mids and lows push outwards toward the top/bottom boundaries.</div>
-          </div>
-
-          <!-- Card 7: Split Overlapping -->
-          <div class="showcase-card">
-            <div class="showcase-header">
-              <span class="showcase-title">Split Overlapping</span>
-              <span class="showcase-badge">Translucent</span>
-            </div>
-            <div class="showcase-preview" id="showcase-SplitOverlapping"></div>
-            <div class="showcase-desc">Translucent full-height bands overlap to demonstrate active channel mixing and color blending.</div>
           </div>
         </div>
       </section>
@@ -674,7 +590,6 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
       const playBtn = document.getElementById("playBtn");
       const playbackScrubber = document.getElementById("playbackScrubber");
       const scrubberOverlay = document.getElementById("scrubberOverlay");
-      const heroSvgContainer = document.getElementById("heroSvgContainer");
       const configJsonCode = document.getElementById("configJsonCode");
       const copyConfigBtn = document.getElementById("copyConfigBtn");
 
@@ -719,7 +634,6 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
       let cachedDecode = null;   // { pcm, sampleRate, duration, decodeTimeMs }
       let latestAnalysis = null;
       let activePresetName = "Techno";
-      let activeShowcaseRenderId = 0;
       
       let isPlaying = false;
       let audioCtx = null;
@@ -771,7 +685,8 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
 
       // Get configuration objects
       function getDspOptions() {
-        return {
+        const theme = themeSelect.value;
+        const dsp = {
           fft_size: parseInt(fftSizeSelect.value),
           normalize_mode: normalizeModeSelect.value,
           detection_mode: detectionModeSelect.value,
@@ -781,6 +696,12 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
           low_cut_hz: parseFloat(lowCutInput.value),
           mid_cut_hz: parseFloat(midCutInput.value)
         };
+        if (theme === "Custom") {
+          dsp.custom_colors = [customColorLow.value, customColorMid.value, customColorHigh.value];
+        } else {
+          dsp.theme = theme;
+        }
+        return dsp;
       }
 
       function getRenderOptions() {
@@ -925,6 +846,10 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
         const arrayBuffer = await file.arrayBuffer();
         
         setStatus("Decoding audio channel...");
+        
+        // Yield control to let status text draw
+        await new Promise(resolve => setTimeout(resolve, 50));
+        
         const t0 = performance.now();
         
         // Downsample directly to our target sample rate
@@ -1061,19 +986,16 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
       // Analysis & Rendering
       async function runAnalysisAndRender() {
         if (!cachedDecode) return;
-
-        const currentRenderId = ++activeShowcaseRenderId;
         
         try {
           await ensureWasmInit();
           setStatus("Running audio analysis...");
 
           const dspOpts = getDspOptions();
-          const renderOpts = getRenderOptions();
           
           metricDecode.textContent = `${(cachedDecode.decodeTimeMs / 1000).toFixed(2)}s`;
 
-          // 1. Analyze PCM for the main output (high-res, max 1000 frames)
+          // 1. Analyze PCM (high-res, max 1000 frames)
           const t0 = performance.now();
           if (latestAnalysis) {
             latestAnalysis.free();
@@ -1101,63 +1023,7 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
 
           savePngBtn.disabled = false;
           updateConfigJson();
-
-          // 3. Render Showcase and Hero asynchronously using a downsampled analysis (max 150 frames)
-          setStatus("Rendering showcase previews...");
-          
-          const showcaseDspOpts = { ...dspOpts, max_target_frames: 150 };
-          const showcaseAnalysis = wasmAnalyzeWithOptions(cachedDecode.pcm, cachedDecode.sampleRate, showcaseDspOpts);
-
-          const shapes = ["Strip", "Waveform", "SplitStacked", "SplitWaveform", "SplitLanes", "SplitCentrifugal", "SplitOverlapping"];
-          let step = 0;
-
-          function renderNextStep() {
-            // Abort if a new render has started
-            if (currentRenderId !== activeShowcaseRenderId) {
-              showcaseAnalysis.free();
-              return;
-            }
-
-            try {
-              if (step === 0) {
-                // Render Hero Preview
-                const heroSvg = wasmSvg(showcaseAnalysis, {
-                  width: 500,
-                  height: 120,
-                  shape: "SplitWaveform",
-                  background: "transparent"
-                });
-                heroSvgContainer.innerHTML = heroSvg;
-                step++;
-                requestAnimationFrame(renderNextStep);
-              } else if (step <= shapes.length) {
-                const sh = shapes[step - 1];
-                const container = document.getElementById(`showcase-${sh}`);
-                if (container) {
-                  const miniMarkup = wasmSvg(showcaseAnalysis, {
-                    width: 320,
-                    height: 80,
-                    shape: sh,
-                    background: "transparent"
-                  });
-                  container.innerHTML = miniMarkup;
-                }
-                step++;
-                requestAnimationFrame(renderNextStep);
-              } else {
-                // Completed! Free showcase analysis
-                showcaseAnalysis.free();
-                setStatus("Ready.");
-              }
-            } catch (err) {
-              console.error(err);
-              showcaseAnalysis.free();
-              setStatus(err.message, true);
-            }
-          }
-
-          requestAnimationFrame(renderNextStep);
-
+          setStatus("Ready.");
         } catch (error) {
           console.error(error);
           setStatus(error.message, true);
@@ -1229,7 +1095,10 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
         const file = audioFileInput.files?.[0];
         if (file) {
           ["presetTechno", "presetAmbient", "presetSweep"].forEach(p => document.getElementById(p).classList.remove("active"));
-          void decodeFile(file);
+          setStatus("Reading file...");
+          setTimeout(() => {
+            void decodeFile(file);
+          }, 50);
         }
       });
 
@@ -1246,7 +1115,10 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
         const file = e.dataTransfer?.files?.[0];
         if (file) {
           ["presetTechno", "presetAmbient", "presetSweep"].forEach(p => document.getElementById(p).classList.remove("active"));
-          void decodeFile(file);
+          setStatus("Reading file...");
+          setTimeout(() => {
+            void decodeFile(file);
+          }, 50);
         }
       });
 

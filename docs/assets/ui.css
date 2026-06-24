@@ -245,11 +245,8 @@ a:hover {
 }
 
 /* Hero section */
-.hero-grid {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 3rem;
-  align-items: center;
+.hero {
+  max-width: 800px;
   margin-top: 1rem;
 }
 
@@ -258,27 +255,6 @@ a:hover {
   gap: 1.25rem;
   flex-wrap: wrap;
   margin-top: 1.5rem;
-}
-
-.hero-preview {
-  border: 2px solid var(--border);
-  padding: 1.5rem;
-  background-color: var(--bg-panel);
-  position: relative;
-  overflow: hidden;
-}
-
-.hero-preview::before {
-  content: "LIVE VIEW";
-  position: absolute;
-  top: 0;
-  right: 0;
-  background-color: var(--border);
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  padding: 0.25rem 0.5rem;
-  font-weight: 700;
 }
 
 /* Playground Board Layout */
@@ -827,10 +803,6 @@ footer {
 
 /* Responsiveness */
 @media (max-width: 860px) {
-  .hero-grid {
-    grid-template-columns: 1fr;
-    gap: 2rem;
-  }
   .board {
     grid-template-columns: 1fr;
   }
