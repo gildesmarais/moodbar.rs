@@ -1346,6 +1346,7 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
 
         if (!pcm) {
           setStatus(`Generating ${name} Loop...`);
+          outputEl.innerHTML = `<div class="render-loading">Generating ${name} preset loop...</div>`;
           // Yield control to let UI paint status message first
           await new Promise(resolve => setTimeout(resolve, 50));
 
@@ -1377,9 +1378,11 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
       async function decodeFile(file) {
         stopAudio();
         setStatus("Reading file...");
+        outputEl.innerHTML = '<div class="render-loading">Reading file...</div>';
         const arrayBuffer = await file.arrayBuffer();
 
         setStatus("Decoding audio channel...");
+        outputEl.innerHTML = '<div class="render-loading">Decoding audio channel...</div>';
 
         // Yield control to let status text draw
         await new Promise((resolve) => setTimeout(resolve, 50));
@@ -1545,6 +1548,7 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
         try {
           await ensureWasmInit();
           setStatus("Running audio analysis...");
+          outputEl.innerHTML = '<div class="render-loading">Running audio analysis...</div>';
 
           const dspOpts = getDspOptions();
 
@@ -1568,6 +1572,7 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
 
           // 2. Render Main SVG (synchronous, instant feedback)
           setStatus("Rendering active moodbar...");
+          outputEl.innerHTML = '<div class="render-loading">Rendering active moodbar...</div>';
           const t1 = performance.now();
 
           const svgMarkup = wasmSvg(latestAnalysis, {

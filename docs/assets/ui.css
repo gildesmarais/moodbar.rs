@@ -521,6 +521,29 @@ input[type="range"]::-moz-range-thumb {
   display: block;
 }
 
+.render-loading {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--accent);
+  text-transform: uppercase;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+  letter-spacing: 0.05em;
+  animation: blink 1s infinite alternate;
+}
+
+@keyframes blink {
+  from {
+    opacity: 0.4;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* Playback Scrubber Indicator */
 .scrubber-cursor {
   position: absolute;
