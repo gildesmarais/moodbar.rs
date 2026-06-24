@@ -243,7 +243,7 @@
       <!-- Pre-rendered Showcase Gallery Section -->
       <section id="gallery">
         <h2>Showcase Gallery</h2>
-        <p class="lede">Visual footprints of <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank" rel="noopener noreferrer">a certain legendary 1980s internet anthem</a>. Can you recognize the song's structure and drops from its color signatures? (Try to guess the track before clicking the link!)</p>
+        <p class="lede">Visual footprints generated <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank" rel="noopener noreferrer">from this song</a>. Can you recognize its structure, drops, and changes from the color signatures?</p>
         
         <div class="showcase-grid">
           <!-- Item 1: Classic Waveform -->
@@ -253,7 +253,7 @@
               <span class="showcase-badge">Classic Theme</span>
             </div>
             <div class="showcase-preview" style="background-color: #020202; padding: 0.5rem; display: flex; align-items: center; justify-content: center;">
-              <img src="./assets/rick/classic-waveform.png" alt="Legendary Anthem Waveform Classic" style="width: 100%; height: auto; display: block;" />
+              <img src="./assets/rick/classic-waveform.png" alt="Classic Waveform from this song" style="width: 100%; height: auto; display: block;" />
             </div>
             <div class="showcase-desc">Rendered with <code>--svg-shape waveform --theme classic</code>. An amplitude envelope styled with frequency color stops.</div>
           </div>
@@ -265,7 +265,7 @@
               <span class="showcase-badge">Classic Theme</span>
             </div>
             <div class="showcase-preview" style="background-color: #020202; padding: 0.5rem; display: flex; align-items: center; justify-content: center;">
-              <img src="./assets/rick/classic-split-stacked.png" alt="Legendary Anthem Split Stacked Classic" style="width: 100%; height: auto; display: block;" />
+              <img src="./assets/rick/classic-split-stacked.png" alt="Split Stacked Classic from this song" style="width: 100%; height: auto; display: block;" />
             </div>
             <div class="showcase-desc">Rendered with <code>--svg-shape split-stacked --theme classic</code>. Separate bass, midrange, and treble columns stacked vertically.</div>
           </div>
@@ -277,7 +277,7 @@
               <span class="showcase-badge">Cool Theme</span>
             </div>
             <div class="showcase-preview" style="background-color: #020202; padding: 0.5rem; display: flex; align-items: center; justify-content: center;">
-              <img src="./assets/rick/cool-split-lanes.png" alt="Legendary Anthem Split Lanes Cool" style="width: 100%; height: auto; display: block;" />
+              <img src="./assets/rick/cool-split-lanes.png" alt="Split Lanes Cool from this song" style="width: 100%; height: auto; display: block;" />
             </div>
             <div class="showcase-desc">Rendered with <code>--svg-shape split-lanes --theme cool</code>. Cyan/blue/green color mapping separating frequency lanes.</div>
           </div>
@@ -289,7 +289,7 @@
               <span class="showcase-badge">Light Theme</span>
             </div>
             <div class="showcase-preview" style="background-color: #020202; padding: 0.5rem; display: flex; align-items: center; justify-content: center;">
-              <img src="./assets/rick/light-split-centrifugal.png" alt="Legendary Anthem Split Centrifugal Light" style="width: 100%; height: auto; display: block;" />
+              <img src="./assets/rick/light-split-centrifugal.png" alt="Split Centrifugal Light from this song" style="width: 100%; height: auto; display: block;" />
             </div>
             <div class="showcase-desc">Rendered with <code>--svg-shape split-centrifugal --theme light</code>. Pastel tone distribution pushing lows and mids outward.</div>
           </div>
@@ -301,7 +301,7 @@
               <span class="showcase-badge">Custom Colors</span>
             </div>
             <div class="showcase-preview" style="background-color: #020202; padding: 0.5rem; display: flex; align-items: center; justify-content: center;">
-              <img src="./assets/rick/custom-split-overlapping.png" alt="Legendary Anthem Split Overlapping Custom" style="width: 100%; height: auto; display: block;" />
+              <img src="./assets/rick/custom-split-overlapping.png" alt="Split Overlapping Custom from this song" style="width: 100%; height: auto; display: block;" />
             </div>
             <div class="showcase-desc">Rendered with <code>--svg-shape split-overlapping --colors "#e91e63,#00ffcc,#ffeb3b"</code>. Translucent overlapping channels.</div>
           </div>
@@ -313,7 +313,7 @@
               <span class="showcase-badge">Classic Theme</span>
             </div>
             <div class="showcase-preview" style="background-color: #020202; padding: 0.5rem; display: flex; align-items: center; justify-content: center;">
-              <img src="./assets/rick/classic-strip.png" alt="Legendary Anthem Classic Strip" style="width: 100%; height: auto; display: block;" />
+              <img src="./assets/rick/classic-strip.png" alt="Classic Strip from this song" style="width: 100%; height: auto; display: block;" />
             </div>
             <div class="showcase-desc">Rendered with <code>--svg-shape strip --theme classic</code>. Flat legacy bar representation of track frequencies.</div>
           </div>
@@ -1230,6 +1230,49 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
       window.addEventListener("hashchange", handleHashChange);
       // Run on DOM load and full page load
       window.addEventListener("load", handleHashChange);
+
+      // Lightbox functionality
+      const lightbox = document.createElement("div");
+      lightbox.id = "lightbox";
+      lightbox.className = "lightbox-overlay";
+      lightbox.innerHTML = `
+        <div class="lightbox-content">
+          <button class="lightbox-close" id="lightboxClose">&times;</button>
+          <img id="lightboxImage" src="" alt="Full size preview" />
+        </div>
+      `;
+      document.body.appendChild(lightbox);
+
+      const lightboxImg = lightbox.querySelector("#lightboxImage");
+      const lightboxClose = lightbox.querySelector("#lightboxClose");
+
+      // Add pointer cursor to preview images in gallery to show they are clickable
+      const galleryPreviews = document.querySelectorAll(".showcase-preview img");
+      galleryPreviews.forEach(img => {
+        img.style.cursor = "zoom-in";
+        img.addEventListener("click", () => {
+          lightboxImg.src = img.src;
+          lightboxImg.alt = img.alt;
+          lightbox.classList.add("active");
+        });
+      });
+
+      lightboxClose.addEventListener("click", () => {
+        lightbox.classList.remove("active");
+      });
+
+      lightbox.addEventListener("click", (e) => {
+        if (e.target === lightbox) {
+          lightbox.classList.remove("active");
+        }
+      });
+
+      // Escape key to close
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && lightbox.classList.contains("active")) {
+          lightbox.classList.remove("active");
+        }
+      });
 
       // Startup
       window.addEventListener("DOMContentLoaded", async () => {

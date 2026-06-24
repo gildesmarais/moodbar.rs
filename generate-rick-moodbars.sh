@@ -4,7 +4,7 @@
 set -e
 
 # Default input file path
-DEFAULT_INPUT="rick.flac"
+DEFAULT_INPUT="rick.wav"
 INPUT="${1:-$DEFAULT_INPUT}"
 
 # Check if input file exists
