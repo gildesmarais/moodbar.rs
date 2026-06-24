@@ -10,8 +10,11 @@
     />
     <link rel="stylesheet" href="./assets/ui.css" />
     <!-- GoatCounter Analytics Script -->
-    <script data-goatcounter="https://moodbar-rs.goatcounter.com/count"
-            async src="//gc.zgo.at/count.js"></script>
+    <script
+      data-goatcounter="https://moodbar-rs.goatcounter.com/count"
+      async
+      src="//gc.zgo.at/count.js"
+    ></script>
   </head>
   <body>
     <header>
@@ -31,16 +34,39 @@
       <!-- Hero Section -->
       <section class="hero">
         <div>
-          <span class="topline" style="border: 2px solid var(--accent); padding: 0.25rem 0.5rem; font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent); text-transform: uppercase; font-weight: 700; margin-bottom: 1rem; display: inline-block;">
+          <span
+            class="topline"
+            style="
+              border: 2px solid var(--accent);
+              padding: 0.25rem 0.5rem;
+              font-family: var(--font-mono);
+              font-size: 0.75rem;
+              color: var(--accent);
+              text-transform: uppercase;
+              font-weight: 700;
+              margin-bottom: 1rem;
+              display: inline-block;
+            "
+          >
             Cross-Platform Audio Blueprint
           </span>
-          <h1 style="margin-bottom: 1rem;">Audio Visuals for <span>Music Apps.</span></h1>
+          <h1 style="margin-bottom: 1rem">
+            Audio Visuals for <span>Music Apps.</span>
+          </h1>
           <p class="lede">
-            Rebuilding the classic KDE Amarok timeline moodbars. Decode audio, run FFT analysis, and render high-impact color signatures across CLI, Web, iOS, and Android.
+            Rebuilding the classic KDE Amarok timeline moodbars. Decode audio,
+            run FFT analysis, and render high-impact color signatures across
+            CLI, Web, iOS, and Android.
           </p>
           <div class="hero-cta">
             <a href="#playground" class="btn primary">Try live playground</a>
-            <a href="https://github.com/gildesmarais/moodbar.rs" class="btn" target="_blank" rel="noopener noreferrer">View Github</a>
+            <a
+              href="https://github.com/gildesmarais/moodbar.rs"
+              class="btn"
+              target="_blank"
+              rel="noopener noreferrer"
+              >View Github</a
+            >
           </div>
         </div>
       </section>
@@ -48,8 +74,11 @@
       <!-- Playground / Sandbox -->
       <section id="playground">
         <h2>Interactive Sandbox</h2>
-        <p class="lede">Test the WebAssembly DSP engine. Choose a synthetic generator loop or upload your own audio to preview and seek the moodbar output.</p>
-        
+        <p class="lede">
+          Test the WebAssembly DSP engine. Choose a synthetic generator loop or
+          upload your own audio to preview and seek the moodbar output.
+        </p>
+
         <div class="board">
           <!-- Control Panel -->
           <div class="controls-column">
@@ -59,20 +88,47 @@
               <div class="control-group">
                 <label>Instant Synthesizer Loops</label>
                 <div class="presets-grid">
-                  <button type="button" class="btn-preset active" id="presetTechno">Techno Beat</button>
-                  <button type="button" class="btn-preset" id="presetAmbient">Ambient Drone</button>
-                  <button type="button" class="btn-preset" id="presetSweep">Freq Sweep</button>
+                  <button
+                    type="button"
+                    class="btn-preset active"
+                    id="presetTechno"
+                  >
+                    Techno Beat
+                  </button>
+                  <button type="button" class="btn-preset" id="presetAmbient">
+                    Ambient Drone
+                  </button>
+                  <button type="button" class="btn-preset" id="presetSweep">
+                    Freq Sweep
+                  </button>
                 </div>
               </div>
-              <div style="text-align: center; font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted); margin: 0.5rem 0;">OR</div>
+              <div
+                style="
+                  text-align: center;
+                  font-family: var(--font-mono);
+                  font-size: 0.75rem;
+                  color: var(--text-muted);
+                  margin: 0.5rem 0;
+                "
+              >
+                OR
+              </div>
               <div class="control-group">
                 <label>Upload Audio File</label>
                 <div class="dropzone" id="dropZone">
                   <div class="dropzone-icon">⇪</div>
                   <p>Drag & Drop audio here or <span>Browse</span></p>
-                  <input type="file" id="audioFile" accept="audio/*" style="display: none;" />
+                  <input
+                    type="file"
+                    id="audioFile"
+                    accept="audio/*"
+                    style="display: none"
+                  />
                 </div>
-                <div class="selected-file-info" id="selectedFile">Preset: Techno Beat</div>
+                <div class="selected-file-info" id="selectedFile">
+                  Preset: Techno Beat
+                </div>
               </div>
             </div>
 
@@ -83,26 +139,38 @@
                 <label for="shape">Active Shape</label>
                 <select id="shape">
                   <option value="Waveform">Waveform</option>
-                  <option value="Strip" selected>Strip (Classic Moodbar)</option>
+                  <option value="Strip" selected>
+                    Strip (Classic Moodbar)
+                  </option>
                   <option value="SplitStacked">Split Stacked (New)</option>
                   <option value="SplitWaveform">Split Waveform (New)</option>
                   <option value="SplitLanes">Split Lanes (New)</option>
-                  <option value="SplitCentrifugal">Split Centrifugal (New)</option>
-                  <option value="SplitOverlapping">Split Overlapping (New)</option>
+                  <option value="SplitCentrifugal">
+                    Split Centrifugal (New)
+                  </option>
+                  <option value="SplitOverlapping">
+                    Split Overlapping (New)
+                  </option>
                 </select>
               </div>
 
               <div class="control-group">
                 <label for="theme">Color Theme</label>
                 <select id="theme">
-                  <option value="Classic" selected>Classic (Purple/Orange/Blue)</option>
+                  <option value="Classic" selected>
+                    Classic (Purple/Orange/Blue)
+                  </option>
                   <option value="Cool">Cool (Cyan/Blue/Green)</option>
                   <option value="Light">Light (Pastels)</option>
                   <option value="Custom">Custom Colors</option>
                 </select>
               </div>
 
-              <div id="customColorsWrapper" class="control-group" style="display: none;">
+              <div
+                id="customColorsWrapper"
+                class="control-group"
+                style="display: none"
+              >
                 <label>Custom Band Colors</label>
                 <div class="color-picker-grid">
                   <div class="color-picker-item">
@@ -123,19 +191,46 @@
               <div class="control-group">
                 <label for="playbackRate">Pitch Shift (Playback Rate)</label>
                 <div class="range-wrap">
-                  <input id="playbackRate" type="range" min="0.90" max="1.10" step="0.01" value="1.00" />
+                  <input
+                    id="playbackRate"
+                    type="range"
+                    min="0.90"
+                    max="1.10"
+                    step="0.01"
+                    value="1.00"
+                  />
                   <span id="playbackRateValue" class="range-val">1.00x</span>
                 </div>
-                <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem;">Vinyl pitch shift effect. Faster = cooler colors, Slower = warmer colors.</p>
+                <p
+                  style="
+                    font-size: 0.72rem;
+                    color: var(--text-muted);
+                    margin-top: 0.25rem;
+                  "
+                >
+                  Vinyl pitch shift effect. Faster = cooler colors, Slower =
+                  warmer colors.
+                </p>
               </div>
             </div>
 
             <!-- DSP Parameters -->
-            <details class="card" style="cursor: pointer;">
-              <summary class="card-title" style="margin-bottom: 0; display: flex; justify-content: space-between; align-items: center;">
+            <details class="card" style="cursor: pointer">
+              <summary
+                class="card-title"
+                style="
+                  margin-bottom: 0;
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                "
+              >
                 <span>3. Advanced DSP Settings</span>
               </summary>
-              <div style="margin-top: 1.25rem; cursor: default;" onclick="event.stopPropagation()">
+              <div
+                style="margin-top: 1.25rem; cursor: default"
+                onclick="event.stopPropagation()"
+              >
                 <div class="control-group">
                   <label for="fftSize">FFT Size</label>
                   <select id="fftSize">
@@ -148,29 +243,57 @@
                 <div class="control-group">
                   <label for="normalizeMode">Normalization Strategy</label>
                   <select id="normalizeMode">
-                    <option value="PerChannelPeak" selected>Per-Channel Peak</option>
+                    <option value="PerChannelPeak" selected>
+                      Per-Channel Peak
+                    </option>
                     <option value="GlobalPeak">Global Peak</option>
                   </select>
                 </div>
                 <div class="control-group">
                   <label for="detectionMode">Analysis Method</label>
                   <select id="detectionMode">
-                    <option value="SpectralEnergy" selected>Spectral Energy</option>
+                    <option value="SpectralEnergy" selected>
+                      Spectral Energy
+                    </option>
                     <option value="SpectralFlux">Spectral Flux</option>
                   </select>
                 </div>
                 <div class="control-group">
                   <label for="framesPerColor">Frames per Column</label>
-                  <input id="framesPerColor" type="number" min="1" max="10" value="1" />
+                  <input
+                    id="framesPerColor"
+                    type="number"
+                    min="1"
+                    max="10"
+                    value="1"
+                  />
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <div
+                  style="
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 0.75rem;
+                  "
+                >
                   <div class="control-group">
                     <label for="lowCut">Bass Crossover (Hz)</label>
-                    <input id="lowCut" type="number" min="20" max="1000" value="500" />
+                    <input
+                      id="lowCut"
+                      type="number"
+                      min="20"
+                      max="1000"
+                      value="500"
+                    />
                   </div>
                   <div class="control-group">
                     <label for="midCut">Treble Crossover (Hz)</label>
-                    <input id="midCut" type="number" min="1000" max="8000" value="2000" />
+                    <input
+                      id="midCut"
+                      type="number"
+                      min="1000"
+                      max="8000"
+                      value="2000"
+                    />
                   </div>
                 </div>
               </div>
@@ -180,15 +303,22 @@
           <!-- Active Output & Showcase -->
           <div class="output-column">
             <!-- Active Output -->
-            <div class="card" style="display: flex; flex-direction: column; gap: 1.25rem;">
+            <div
+              class="card"
+              style="display: flex; flex-direction: column; gap: 1.25rem"
+            >
               <h3 class="card-title">Active Output <span>WASM render</span></h3>
-              
+
               <div class="render-box" id="activeRenderBox">
                 <!-- Vertical playback indicator scrubber -->
                 <div class="scrubber-cursor" id="playbackScrubber"></div>
-                <div class="scrubber-overlay" id="scrubberOverlay" title="Click to seek"></div>
-                
-                <div id="output" style="width: 100%;">
+                <div
+                  class="scrubber-overlay"
+                  id="scrubberOverlay"
+                  title="Click to seek"
+                ></div>
+
+                <div id="output" style="width: 100%">
                   <!-- SVG will be injected here -->
                 </div>
               </div>
@@ -196,11 +326,22 @@
               <!-- Audio Player Toolbar -->
               <div class="player-actions">
                 <div class="playback-controls">
-                  <button type="button" class="btn primary" id="playBtn" style="min-width: 130px;">Play Audio</button>
+                  <button
+                    type="button"
+                    class="btn primary"
+                    id="playBtn"
+                    style="min-width: 130px"
+                  >
+                    Play Audio
+                  </button>
                 </div>
-                <div style="display: flex; gap: 0.5rem;">
-                  <button type="button" class="btn" id="saveSvgButton">Save SVG</button>
-                  <button type="button" class="btn" id="savePngButton" disabled>Save PNG</button>
+                <div style="display: flex; gap: 0.5rem">
+                  <button type="button" class="btn" id="saveSvgButton">
+                    Save SVG
+                  </button>
+                  <button type="button" class="btn" id="savePngButton" disabled>
+                    Save PNG
+                  </button>
                 </div>
               </div>
 
@@ -229,10 +370,16 @@
 
             <!-- Config Generator -->
             <div class="card">
-              <h3 class="card-title">Active Config <span>Copy JSON into code</span></h3>
+              <h3 class="card-title">
+                Active Config <span>Copy JSON into code</span>
+              </h3>
               <div class="code-block-header">
                 <span>options.json</span>
-                <span style="cursor: pointer; color: var(--accent);" id="copyConfigBtn">Copy JSON</span>
+                <span
+                  style="cursor: pointer; color: var(--accent)"
+                  id="copyConfigBtn"
+                  >Copy JSON</span
+                >
               </div>
               <pre><code class="dynamic-json" id="configJsonCode">{ }</code></pre>
             </div>
@@ -243,8 +390,17 @@
       <!-- Pre-rendered Showcase Gallery Section -->
       <section id="gallery">
         <h2>Showcase Gallery</h2>
-        <p class="lede">Visual footprints generated <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank" rel="noopener noreferrer">from this song</a>. Can you recognize its structure, drops, and changes from the color signatures?</p>
-        
+        <p class="lede">
+          Visual footprints generated
+          <a
+            href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+            target="_blank"
+            rel="noopener noreferrer"
+            >from this song</a
+          >. Can you recognize its structure, drops, and changes from the color
+          signatures?
+        </p>
+
         <div class="showcase-grid">
           <!-- Item 1: Classic Waveform -->
           <div class="showcase-card">
@@ -252,10 +408,26 @@
               <span class="showcase-title">Classic Waveform</span>
               <span class="showcase-badge">Classic Theme</span>
             </div>
-            <div class="showcase-preview" style="background-color: #020202; padding: 0.5rem; display: flex; align-items: center; justify-content: center;">
-              <img src="./assets/rick/classic-waveform.png" alt="Classic Waveform from this song" style="width: 100%; height: auto; display: block;" />
+            <div
+              class="showcase-preview"
+              style="
+                background-color: #020202;
+                padding: 0.5rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              "
+            >
+              <img
+                src="./assets/rick/classic-waveform.png"
+                alt="Classic Waveform from this song"
+                style="width: 100%; height: auto; display: block"
+              />
             </div>
-            <div class="showcase-desc">Rendered with <code>--svg-shape waveform --theme classic</code>. An amplitude envelope styled with frequency color stops.</div>
+            <div class="showcase-desc">
+              Rendered with <code>--svg-shape waveform --theme classic</code>.
+              An amplitude envelope styled with frequency color stops.
+            </div>
           </div>
 
           <!-- Item 2: Split Stacked -->
@@ -264,10 +436,27 @@
               <span class="showcase-title">Split Stacked</span>
               <span class="showcase-badge">Classic Theme</span>
             </div>
-            <div class="showcase-preview" style="background-color: #020202; padding: 0.5rem; display: flex; align-items: center; justify-content: center;">
-              <img src="./assets/rick/classic-split-stacked.png" alt="Split Stacked Classic from this song" style="width: 100%; height: auto; display: block;" />
+            <div
+              class="showcase-preview"
+              style="
+                background-color: #020202;
+                padding: 0.5rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              "
+            >
+              <img
+                src="./assets/rick/classic-split-stacked.png"
+                alt="Split Stacked Classic from this song"
+                style="width: 100%; height: auto; display: block"
+              />
             </div>
-            <div class="showcase-desc">Rendered with <code>--svg-shape split-stacked --theme classic</code>. Separate bass, midrange, and treble columns stacked vertically.</div>
+            <div class="showcase-desc">
+              Rendered with
+              <code>--svg-shape split-stacked --theme classic</code>. Separate
+              bass, midrange, and treble columns stacked vertically.
+            </div>
           </div>
 
           <!-- Item 3: Split Lanes -->
@@ -276,10 +465,26 @@
               <span class="showcase-title">Split Lanes</span>
               <span class="showcase-badge">Cool Theme</span>
             </div>
-            <div class="showcase-preview" style="background-color: #020202; padding: 0.5rem; display: flex; align-items: center; justify-content: center;">
-              <img src="./assets/rick/cool-split-lanes.png" alt="Split Lanes Cool from this song" style="width: 100%; height: auto; display: block;" />
+            <div
+              class="showcase-preview"
+              style="
+                background-color: #020202;
+                padding: 0.5rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              "
+            >
+              <img
+                src="./assets/rick/cool-split-lanes.png"
+                alt="Split Lanes Cool from this song"
+                style="width: 100%; height: auto; display: block"
+              />
             </div>
-            <div class="showcase-desc">Rendered with <code>--svg-shape split-lanes --theme cool</code>. Cyan/blue/green color mapping separating frequency lanes.</div>
+            <div class="showcase-desc">
+              Rendered with <code>--svg-shape split-lanes --theme cool</code>.
+              Cyan/blue/green color mapping separating frequency lanes.
+            </div>
           </div>
 
           <!-- Item 4: Split Centrifugal -->
@@ -288,10 +493,27 @@
               <span class="showcase-title">Split Centrifugal</span>
               <span class="showcase-badge">Light Theme</span>
             </div>
-            <div class="showcase-preview" style="background-color: #020202; padding: 0.5rem; display: flex; align-items: center; justify-content: center;">
-              <img src="./assets/rick/light-split-centrifugal.png" alt="Split Centrifugal Light from this song" style="width: 100%; height: auto; display: block;" />
+            <div
+              class="showcase-preview"
+              style="
+                background-color: #020202;
+                padding: 0.5rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              "
+            >
+              <img
+                src="./assets/rick/light-split-centrifugal.png"
+                alt="Split Centrifugal Light from this song"
+                style="width: 100%; height: auto; display: block"
+              />
             </div>
-            <div class="showcase-desc">Rendered with <code>--svg-shape split-centrifugal --theme light</code>. Pastel tone distribution pushing lows and mids outward.</div>
+            <div class="showcase-desc">
+              Rendered with
+              <code>--svg-shape split-centrifugal --theme light</code>. Pastel
+              tone distribution pushing lows and mids outward.
+            </div>
           </div>
 
           <!-- Item 5: Split Overlapping -->
@@ -300,10 +522,29 @@
               <span class="showcase-title">Split Overlapping</span>
               <span class="showcase-badge">Custom Colors</span>
             </div>
-            <div class="showcase-preview" style="background-color: #020202; padding: 0.5rem; display: flex; align-items: center; justify-content: center;">
-              <img src="./assets/rick/custom-split-overlapping.png" alt="Split Overlapping Custom from this song" style="width: 100%; height: auto; display: block;" />
+            <div
+              class="showcase-preview"
+              style="
+                background-color: #020202;
+                padding: 0.5rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              "
+            >
+              <img
+                src="./assets/rick/custom-split-overlapping.png"
+                alt="Split Overlapping Custom from this song"
+                style="width: 100%; height: auto; display: block"
+              />
             </div>
-            <div class="showcase-desc">Rendered with <code>--svg-shape split-overlapping --colors "#e91e63,#00ffcc,#ffeb3b"</code>. Translucent overlapping channels.</div>
+            <div class="showcase-desc">
+              Rendered with
+              <code
+                >--svg-shape split-overlapping --colors
+                "#e91e63,#00ffcc,#ffeb3b"</code
+              >. Translucent overlapping channels.
+            </div>
           </div>
 
           <!-- Item 6: Classic Strip -->
@@ -312,10 +553,26 @@
               <span class="showcase-title">Classic Strip</span>
               <span class="showcase-badge">Classic Theme</span>
             </div>
-            <div class="showcase-preview" style="background-color: #020202; padding: 0.5rem; display: flex; align-items: center; justify-content: center;">
-              <img src="./assets/rick/classic-strip.png" alt="Classic Strip from this song" style="width: 100%; height: auto; display: block;" />
+            <div
+              class="showcase-preview"
+              style="
+                background-color: #020202;
+                padding: 0.5rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              "
+            >
+              <img
+                src="./assets/rick/classic-strip.png"
+                alt="Classic Strip from this song"
+                style="width: 100%; height: auto; display: block"
+              />
             </div>
-            <div class="showcase-desc">Rendered with <code>--svg-shape strip --theme classic</code>. Flat legacy bar representation of track frequencies.</div>
+            <div class="showcase-desc">
+              Rendered with <code>--svg-shape strip --theme classic</code>. Flat
+              legacy bar representation of track frequencies.
+            </div>
           </div>
         </div>
       </section>
@@ -323,15 +580,26 @@
       <!-- Developer Integration Guide (Information Architecture) -->
       <section id="integration">
         <h2>Developer Integration</h2>
-        <p class="lede">Moodbar.rs is built to deploy anywhere. Choose your platform block to view integration patterns.</p>
-        
+        <p class="lede">
+          Moodbar.rs is built to deploy anywhere. Choose your platform block to
+          view integration patterns.
+        </p>
+
         <div class="tabs-container">
           <!-- Headers -->
           <div class="tabs-headers">
-            <button class="tab-header active" data-tab="cli-tab">Command Line CLI</button>
-            <button class="tab-header" data-tab="wasm-tab">WebAssembly JS</button>
-            <button class="tab-header" data-tab="mobile-tab">React Native Expo</button>
-            <button class="tab-header" data-tab="ffi-tab">Rust Core & FFI</button>
+            <button class="tab-header active" data-tab="cli-tab">
+              Command Line CLI
+            </button>
+            <button class="tab-header" data-tab="wasm-tab">
+              WebAssembly JS
+            </button>
+            <button class="tab-header" data-tab="mobile-tab">
+              React Native Expo
+            </button>
+            <button class="tab-header" data-tab="ffi-tab">
+              Rust Core & FFI
+            </button>
           </div>
 
           <!-- Tab Content 1: CLI -->
@@ -339,8 +607,16 @@
             <div class="docs-grid">
               <div>
                 <h3>Command Line Tools</h3>
-                <p style="margin-bottom: 1rem;">
-                  Generate moodbars inside local build systems, directories, or scripts. Compile directly from crates.io with the native decoder. <a href="https://crates.io/crates/moodbar" target="_blank" rel="noopener noreferrer">View moodbar on Crates.io</a>
+                <p style="margin-bottom: 1rem">
+                  Generate moodbars inside local build systems, directories, or
+                  scripts. Compile directly from crates.io with the native
+                  decoder.
+                  <a
+                    href="https://crates.io/crates/moodbar"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >View moodbar on Crates.io</a
+                  >
                 </p>
                 <pre><code><span class="comment"># Install CLI tool globally</span>
 cargo install moodbar --features="decode,png"
@@ -352,15 +628,34 @@ moodbar generate -i song.flac -o signature.svg --format svg --shape Waveform
 moodbar batch -i ./music -o ./moodbars --format png --shape SplitStacked</code></pre>
               </div>
               <div class="card">
-                <h4 style="color: var(--accent); margin-bottom: 0.75rem;">CLI Reference</h4>
-                <p style="font-size: 0.85rem; line-height: 1.5; margin-bottom: 0.75rem;">
-                  <strong>--format</strong>: <code>svg</code>, <code>png</code>, <code>raw</code> (Amarok legacy bytes).
+                <h4 style="color: var(--accent); margin-bottom: 0.75rem">
+                  CLI Reference
+                </h4>
+                <p
+                  style="
+                    font-size: 0.85rem;
+                    line-height: 1.5;
+                    margin-bottom: 0.75rem;
+                  "
+                >
+                  <strong>--format</strong>: <code>svg</code>, <code>png</code>,
+                  <code>raw</code> (Amarok legacy bytes).
                 </p>
-                <p style="font-size: 0.85rem; line-height: 1.5; margin-bottom: 0.75rem;">
-                  <strong>--shape</strong>: <code>Strip</code>, <code>Waveform</code>, <code>SplitStacked</code>, <code>SplitWaveform</code>, <code>SplitLanes</code>, <code>SplitCentrifugal</code>, <code>SplitOverlapping</code>.
+                <p
+                  style="
+                    font-size: 0.85rem;
+                    line-height: 1.5;
+                    margin-bottom: 0.75rem;
+                  "
+                >
+                  <strong>--shape</strong>: <code>Strip</code>,
+                  <code>Waveform</code>, <code>SplitStacked</code>,
+                  <code>SplitWaveform</code>, <code>SplitLanes</code>,
+                  <code>SplitCentrifugal</code>, <code>SplitOverlapping</code>.
                 </p>
-                <p style="font-size: 0.85rem; line-height: 1.5;">
-                  <strong>--fft-size</strong>: Power of 2 window size (64 to 8192).
+                <p style="font-size: 0.85rem; line-height: 1.5">
+                  <strong>--fft-size</strong>: Power of 2 window size (64 to
+                  8192).
                 </p>
               </div>
             </div>
@@ -371,8 +666,16 @@ moodbar batch -i ./music -o ./moodbars --format png --shape SplitStacked</code><
             <div class="docs-grid">
               <div>
                 <h3>WebAssembly Integration</h3>
-                <p style="margin-bottom: 1rem;">
-                  Deploy interactive, responsive moodbars on the web. Decodes audio in the browser via <code>OfflineAudioContext</code> and runs DSP in Rust WASM. <a href="https://www.npmjs.com/package/@moodbar/wasm" target="_blank" rel="noopener noreferrer">View @moodbar/wasm on NPM</a>
+                <p style="margin-bottom: 1rem">
+                  Deploy interactive, responsive moodbars on the web. Decodes
+                  audio in the browser via <code>OfflineAudioContext</code> and
+                  runs DSP in Rust WASM.
+                  <a
+                    href="https://www.npmjs.com/package/@moodbar/wasm"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >View @moodbar/wasm on NPM</a
+                  >
                 </p>
                 <pre><code>import init, { analyze_with_options, svg, png } from '@moodbar/wasm';
 
@@ -399,15 +702,31 @@ const svgMarkup = svg(analysis, {
 document.getElementById('container').innerHTML = svgMarkup;</code></pre>
               </div>
               <div class="card">
-                <h4 style="color: var(--accent); margin-bottom: 0.75rem;">NPM WebAssembly</h4>
-                <p style="font-size: 0.85rem; line-height: 1.5; margin-bottom: 0.75rem;">
+                <h4 style="color: var(--accent); margin-bottom: 0.75rem">
+                  NPM WebAssembly
+                </h4>
+                <p
+                  style="
+                    font-size: 0.85rem;
+                    line-height: 1.5;
+                    margin-bottom: 0.75rem;
+                  "
+                >
                   <strong>Size</strong>: ~180KB gzipped WASM payload.
                 </p>
-                <p style="font-size: 0.85rem; line-height: 1.5; margin-bottom: 0.75rem;">
-                  <strong>Performance</strong>: Blazing fast analysis (&lt;40ms for 60s of audio after decoding).
+                <p
+                  style="
+                    font-size: 0.85rem;
+                    line-height: 1.5;
+                    margin-bottom: 0.75rem;
+                  "
+                >
+                  <strong>Performance</strong>: Blazing fast analysis (&lt;40ms
+                  for 60s of audio after decoding).
                 </p>
-                <p style="font-size: 0.85rem; line-height: 1.5;">
-                  <strong>No Backend required</strong>: Client-side standalone visualization.
+                <p style="font-size: 0.85rem; line-height: 1.5">
+                  <strong>No Backend required</strong>: Client-side standalone
+                  visualization.
                 </p>
               </div>
             </div>
@@ -418,8 +737,16 @@ document.getElementById('container').innerHTML = svgMarkup;</code></pre>
             <div class="docs-grid">
               <div>
                 <h3>Expo / React Native Module</h3>
-                <p style="margin-bottom: 1rem;">
-                  Native mobile bindings for high-performance audio scrubbing. Ships pre-built iOS XCFramework static library and Android JNI binaries. <a href="https://www.npmjs.com/package/@moodbar/native" target="_blank" rel="noopener noreferrer">View @moodbar/native on NPM</a>
+                <p style="margin-bottom: 1rem">
+                  Native mobile bindings for high-performance audio scrubbing.
+                  Ships pre-built iOS XCFramework static library and Android JNI
+                  binaries.
+                  <a
+                    href="https://www.npmjs.com/package/@moodbar/native"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >View @moodbar/native on NPM</a
+                  >
                 </p>
                 <pre><code>import { analyze, render } from '@moodbar/native';
 
@@ -442,18 +769,44 @@ const pngResult = await render(analysis, 'png', {
 analysis.dispose();</code></pre>
               </div>
               <div class="card">
-                <h4 style="color: var(--accent); margin-bottom: 0.75rem;">Mobile Packaging</h4>
-                <p style="font-size: 0.85rem; line-height: 1.5; margin-bottom: 0.75rem;">
-                  <strong>Android ABIs</strong>: Includes compiled libraries for <code>arm64-v8a</code>, <code>armeabi-v7a</code>, <code>x86</code>, and <code>x86_64</code>.
+                <h4 style="color: var(--accent); margin-bottom: 0.75rem">
+                  Mobile Packaging
+                </h4>
+                <p
+                  style="
+                    font-size: 0.85rem;
+                    line-height: 1.5;
+                    margin-bottom: 0.75rem;
+                  "
+                >
+                  <strong>Android ABIs</strong>: Includes compiled libraries for
+                  <code>arm64-v8a</code>, <code>armeabi-v7a</code>,
+                  <code>x86</code>, and <code>x86_64</code>.
                 </p>
-                <p style="font-size: 0.85rem; line-height: 1.5; margin-bottom: 0.75rem;">
-                  <strong>iOS Support</strong>: Static binaries packed into a fat <code>MoodbarNativeFFI.xcframework</code> supporting real devices and simulator architectures.
+                <p
+                  style="
+                    font-size: 0.85rem;
+                    line-height: 1.5;
+                    margin-bottom: 0.75rem;
+                  "
+                >
+                  <strong>iOS Support</strong>: Static binaries packed into a
+                  fat <code>MoodbarNativeFFI.xcframework</code> supporting real
+                  devices and simulator architectures.
                 </p>
-                <p style="font-size: 0.85rem; line-height: 1.5; margin-bottom: 0.75rem;">
-                  <strong>Expo support</strong>: Direct configuration via custom plugin.
+                <p
+                  style="
+                    font-size: 0.85rem;
+                    line-height: 1.5;
+                    margin-bottom: 0.75rem;
+                  "
+                >
+                  <strong>Expo support</strong>: Direct configuration via custom
+                  plugin.
                 </p>
-                <p style="font-size: 0.85rem; line-height: 1.5;">
-                  <strong>Performance</strong>: Blazing fast native DSP (&lt;40ms for 60s of audio after decoding).
+                <p style="font-size: 0.85rem; line-height: 1.5">
+                  <strong>Performance</strong>: Blazing fast native DSP
+                  (&lt;40ms for 60s of audio after decoding).
                 </p>
               </div>
             </div>
@@ -464,8 +817,9 @@ analysis.dispose();</code></pre>
             <div class="docs-grid">
               <div>
                 <h3>Rust Core & FFI Protocols</h3>
-                <p style="margin-bottom: 1rem;">
-                  Advanced low-level FFI binding patterns used by C/C++ clients or custom language bridges.
+                <p style="margin-bottom: 1rem">
+                  Advanced low-level FFI binding patterns used by C/C++ clients
+                  or custom language bridges.
                 </p>
                 <pre><code><span class="comment">// Avoid raw pointer management across FFI boundaries.
 // Rust stores structs in a global registry using atomic u64 IDs.</span>
@@ -493,15 +847,33 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
 }</code></pre>
               </div>
               <div class="card">
-                <h4 style="color: var(--accent); margin-bottom: 0.75rem;">Memory Safety</h4>
-                <p style="font-size: 0.85rem; line-height: 1.5; margin-bottom: 0.75rem;">
-                  <strong>Panic Boundary</strong>: All exports are wrapped in <code>ffi_guard</code> catching unwinds to avoid host process crashes.
+                <h4 style="color: var(--accent); margin-bottom: 0.75rem">
+                  Memory Safety
+                </h4>
+                <p
+                  style="
+                    font-size: 0.85rem;
+                    line-height: 1.5;
+                    margin-bottom: 0.75rem;
+                  "
+                >
+                  <strong>Panic Boundary</strong>: All exports are wrapped in
+                  <code>ffi_guard</code> catching unwinds to avoid host process
+                  crashes.
                 </p>
-                <p style="font-size: 0.85rem; line-height: 1.5; margin-bottom: 0.75rem;">
-                  <strong>JNI Envelope</strong>: Android JNI returns JSON envelopes for success/failure to simplify Java mapping.
+                <p
+                  style="
+                    font-size: 0.85rem;
+                    line-height: 1.5;
+                    margin-bottom: 0.75rem;
+                  "
+                >
+                  <strong>JNI Envelope</strong>: Android JNI returns JSON
+                  envelopes for success/failure to simplify Java mapping.
                 </p>
-                <p style="font-size: 0.85rem; line-height: 1.5;">
-                  <strong>Deterministic Performance</strong>: Static scratch buffers recycled in the analysis loops.
+                <p style="font-size: 0.85rem; line-height: 1.5">
+                  <strong>Deterministic Performance</strong>: Static scratch
+                  buffers recycled in the analysis loops.
                 </p>
               </div>
             </div>
@@ -512,28 +884,87 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
       <!-- History / Classic Moodbar Section -->
       <section id="history">
         <h2>History of the Moodbar</h2>
-        <p class="lede">Moodbar was born in the early 2000s as a KDE Amarok feature to visually navigate music timelines. Today, it lives on as a modern cross-platform tool.</p>
-        
+        <p class="lede">
+          Moodbar was born in the early 2000s as a KDE Amarok feature to
+          visually navigate music timelines. Today, it lives on as a modern
+          cross-platform tool.
+        </p>
+
         <div class="docs-grid">
           <div>
-            <p style="margin-bottom: 1rem;">
-              The Moodbar concept maps the frequency spectrum of a song directly to visual hues: Bass energy drives red, Midrange drives green, and Treble drives blue. This creates a signature color strip that reveals the song's structure, drops, and changes at a single glance before you even hit play.
+            <p style="margin-bottom: 1rem">
+              The Moodbar concept maps the frequency spectrum of a song directly
+              to visual hues: Bass energy drives red, Midrange drives green, and
+              Treble drives blue. This creates a signature color strip that
+              reveals the song's structure, drops, and changes at a single
+              glance before you even hit play.
             </p>
-            <p style="margin-bottom: 1.5rem;">
-              Originally developed as a plugin for KDE's Amarok audio player, legacy moodbars were generated using GStreamer pipelines and written to <code>.mood</code> files as raw RGB byte triples. Moodbar.rs keeps full compatibility with these legacy systems while upgrading the DSP pipeline to Rust and modern vector formats.
+            <p style="margin-bottom: 1.5rem">
+              Originally developed as a plugin for KDE's Amarok audio player,
+              legacy moodbars were generated using GStreamer pipelines and
+              written to <code>.mood</code> files as raw RGB byte triples.
+              Moodbar.rs keeps full compatibility with these legacy systems
+              while upgrading the DSP pipeline to Rust and modern vector
+              formats.
             </p>
-            <div class="hero-cta" style="margin-top: 0;">
-              <a href="https://en.wikipedia.org/wiki/Moodbar" class="btn" target="_blank" rel="noopener noreferrer">Wikipedia Article</a>
-              <a href="https://userbase.kde.org/Amarok/Manual/Various/Moodbar" class="btn" target="_blank" rel="noopener noreferrer">KDE Wiki Manual</a>
+            <div class="hero-cta" style="margin-top: 0">
+              <a
+                href="https://en.wikipedia.org/wiki/Moodbar"
+                class="btn"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Wikipedia Article</a
+              >
+              <a
+                href="https://userbase.kde.org/Amarok/Manual/Various/Moodbar"
+                class="btn"
+                target="_blank"
+                rel="noopener noreferrer"
+                >KDE Wiki Manual</a
+              >
             </div>
           </div>
-          <div class="card" style="display: flex; flex-direction: column; justify-content: center; gap: 1.25rem; background-color: #000;">
-            <h4 style="color: var(--accent); font-family: var(--font-mono); text-transform: uppercase;">Classic Moodbar Strip</h4>
-            <div style="border: 2px solid var(--border); padding: 0.5rem; background-color: #020202;">
-              <img src="./assets/strip.png" alt="Classic Moodbar Strip" style="width: 100%; height: auto; display: block;" />
+          <div
+            class="card"
+            style="
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              gap: 1.25rem;
+              background-color: #000;
+            "
+          >
+            <h4
+              style="
+                color: var(--accent);
+                font-family: var(--font-mono);
+                text-transform: uppercase;
+              "
+            >
+              Classic Moodbar Strip
+            </h4>
+            <div
+              style="
+                border: 2px solid var(--border);
+                padding: 0.5rem;
+                background-color: #020202;
+              "
+            >
+              <img
+                src="./assets/strip.png"
+                alt="Classic Moodbar Strip"
+                style="width: 100%; height: auto; display: block"
+              />
             </div>
-            <p style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.4;">
-              A legacy KDE-style 3-band color signature. The chronological progression of a song is encoded as flat color columns.
+            <p
+              style="
+                font-size: 0.78rem;
+                color: var(--text-muted);
+                line-height: 1.4;
+              "
+            >
+              A legacy KDE-style 3-band color signature. The chronological
+              progression of a song is encoded as flat color columns.
             </p>
           </div>
         </div>
@@ -542,24 +973,46 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
       <!-- Concept Section -->
       <section id="concepts">
         <h2>Under the Hood</h2>
-        <p class="lede">How the Moodbar analyzes frequencies and translates them into visual patterns.</p>
-        
+        <p class="lede">
+          How the Moodbar analyzes frequencies and translates them into visual
+          patterns.
+        </p>
+
         <div class="features-grid">
           <div class="feature-box">
             <h3>FFT Band Splitting</h3>
-            <p>During analysis, audio frames are passed through a Fast Fourier Transform (FFT). FFT bins are aggregated into three main frequency bands: Bass (0–500Hz), Midrange (500Hz–2kHz), and Treble (2kHz–Nyquist).</p>
+            <p>
+              During analysis, audio frames are passed through a Fast Fourier
+              Transform (FFT). FFT bins are aggregated into three main frequency
+              bands: Bass (0–500Hz), Midrange (500Hz–2kHz), and Treble
+              (2kHz–Nyquist).
+            </p>
           </div>
           <div class="feature-box">
             <h3>Visual Coloring</h3>
-            <p>Colors are calculated using the active energy of each band. In the Classic theme, Bass drives the red channel (purple/pink hues), Mids drive the green channel (orange/warm hues), and Treble drives the blue channel (cyan/cool hues).</p>
+            <p>
+              Colors are calculated using the active energy of each band. In the
+              Classic theme, Bass drives the red channel (purple/pink hues),
+              Mids drive the green channel (orange/warm hues), and Treble drives
+              the blue channel (cyan/cool hues).
+            </p>
           </div>
           <div class="feature-box">
             <h3>Deterministic Peaks</h3>
-            <p>To keep rendering consistent across systems, normalization is calculated either per-channel or globally across all channels, avoiding visual clipping or silent channels appearing empty.</p>
+            <p>
+              To keep rendering consistent across systems, normalization is
+              calculated either per-channel or globally across all channels,
+              avoiding visual clipping or silent channels appearing empty.
+            </p>
           </div>
           <div class="feature-box">
             <h3>Blazing Fast DSP</h3>
-            <p>Once audio is decoded (which is platform-dependent), the DSP core runs extremely fast, analyzing 60 seconds of sound in under 40 milliseconds by recycling pre-allocated FFT and frame scratch buffers.</p>
+            <p>
+              Once audio is decoded (which is platform-dependent), the DSP core
+              runs extremely fast, analyzing 60 seconds of sound in under 40
+              milliseconds by recycling pre-allocated FFT and frame scratch
+              buffers.
+            </p>
           </div>
         </div>
       </section>
@@ -567,16 +1020,52 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
 
     <footer>
       <div class="footer-content">
-        <p>&copy; 2026 Moodbar.rs contributors. Rebuilt under MIT/Apache licenses.</p>
         <p>
-          <a href="https://github.com/gildesmarais/moodbar.rs" target="_blank" rel="noopener noreferrer">GitHub</a> · 
-          Crates: 
-          <a href="https://crates.io/crates/moodbar" target="_blank" rel="noopener noreferrer">moodbar (CLI)</a> / 
-          <a href="https://crates.io/crates/moodbar-core" target="_blank" rel="noopener noreferrer">moodbar-core</a> / 
-          <a href="https://crates.io/crates/moodbar-analysis" target="_blank" rel="noopener noreferrer">moodbar-analysis</a> · 
-          NPM: 
-          <a href="https://www.npmjs.com/package/@moodbar/wasm" target="_blank" rel="noopener noreferrer">@moodbar/wasm</a> / 
-          <a href="https://www.npmjs.com/package/@moodbar/native" target="_blank" rel="noopener noreferrer">@moodbar/native</a>
+          &copy; 2026 Moodbar.rs contributors. Rebuilt under MIT/Apache
+          licenses.
+        </p>
+        <p>
+          <a
+            href="https://github.com/gildesmarais/moodbar.rs"
+            target="_blank"
+            rel="noopener noreferrer"
+            >GitHub</a
+          >
+          · Crates:
+          <a
+            href="https://crates.io/crates/moodbar"
+            target="_blank"
+            rel="noopener noreferrer"
+            >moodbar (CLI)</a
+          >
+          /
+          <a
+            href="https://crates.io/crates/moodbar-core"
+            target="_blank"
+            rel="noopener noreferrer"
+            >moodbar-core</a
+          >
+          /
+          <a
+            href="https://crates.io/crates/moodbar-analysis"
+            target="_blank"
+            rel="noopener noreferrer"
+            >moodbar-analysis</a
+          >
+          · NPM:
+          <a
+            href="https://www.npmjs.com/package/@moodbar/wasm"
+            target="_blank"
+            rel="noopener noreferrer"
+            >@moodbar/wasm</a
+          >
+          /
+          <a
+            href="https://www.npmjs.com/package/@moodbar/native"
+            target="_blank"
+            rel="noopener noreferrer"
+            >@moodbar/native</a
+          >
         </p>
       </div>
     </footer>
@@ -587,7 +1076,7 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
       const outputEl = document.getElementById("output");
       const saveSvgBtn = document.getElementById("saveSvgButton");
       const savePngBtn = document.getElementById("savePngButton");
-      
+
       const playBtn = document.getElementById("playBtn");
       const playbackScrubber = document.getElementById("playbackScrubber");
       const scrubberOverlay = document.getElementById("scrubberOverlay");
@@ -607,7 +1096,9 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
       // Control Options
       const shapeSelect = document.getElementById("shape");
       const themeSelect = document.getElementById("theme");
-      const customColorsWrapper = document.getElementById("customColorsWrapper");
+      const customColorsWrapper = document.getElementById(
+        "customColorsWrapper",
+      );
       const customColorLow = document.getElementById("customColorLow");
       const customColorMid = document.getElementById("customColorMid");
       const customColorHigh = document.getElementById("customColorHigh");
@@ -631,17 +1122,18 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
       // State variables
       let initialized = false;
       let wasmInit, wasmAnalyze, wasmAnalyzeWithOptions, wasmSvg, wasmPng;
-      
-      let cachedDecode = null;   // { pcm, sampleRate, duration, decodeTimeMs }
+
+      let cachedDecode = null; // { pcm, sampleRate, duration, decodeTimeMs }
       let latestAnalysis = null;
       let activePresetName = "Techno";
-      
+
       let isPlaying = false;
       let audioCtx = null;
       let audioSourceNode = null;
       let playbackStartTime = 0;
       let playbackOffsetTime = 0;
       let animationFrameId = null;
+      let audioWorker = null;
 
       const TARGET_SAMPLE_RATE = 11025;
       const PRESET_DURATION = 90;
@@ -659,7 +1151,7 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
         const candidates = [
           "./assets/moodbar-wasm/moodbar_wasm.js",
           "../crates/moodbar-wasm/pkg/moodbar_wasm.js",
-          "https://cdn.jsdelivr.net/npm/@moodbar/wasm@latest/moodbar_wasm.js"
+          "https://cdn.jsdelivr.net/npm/@moodbar/wasm@latest/moodbar_wasm.js",
         ];
 
         let lastError;
@@ -677,7 +1169,13 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
           }
         }
 
-        if (!wasmInit || !wasmAnalyze || !wasmSvg || !wasmPng || !wasmAnalyzeWithOptions) {
+        if (
+          !wasmInit ||
+          !wasmAnalyze ||
+          !wasmSvg ||
+          !wasmPng ||
+          !wasmAnalyzeWithOptions
+        ) {
           throw new Error("Failed to load WASM module. Check build or CDNs.");
         }
 
@@ -694,12 +1192,19 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
           detection_mode: detectionModeSelect.value,
           frames_per_color: parseInt(framesPerColorInput.value),
           playback_rate: parseFloat(playbackRateInput.value),
-          band_edges_hz: [parseFloat(lowCutInput.value), parseFloat(midCutInput.value)],
+          band_edges_hz: [
+            parseFloat(lowCutInput.value),
+            parseFloat(midCutInput.value),
+          ],
           low_cut_hz: parseFloat(lowCutInput.value),
-          mid_cut_hz: parseFloat(midCutInput.value)
+          mid_cut_hz: parseFloat(midCutInput.value),
         };
         if (theme === "Custom") {
-          dsp.custom_colors = [customColorLow.value, customColorMid.value, customColorHigh.value];
+          dsp.custom_colors = [
+            customColorLow.value,
+            customColorMid.value,
+            customColorHigh.value,
+          ];
         } else {
           dsp.theme = theme;
         }
@@ -710,10 +1215,14 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
         const theme = themeSelect.value;
         const opts = {
           shape: shapeSelect.value,
-          theme: theme
+          theme: theme,
         };
         if (theme === "Custom") {
-          opts.custom_colors = [customColorLow.value, customColorMid.value, customColorHigh.value];
+          opts.custom_colors = [
+            customColorLow.value,
+            customColorMid.value,
+            customColorHigh.value,
+          ];
         }
         return opts;
       }
@@ -721,110 +1230,122 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
       function updateConfigJson() {
         const combined = {
           generator_options: getDspOptions(),
-          renderer_options: getRenderOptions()
+          renderer_options: getRenderOptions(),
         };
         configJsonCode.textContent = JSON.stringify(combined, null, 2);
       }
 
-      // Audio presets generators
-      function generateSyntheticAudio(type) {
-        const duration = PRESET_DURATION;
-        const totalSamples = TARGET_SAMPLE_RATE * duration;
-        const pcm = new Float32Array(totalSamples);
-
-        if (type === "Techno") {
-          const bpm = 140;
-          const beatLen = 60 / bpm; // ~0.42857s
-          const halfBeat = beatLen / 2;
-          const quarterBeat = beatLen / 4;
-          
-          for (let i = 0; i < totalSamples; i++) {
-            const t = i / TARGET_SAMPLE_RATE;
-            
-            // Kick drum: punchy decaying sub sweep on every beat
-            const tKick = t % beatLen;
-            const freqKick = 45 + 150 * Math.exp(-tKick * 35);
-            const kickEnv = Math.exp(-tKick * 10);
-            const kick = Math.sin(2 * Math.PI * freqKick * tKick) * kickEnv * 0.7;
-
-            // Distort kick slightly for hard techno rumble
-            const kickDist = Math.tanh(kick * 1.6);
-
-            // Open Hi-hat: off-beat hi-hat (on the 8ths)
-            const tHat = (t + halfBeat) % beatLen;
-            const hatEnv = Math.exp(-tHat * 14);
-            const hat = (Math.random() * 2 - 1) * hatEnv * 0.15;
-
-            // Rolling Bassline: driving 16th notes rolling under the kick
-            const tBass = t % quarterBeat;
-            const bassStep = Math.floor(t / quarterBeat) % 16;
-            // standard techno rumble: mute bass on step 0, 4, 8, 12, accent step 2, 6, 10, 14
-            let bassAccent = 0.0;
-            if (bassStep % 4 === 1 || bassStep % 4 === 3) {
-              bassAccent = 0.22;
-            } else if (bassStep % 4 === 2) {
-              bassAccent = 0.35; // upbeat drive
-            }
-            const bassEnv = Math.exp(-tBass * 18);
-            // Low sawtooth wave
-            const freqBass = 55.0; // A1
-            const phaseBass = t * freqBass;
-            const sawBass = 2.0 * (phaseBass - Math.floor(phaseBass + 0.5));
-            const bass = sawBass * bassEnv * bassAccent;
-
-            // Hypnotic industrial synth lead: minor-pentatonic plucks on 8th notes
-            const tSynth = t % (quarterBeat * 2);
-            const synthStep = Math.floor(t / (quarterBeat * 2)) % 16;
-            const melody = [110, 110, 130.81, 0, 164.81, 146.83, 110, 0, 110, 130.81, 164.81, 196.00, 164.81, 146.83, 110, 0];
-            const freqSynth = melody[synthStep];
-            let synth = 0;
-            if (freqSynth > 0) {
-              const synthEnv = Math.exp(-tSynth * 8);
-              const phaseSynth = t * freqSynth;
-              const sqSynth = Math.sign(Math.sin(2 * Math.PI * phaseSynth));
-              synth = sqSynth * synthEnv * 0.08;
-            }
-
-            // Mix
-            pcm[i] = (kickDist * 0.55 + hat * 0.25 + bass * 0.35 + synth * 0.2) * 0.9;
+      // Audio presets generators (offloaded to Web Worker)
+      function generateSyntheticAudioInBackground(type, duration, sampleRate) {
+        return new Promise((resolve) => {
+          if (audioWorker) {
+            audioWorker.terminate();
           }
-        } else if (type === "Ambient") {
-          for (let i = 0; i < totalSamples; i++) {
-            const t = i / TARGET_SAMPLE_RATE;
-            
-            // Modulating bass chords
-            const bass = (Math.sin(2 * Math.PI * 65 * t) + Math.sin(2 * Math.PI * 98 * t)) * 0.3;
-            
-            // Floating mid chord with slow LFO volume modulation
-            const lfo1 = 0.5 + 0.5 * Math.sin(2 * Math.PI * 0.15 * t);
-            const mids = (Math.sin(2 * Math.PI * 261 * t) + Math.sin(2 * Math.PI * 329 * t) + Math.sin(2 * Math.PI * 392 * t)) * lfo1 * 0.2;
-            
-            // Shimmering highs
-            const lfo2 = 0.5 + 0.5 * Math.cos(2 * Math.PI * 0.4 * t);
-            const highs = Math.sin(2 * Math.PI * 2500 * t) * lfo2 * 0.08;
 
-            pcm[i] = (bass + mids + highs) * 0.9;
-          }
-        } else if (type === "Sweep") {
-          // Continuous log sweep from 20Hz to 5000Hz
-          const f0 = 20;
-          const f1 = 5000;
-          const r = Math.log(f1 / f0) / duration;
-          for (let i = 0; i < totalSamples; i++) {
-            const t = i / TARGET_SAMPLE_RATE;
-            const freq = f0 * Math.exp(r * t);
-            pcm[i] = Math.sin(2 * Math.PI * freq * t) * 0.5;
-          }
-        }
+          const workerCode = `
+            self.onmessage = function(e) {
+              const { type, duration, sampleRate } = e.data;
+              const totalSamples = sampleRate * duration;
+              const pcm = new Float32Array(totalSamples);
 
-        return pcm;
+              if (type === "Techno") {
+                const bpm = 140;
+                const beatLen = 60 / bpm;
+                const halfBeat = beatLen / 2;
+                const quarterBeat = beatLen / 4;
+                
+                for (let i = 0; i < totalSamples; i++) {
+                  const t = i / sampleRate;
+                  
+                  // Kick drum
+                  const tKick = t % beatLen;
+                  const freqKick = 45 + 150 * Math.exp(-tKick * 35);
+                  const kickEnv = Math.exp(-tKick * 10);
+                  const kick = Math.sin(2 * Math.PI * freqKick * tKick) * kickEnv * 0.7;
+                  const kickDist = Math.tanh(kick * 1.6);
+
+                  // Open Hi-hat
+                  const tHat = (t + halfBeat) % beatLen;
+                  const hatEnv = Math.exp(-tHat * 14);
+                  const hat = (Math.random() * 2 - 1) * hatEnv * 0.15;
+
+                  // Rolling Bassline
+                  const tBass = t % quarterBeat;
+                  const bassStep = Math.floor(t / quarterBeat) % 16;
+                  let bassAccent = 0.0;
+                  if (bassStep % 4 === 1 || bassStep % 4 === 3) {
+                    bassAccent = 0.22;
+                  } else if (bassStep % 4 === 2) {
+                    bassAccent = 0.35;
+                  }
+                  const bassEnv = Math.exp(-tBass * 18);
+                  const freqBass = 55.0;
+                  const phaseBass = t * freqBass;
+                  const sawBass = 2.0 * (phaseBass - Math.floor(phaseBass + 0.5));
+                  const bass = sawBass * bassEnv * bassAccent;
+
+                  // Synth lead
+                  const tSynth = t % (quarterBeat * 2);
+                  const synthStep = Math.floor(t / (quarterBeat * 2)) % 16;
+                  const melody = [110, 110, 130.81, 0, 164.81, 146.83, 110, 0, 110, 130.81, 164.81, 196.00, 164.81, 146.83, 110, 0];
+                  const freqSynth = melody[synthStep];
+                  let synth = 0;
+                  if (freqSynth > 0) {
+                    const synthEnv = Math.exp(-tSynth * 8);
+                    const phaseSynth = t * freqSynth;
+                    const sqSynth = Math.sign(Math.sin(2 * Math.PI * phaseSynth));
+                    synth = sqSynth * synthEnv * 0.08;
+                  }
+
+                  pcm[i] = (kickDist * 0.55 + hat * 0.25 + bass * 0.35 + synth * 0.2) * 0.9;
+                }
+              } else if (type === "Ambient") {
+                for (let i = 0; i < totalSamples; i++) {
+                  const t = i / sampleRate;
+                  const bass = (Math.sin(2 * Math.PI * 65 * t) + Math.sin(2 * Math.PI * 98 * t)) * 0.3;
+                  const lfo1 = 0.5 + 0.5 * Math.sin(2 * Math.PI * 0.15 * t);
+                  const mids = (Math.sin(2 * Math.PI * 261 * t) + Math.sin(2 * Math.PI * 329 * t) + Math.sin(2 * Math.PI * 392 * t)) * lfo1 * 0.2;
+                  const lfo2 = 0.5 + 0.5 * Math.cos(2 * Math.PI * 0.4 * t);
+                  const highs = Math.sin(2 * Math.PI * 2500 * t) * lfo2 * 0.08;
+                  pcm[i] = (bass + mids + highs) * 0.9;
+                }
+              } else if (type === "Sweep") {
+                const f0 = 20;
+                const f1 = 5000;
+                const r = Math.log(f1 / f0) / duration;
+                for (let i = 0; i < totalSamples; i++) {
+                  const t = i / sampleRate;
+                  const freq = f0 * Math.exp(r * t);
+                  pcm[i] = Math.sin(2 * Math.PI * freq * t) * 0.5;
+                }
+              }
+
+              self.postMessage(pcm, [pcm.buffer]);
+            };
+          `;
+
+          const blob = new Blob([workerCode], { type: "application/javascript" });
+          const workerUrl = URL.createObjectURL(blob);
+          audioWorker = new Worker(workerUrl);
+
+          audioWorker.onmessage = (e) => {
+            URL.revokeObjectURL(workerUrl);
+            resolve(e.data);
+          };
+
+          audioWorker.postMessage({ type, duration, sampleRate });
+        });
       }
 
       async function loadPreset(name) {
         stopAudio();
         setStatus(`Generating ${name} Loop...`);
+        
+        // Yield control to let UI paint status message first
+        await new Promise(resolve => setTimeout(resolve, 50));
+
         const t0 = performance.now();
-        const pcm = generateSyntheticAudio(name);
+        const pcm = await generateSyntheticAudioInBackground(name, PRESET_DURATION, TARGET_SAMPLE_RATE);
         const elapsed = performance.now() - t0;
 
         cachedDecode = {
@@ -846,21 +1367,27 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
         stopAudio();
         setStatus("Reading file...");
         const arrayBuffer = await file.arrayBuffer();
-        
+
         setStatus("Decoding audio channel...");
-        
+
         // Yield control to let status text draw
-        await new Promise(resolve => setTimeout(resolve, 50));
-        
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
         const t0 = performance.now();
-        
+
         // Downsample directly to our target sample rate
         const decodeCtx = new OfflineAudioContext(1, 1, TARGET_SAMPLE_RATE);
         const audioBuffer = await decodeCtx.decodeAudioData(arrayBuffer);
 
         // Correctly calculate target length at the target sample rate instead of using audioBuffer.length
-        const targetLength = Math.ceil(audioBuffer.duration * TARGET_SAMPLE_RATE);
-        const monoCtx = new OfflineAudioContext(1, targetLength, TARGET_SAMPLE_RATE);
+        const targetLength = Math.ceil(
+          audioBuffer.duration * TARGET_SAMPLE_RATE,
+        );
+        const monoCtx = new OfflineAudioContext(
+          1,
+          targetLength,
+          TARGET_SAMPLE_RATE,
+        );
         const source = monoCtx.createBufferSource();
         source.buffer = audioBuffer;
         source.connect(monoCtx.destination);
@@ -874,12 +1401,12 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
           pcm: pcm,
           sampleRate: TARGET_SAMPLE_RATE,
           duration: audioBuffer.duration,
-          decodeTimeMs: elapsed
+          decodeTimeMs: elapsed,
         };
 
         activePresetName = null;
         selectedFileEl.textContent = `File: ${file.name}`;
-        
+
         await runAnalysisAndRender();
       }
 
@@ -896,39 +1423,52 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
       function startAudio() {
         if (!cachedDecode) return;
         initAudioContext();
-        
+
         // Stop current
         if (audioSourceNode) {
-          try { audioSourceNode.stop(); } catch(e){}
+          try {
+            audioSourceNode.stop();
+          } catch (e) {}
         }
 
         // Create buffer
-        const buffer = audioCtx.createBuffer(1, cachedDecode.pcm.length, cachedDecode.sampleRate);
+        const buffer = audioCtx.createBuffer(
+          1,
+          cachedDecode.pcm.length,
+          cachedDecode.sampleRate,
+        );
         buffer.getChannelData(0).set(cachedDecode.pcm);
 
         audioSourceNode = audioCtx.createBufferSource();
         audioSourceNode.buffer = buffer;
         audioSourceNode.connect(audioCtx.destination);
-        
+
         // Set pitch
         const pRate = parseFloat(playbackRateInput.value);
         audioSourceNode.playbackRate.value = pRate;
 
         // Start from current offset
-        if (playbackOffsetTime >= cachedDecode.duration || playbackOffsetTime < 0) {
+        if (
+          playbackOffsetTime >= cachedDecode.duration ||
+          playbackOffsetTime < 0
+        ) {
           playbackOffsetTime = 0;
         }
 
         audioSourceNode.start(0, playbackOffsetTime);
-        playbackStartTime = audioCtx.currentTime - (playbackOffsetTime / pRate);
-        
+        playbackStartTime = audioCtx.currentTime - playbackOffsetTime / pRate;
+
         isPlaying = true;
         playBtn.textContent = "Stop Audio";
         playbackScrubber.style.display = "block";
 
         audioSourceNode.onended = () => {
           // If ended naturally
-          if (isPlaying && (audioCtx.currentTime - playbackStartTime) * pRate >= cachedDecode.duration - 0.1) {
+          if (
+            isPlaying &&
+            (audioCtx.currentTime - playbackStartTime) * pRate >=
+              cachedDecode.duration - 0.1
+          ) {
             stopAudio();
           }
         };
@@ -942,9 +1482,11 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
         isPlaying = false;
         playBtn.textContent = "Play Audio";
         playbackScrubber.style.display = "none";
-        
+
         if (audioSourceNode) {
-          try { audioSourceNode.stop(); } catch(e){}
+          try {
+            audioSourceNode.stop();
+          } catch (e) {}
           audioSourceNode = null;
         }
         if (animationFrameId) {
@@ -956,7 +1498,7 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
       function seekAudio(percent) {
         if (!cachedDecode) return;
         playbackOffsetTime = percent * cachedDecode.duration;
-        
+
         if (isPlaying) {
           startAudio();
         } else {
@@ -975,9 +1517,9 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
         const pRate = parseFloat(playbackRateInput.value);
         const elapsed = (audioCtx.currentTime - playbackStartTime) * pRate;
         const percent = Math.min(elapsed / cachedDecode.duration, 1);
-        
+
         updateScrubberVisual(percent);
-        
+
         if (percent < 1) {
           animationFrameId = requestAnimationFrame(tickScrubber);
         } else {
@@ -988,13 +1530,13 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
       // Analysis & Rendering
       async function runAnalysisAndRender() {
         if (!cachedDecode) return;
-        
+
         try {
           await ensureWasmInit();
           setStatus("Running audio analysis...");
 
           const dspOpts = getDspOptions();
-          
+
           metricDecode.textContent = `${(cachedDecode.decodeTimeMs / 1000).toFixed(2)}s`;
 
           // 1. Analyze PCM (high-res, max 1000 frames)
@@ -1004,7 +1546,11 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
             latestAnalysis = null;
           }
           const mainDspOpts = { ...dspOpts, max_target_frames: 1000 };
-          latestAnalysis = wasmAnalyzeWithOptions(cachedDecode.pcm, cachedDecode.sampleRate, mainDspOpts);
+          latestAnalysis = wasmAnalyzeWithOptions(
+            cachedDecode.pcm,
+            cachedDecode.sampleRate,
+            mainDspOpts,
+          );
           const tAnalyze = performance.now() - t0;
           metricAnalyze.textContent = `${(tAnalyze / 1000).toFixed(3)}s`;
           metricFrames.textContent = `${latestAnalysis.frame_count()} frames`;
@@ -1012,12 +1558,12 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
           // 2. Render Main SVG (synchronous, instant feedback)
           setStatus("Rendering active moodbar...");
           const t1 = performance.now();
-          
+
           const svgMarkup = wasmSvg(latestAnalysis, {
             width: 900,
             height: 120,
             shape: shapeSelect.value,
-            background: "transparent"
+            background: "transparent",
           });
           outputEl.innerHTML = svgMarkup;
           const tRender = performance.now() - t1;
@@ -1039,7 +1585,7 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
           width: 1200,
           height: 160,
           shape: shapeSelect.value,
-          background: "transparent"
+          background: "transparent",
         });
         const blob = new Blob([svgMarkup], { type: "image/svg+xml" });
         const url = URL.createObjectURL(blob);
@@ -1058,7 +1604,7 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
           const pngBytes = wasmPng(latestAnalysis, {
             width: 1200,
             height: 160,
-            shape: shapeSelect.value
+            shape: shapeSelect.value,
           });
           const blob = new Blob([pngBytes], { type: "image/png" });
           const url = URL.createObjectURL(blob);
@@ -1078,11 +1624,13 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
       const presetButtons = {
         Techno: presetTechno,
         Ambient: presetAmbient,
-        Sweep: presetSweep
+        Sweep: presetSweep,
       };
       Object.entries(presetButtons).forEach(([name, btn]) => {
         btn.addEventListener("click", () => {
-          Object.values(presetButtons).forEach(b => b.classList.remove("active"));
+          Object.values(presetButtons).forEach((b) =>
+            b.classList.remove("active"),
+          );
           btn.classList.add("active");
           void loadPreset(name);
         });
@@ -1091,7 +1639,9 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
       // Helper for file handling
       function handleAudioFileSelected(file) {
         if (!file) return;
-        Object.values(presetButtons).forEach(b => b.classList.remove("active"));
+        Object.values(presetButtons).forEach((b) =>
+          b.classList.remove("active"),
+        );
         setStatus("Reading file...");
         setTimeout(() => {
           void decodeFile(file);
@@ -1130,7 +1680,7 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
         void runAnalysisAndRender();
       });
 
-      [customColorLow, customColorMid, customColorHigh].forEach( picker => {
+      [customColorLow, customColorMid, customColorHigh].forEach((picker) => {
         picker.addEventListener("input", () => {
           void runAnalysisAndRender();
         });
@@ -1146,7 +1696,14 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
       });
 
       // Event Listeners: DSP parameters
-      [fftSizeSelect, normalizeModeSelect, detectionModeSelect, framesPerColorInput, lowCutInput, midCutInput].forEach(ctrl => {
+      [
+        fftSizeSelect,
+        normalizeModeSelect,
+        detectionModeSelect,
+        framesPerColorInput,
+        lowCutInput,
+        midCutInput,
+      ].forEach((ctrl) => {
         ctrl.addEventListener("change", () => {
           void runAnalysisAndRender();
         });
@@ -1176,17 +1733,19 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
         navigator.clipboard.writeText(configJsonCode.textContent).then(() => {
           const oldText = copyConfigBtn.textContent;
           copyConfigBtn.textContent = "Copied!";
-          setTimeout(() => copyConfigBtn.textContent = oldText, 1500);
+          setTimeout(() => (copyConfigBtn.textContent = oldText), 1500);
         });
       });
 
       // Document Tabs
       const tabHeaders = document.querySelectorAll(".tab-header");
-      tabHeaders.forEach(header => {
+      tabHeaders.forEach((header) => {
         header.addEventListener("click", () => {
           // Remove active
-          tabHeaders.forEach(h => h.classList.remove("active"));
-          document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+          tabHeaders.forEach((h) => h.classList.remove("active"));
+          document
+            .querySelectorAll(".tab-panel")
+            .forEach((p) => p.classList.remove("active"));
 
           // Add active
           header.classList.add("active");
@@ -1199,7 +1758,7 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
       function handleHashChange() {
         const hash = window.location.hash.toLowerCase();
         let targetTabId = "";
-        
+
         if (hash === "#cli") {
           targetTabId = "cli-tab";
         } else if (hash === "#wasm") {
@@ -1209,9 +1768,11 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
         } else if (hash === "#ffi") {
           targetTabId = "ffi-tab";
         }
-        
+
         if (targetTabId) {
-          const header = Array.from(tabHeaders).find(h => h.getAttribute("data-tab") === targetTabId);
+          const header = Array.from(tabHeaders).find(
+            (h) => h.getAttribute("data-tab") === targetTabId,
+          );
           if (header) {
             header.click();
             // Scroll to integration section
@@ -1242,8 +1803,10 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
       const lightboxClose = lightbox.querySelector("#lightboxClose");
 
       // Add pointer cursor to preview images in gallery to show they are clickable
-      const galleryPreviews = document.querySelectorAll(".showcase-preview img");
-      galleryPreviews.forEach(img => {
+      const galleryPreviews = document.querySelectorAll(
+        ".showcase-preview img",
+      );
+      galleryPreviews.forEach((img) => {
         img.style.cursor = "zoom-in";
         img.addEventListener("click", () => {
           lightboxImg.src = img.src;
@@ -1274,7 +1837,7 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
         try {
           await ensureWasmInit();
           void loadPreset("Techno");
-        } catch(e) {
+        } catch (e) {
           setStatus(e.message, true);
         }
       });
