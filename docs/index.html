@@ -1134,6 +1134,7 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
       let playbackOffsetTime = 0;
       let animationFrameId = null;
       let audioWorker = null;
+      const presetCache = {};
 
       const TARGET_SAMPLE_RATE = 11025;
       const PRESET_DURATION = 90;
@@ -1339,14 +1340,24 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
 
       async function loadPreset(name) {
         stopAudio();
-        setStatus(`Generating ${name} Loop...`);
         
-        // Yield control to let UI paint status message first
-        await new Promise(resolve => setTimeout(resolve, 50));
+        let pcm = presetCache[name];
+        let elapsed = 0;
 
-        const t0 = performance.now();
-        const pcm = await generateSyntheticAudioInBackground(name, PRESET_DURATION, TARGET_SAMPLE_RATE);
-        const elapsed = performance.now() - t0;
+        if (!pcm) {
+          setStatus(`Generating ${name} Loop...`);
+          // Yield control to let UI paint status message first
+          await new Promise(resolve => setTimeout(resolve, 50));
+
+          const t0 = performance.now();
+          pcm = await generateSyntheticAudioInBackground(name, PRESET_DURATION, TARGET_SAMPLE_RATE);
+          elapsed = performance.now() - t0;
+          presetCache[name] = pcm;
+        } else {
+          setStatus(`Loading ${name} Loop from cache...`);
+          // Yield control to let UI paint status message first
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
 
         cachedDecode = {
           pcm: pcm,
