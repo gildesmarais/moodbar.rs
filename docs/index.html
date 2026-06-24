@@ -1074,33 +1074,33 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
       }
 
       // Event Listeners: Presets
-      presetTechno.addEventListener("click", () => {
-        ["presetAmbient", "presetSweep"].forEach(p => document.getElementById(p).classList.remove("active"));
-        presetTechno.classList.add("active");
-        void loadPreset("Techno");
+      const presetButtons = {
+        Techno: presetTechno,
+        Ambient: presetAmbient,
+        Sweep: presetSweep
+      };
+      Object.entries(presetButtons).forEach(([name, btn]) => {
+        btn.addEventListener("click", () => {
+          Object.values(presetButtons).forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          void loadPreset(name);
+        });
       });
-      presetAmbient.addEventListener("click", () => {
-        ["presetTechno", "presetSweep"].forEach(p => document.getElementById(p).classList.remove("active"));
-        presetAmbient.classList.add("active");
-        void loadPreset("Ambient");
-      });
-      presetSweep.addEventListener("click", () => {
-        ["presetTechno", "presetAmbient"].forEach(p => document.getElementById(p).classList.remove("active"));
-        presetSweep.classList.add("active");
-        void loadPreset("Sweep");
-      });
+
+      // Helper for file handling
+      function handleAudioFileSelected(file) {
+        if (!file) return;
+        Object.values(presetButtons).forEach(b => b.classList.remove("active"));
+        setStatus("Reading file...");
+        setTimeout(() => {
+          void decodeFile(file);
+        }, 50);
+      }
 
       // Event Listeners: File drop
       dropZone.addEventListener("click", () => audioFileInput.click());
       audioFileInput.addEventListener("change", () => {
-        const file = audioFileInput.files?.[0];
-        if (file) {
-          ["presetTechno", "presetAmbient", "presetSweep"].forEach(p => document.getElementById(p).classList.remove("active"));
-          setStatus("Reading file...");
-          setTimeout(() => {
-            void decodeFile(file);
-          }, 50);
-        }
+        handleAudioFileSelected(audioFileInput.files?.[0]);
       });
 
       dropZone.addEventListener("dragover", (e) => {
@@ -1113,14 +1113,7 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
       dropZone.addEventListener("drop", (e) => {
         e.preventDefault();
         dropZone.classList.remove("active");
-        const file = e.dataTransfer?.files?.[0];
-        if (file) {
-          ["presetTechno", "presetAmbient", "presetSweep"].forEach(p => document.getElementById(p).classList.remove("active"));
-          setStatus("Reading file...");
-          setTimeout(() => {
-            void decodeFile(file);
-          }, 50);
-        }
+        handleAudioFileSelected(e.dataTransfer?.files?.[0]);
       });
 
       // Event Listeners: Visual settings
