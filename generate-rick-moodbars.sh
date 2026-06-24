@@ -90,14 +90,14 @@ echo "Generating: 6. Classic Strip [Classic Theme] -> $OUT_DIR/classic-strip.png
   --output "$OUT_DIR/classic-strip.png" \
   --force
 
-# 7. Split Waveform SVG (Vector Output example)
-echo "Generating: 7. Split Waveform SVG [Classic Theme] -> $OUT_DIR/classic-split-waveform.svg"
+# 7. Split Waveform PNG
+echo "Generating: 7. Split Waveform PNG [Classic Theme] -> $OUT_DIR/classic-split-waveform.png"
 ./target/release/moodbar generate \
   -i "$INPUT" \
-  --format svg \
+  --format png \
   --svg-shape split-waveform \
   --theme classic \
-  --output "$OUT_DIR/classic-split-waveform.svg" \
+  --output "$OUT_DIR/classic-split-waveform.png" \
   --force
 
 echo ""
