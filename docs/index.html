@@ -6,167 +6,924 @@
     <title>Moodbar.rs | Cross-Platform Music Visualization Toolkit</title>
     <meta
       name="description"
-      content="Moodbar.rs is the cross-platform moodbar comeback for audio developers and OSS contributors."
+      content="Moodbar.rs is the modern moodbar toolkit for audio developers. Pure Rust DSP core, CLI tool, WebAssembly, and Native iOS/Android bindings."
     />
     <link rel="stylesheet" href="./assets/ui.css" />
+    <!-- GoatCounter Analytics Script -->
+    <script
+      data-goatcounter="https://moodbar-rs.goatcounter.com/count"
+      async
+      src="//gc.zgo.at/count.js"
+    ></script>
   </head>
-  <body class="page-home">
-    <main>
-      <span class="topline">MOODBAR.RS / CROSS-PLATFORM COMEBACK</span>
-      <h1>Moodbars are back.</h1>
-      <p class="lede">
-        The classic audio visualization, rebuilt for modern developers. One Rust
-        core. CLI, Web, and Native bindings.
-      </p>
-
-      <div class="cta">
-        <a class="btn primary" href="./wasm-demo.html">Try Browser Demo</a>
-        <a class="btn" href="https://github.com/gildesmarais/moodbar.rs"
-          >View Source</a
-        >
+  <body>
+    <header>
+      <div class="nav-container">
+        <a href="#" class="brand">MOODBAR<span>.RS</span></a>
+        <nav>
+          <a href="#playground">Playground</a>
+          <a href="#gallery">Gallery</a>
+          <a href="#integration">Integration</a>
+          <a href="#history">History</a>
+          <a href="#concepts">Concepts</a>
+        </nav>
       </div>
+    </header>
 
-      <section class="section example hero-example" style="margin-top: 2rem">
-        <figure>
-          <img
-            src="./assets/waveform.png"
-            alt="Modern Waveform Output"
-            width="1200"
-            height="96"
-          />
-          <figcaption>
-            Pinpoint drops and structural changes at a glance before you listen.
-          </figcaption>
-        </figure>
-      </section>
-
-      <section class="section value-props">
-        <h2>Why Moodbar.rs?</h2>
-        <div class="grid-features">
-          <div class="feature">
-            <h3>Cross-Platform</h3>
-            <p>
-              Deploy anywhere. Native bindings for iOS/Android, WASM for the
-              browser, and a powerful CLI.
-            </p>
-          </div>
-          <div class="feature">
-            <h3>Modern Formats</h3>
-            <p>
-              Generate SVG and PNG rendering paths, or use legacy-compatible raw
-              output.
-            </p>
-          </div>
-          <div class="feature">
-            <h3>Pure Rust Core</h3>
-            <p>
-              A single, optimized DSP pipeline ensures identical audio analysis
-              across all platforms.
-            </p>
+    <main>
+      <!-- Hero Section -->
+      <section class="hero">
+        <div>
+          <span class="topline"> Cross-Platform Audio Blueprint </span>
+          <h1>Audio Visuals for <span>Music Apps.</span></h1>
+          <p class="lede">
+            Rebuilding the classic KDE Amarok timeline moodbars. Decode audio,
+            run FFT analysis, and render high-impact color signatures across
+            CLI, Web, iOS, and Android.
+          </p>
+          <div class="hero-cta">
+            <a href="#playground" class="btn primary">Try live playground</a>
+            <a
+              href="https://github.com/gildesmarais/moodbar.rs"
+              class="btn"
+              target="_blank"
+              rel="noopener noreferrer"
+              >View Github</a
+            >
           </div>
         </div>
       </section>
 
-      <section class="section packages">
-        <h2>Published Packages & Source</h2>
-        <div class="bullets">
-          <ul>
-            <li>
-              Legacy-compatible raw moodbar output. (<a
-                href="https://crates.io/crates/moodbar"
-                target="_blank"
-                rel="noopener noreferrer"
-                >crates.io/crates/moodbar</a
-              >)
-            </li>
-            <li>
-              WASM bindings for browser-first workflows. (<a
-                href="https://www.npmjs.com/package/@moodbar/wasm"
-                target="_blank"
-                rel="noopener noreferrer"
-                >npm: @moodbar/wasm</a
-              >)
-            </li>
-            <li>
-              Native mobile bindings for iOS/Android. (<a
-                href="https://www.npmjs.com/package/@moodbar/native"
-                target="_blank"
-                rel="noopener noreferrer"
-                >npm: @moodbar/native</a
-              >)
-            </li>
-            <li>
-              Amarok-era idea, portable and hackable. (<a
-                href="https://github.com/gildesmarais/moodbar.rs"
-                target="_blank"
-                rel="noopener noreferrer"
-                >GitHub Repository</a
-              >)
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <section class="section history">
-        <h2>What is a Moodbar?</h2>
-        <p>
-          A visual timeline of a song that maps frequencies and intensities to
-          colors. The <strong>classic strip</strong> shows you the overall mood
-          and progression of the track visually.
+      <!-- Playground / Sandbox -->
+      <section id="playground">
+        <h2>Interactive Sandbox</h2>
+        <p class="lede">
+          Test the WebAssembly DSP engine. Choose a synthetic generator loop or
+          upload your own audio to preview and seek the moodbar output.
         </p>
-        <div class="cta" style="margin-bottom: 1.5rem">
+
+        <div class="board">
+          <!-- Control Panel -->
+          <div class="controls-column">
+            <!-- Audio Source -->
+            <div class="card">
+              <h3 class="card-title">1. Audio Source</h3>
+              <div class="control-group">
+                <label>Instant Synthesizer Loops</label>
+                <div class="presets-grid">
+                  <button
+                    type="button"
+                    class="btn-preset active"
+                    id="presetTechno"
+                  >
+                    Techno Beat
+                  </button>
+                  <button type="button" class="btn-preset" id="presetAmbient">
+                    Ambient Drone
+                  </button>
+                  <button type="button" class="btn-preset" id="presetSweep">
+                    Freq Sweep
+                  </button>
+                </div>
+              </div>
+              <div class="or-divider">OR</div>
+              <div class="control-group">
+                <label>Upload Audio File</label>
+                <div class="dropzone" id="dropZone">
+                  <div class="dropzone-icon">⇪</div>
+                  <p>Drag & Drop audio here or <span>Browse</span></p>
+                  <input
+                    type="file"
+                    id="audioFile"
+                    accept="audio/*"
+                    style="display: none"
+                  />
+                </div>
+                <div class="selected-file-info" id="selectedFile">
+                  Preset: Techno Beat
+                </div>
+              </div>
+            </div>
+
+            <!-- Visual Settings -->
+            <div class="card">
+              <h3 class="card-title">2. Visual & Theme</h3>
+              <div class="control-group">
+                <label for="shape">Active Shape</label>
+                <select id="shape">
+                  <option value="Waveform">Waveform</option>
+                  <option value="Strip" selected>
+                    Strip (Classic Moodbar)
+                  </option>
+                  <option value="SplitStacked">Split Stacked (New)</option>
+                  <option value="SplitWaveform">Split Waveform (New)</option>
+                  <option value="SplitLanes">Split Lanes (New)</option>
+                  <option value="SplitCentrifugal">
+                    Split Centrifugal (New)
+                  </option>
+                  <option value="SplitOverlapping">
+                    Split Overlapping (New)
+                  </option>
+                </select>
+              </div>
+
+              <div class="control-group">
+                <label for="theme">Color Theme</label>
+                <select id="theme">
+                  <option value="Classic" selected>
+                    Classic (Purple/Orange/Blue)
+                  </option>
+                  <option value="Cool">Cool (Cyan/Blue/Green)</option>
+                  <option value="Light">Light (Pastels)</option>
+                  <option value="Custom">Custom Colors</option>
+                </select>
+              </div>
+
+              <div
+                id="customColorsWrapper"
+                class="control-group"
+                style="display: none"
+              >
+                <label>Custom Band Colors</label>
+                <div class="color-picker-grid">
+                  <div class="color-picker-item">
+                    <span>LOW</span>
+                    <input id="customColorLow" type="color" value="#dc14b4" />
+                  </div>
+                  <div class="color-picker-item">
+                    <span>MID</span>
+                    <input id="customColorMid" type="color" value="#f07800" />
+                  </div>
+                  <div class="color-picker-item">
+                    <span>HIGH</span>
+                    <input id="customColorHigh" type="color" value="#00a0f0" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="control-group">
+                <label for="playbackRate">Pitch Shift (Playback Rate)</label>
+                <div class="range-wrap">
+                  <input
+                    id="playbackRate"
+                    type="range"
+                    min="0.90"
+                    max="1.10"
+                    step="0.01"
+                    value="1.00"
+                  />
+                  <span id="playbackRateValue" class="range-val">1.00x</span>
+                </div>
+                <p class="help-text">
+                  Vinyl pitch shift effect. Faster = cooler colors, Slower =
+                  warmer colors.
+                </p>
+              </div>
+            </div>
+
+            <!-- DSP Parameters -->
+            <details class="card">
+              <summary class="card-title">
+                <span>3. Advanced DSP Settings</span>
+              </summary>
+              <div onclick="event.stopPropagation()">
+                <div class="control-group">
+                  <label for="fftSize">FFT Size</label>
+                  <select id="fftSize">
+                    <option value="512">512 samples</option>
+                    <option value="1024">1024 samples</option>
+                    <option value="2048" selected>2048 samples</option>
+                    <option value="4096">4096 samples</option>
+                  </select>
+                </div>
+                <div class="control-group">
+                  <label for="normalizeMode">Normalization Strategy</label>
+                  <select id="normalizeMode">
+                    <option value="PerChannelPeak" selected>
+                      Per-Channel Peak
+                    </option>
+                    <option value="GlobalPeak">Global Peak</option>
+                  </select>
+                </div>
+                <div class="control-group">
+                  <label for="detectionMode">Analysis Method</label>
+                  <select id="detectionMode">
+                    <option value="SpectralEnergy" selected>
+                      Spectral Energy
+                    </option>
+                    <option value="SpectralFlux">Spectral Flux</option>
+                  </select>
+                </div>
+                <div class="control-group">
+                  <label for="framesPerColor">Frames per Column</label>
+                  <input
+                    id="framesPerColor"
+                    type="number"
+                    min="1"
+                    max="10"
+                    value="1"
+                  />
+                </div>
+                <div class="crossover-grid">
+                  <div class="control-group">
+                    <label for="lowCut">Bass Crossover (Hz)</label>
+                    <input
+                      id="lowCut"
+                      type="number"
+                      min="20"
+                      max="1000"
+                      value="500"
+                    />
+                  </div>
+                  <div class="control-group">
+                    <label for="midCut">Treble Crossover (Hz)</label>
+                    <input
+                      id="midCut"
+                      type="number"
+                      min="1000"
+                      max="8000"
+                      value="2000"
+                    />
+                  </div>
+                </div>
+              </div>
+            </details>
+          </div>
+
+          <!-- Active Output & Showcase -->
+          <div class="output-column">
+            <!-- Active Output -->
+            <div class="card output-card">
+              <h3 class="card-title">Active Output <span>WASM render</span></h3>
+
+              <div class="render-box" id="activeRenderBox">
+                <!-- Vertical playback indicator scrubber -->
+                <div class="scrubber-cursor" id="playbackScrubber"></div>
+                <div
+                  class="scrubber-overlay"
+                  id="scrubberOverlay"
+                  title="Click to seek"
+                ></div>
+
+                <div id="output">
+                  <!-- SVG will be injected here -->
+                </div>
+              </div>
+
+              <!-- Audio Player Toolbar -->
+              <div class="player-actions">
+                <div class="playback-controls">
+                  <button type="button" class="btn primary" id="playBtn">
+                    Play Audio
+                  </button>
+                </div>
+                <div class="btn-row">
+                  <button type="button" class="btn" id="saveSvgButton">
+                    Save SVG
+                  </button>
+                  <button type="button" class="btn" id="savePngButton" disabled>
+                    Save PNG
+                  </button>
+                </div>
+              </div>
+
+              <div class="status-bar" id="status">Ready.</div>
+
+              <!-- Diagnostics -->
+              <div class="metrics-row">
+                <div class="metric-card">
+                  <span class="metric-label">Decode Time</span>
+                  <span class="metric-val" id="metricDecode">0.00s</span>
+                </div>
+                <div class="metric-card">
+                  <span class="metric-label">Analyze Time</span>
+                  <span class="metric-val" id="metricAnalyze">0.00s</span>
+                </div>
+                <div class="metric-card">
+                  <span class="metric-label">Render Time</span>
+                  <span class="metric-val" id="metricRender">0.00s</span>
+                </div>
+                <div class="metric-card">
+                  <span class="metric-label">Timeline Size</span>
+                  <span class="metric-val" id="metricFrames">0 frames</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Config Generator -->
+            <div class="card">
+              <h3 class="card-title">
+                Active Config <span>Copy JSON into code</span>
+              </h3>
+              <div class="code-block-header">
+                <span>options.json</span>
+                <span id="copyConfigBtn">Copy JSON</span>
+              </div>
+              <pre><code class="dynamic-json" id="configJsonCode">{ }</code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pre-rendered Showcase Gallery Section -->
+      <section id="gallery">
+        <h2>Showcase Gallery</h2>
+        <p class="lede">
+          Visual footprints generated
           <a
-            class="btn"
-            href="https://en.wikipedia.org/wiki/Moodbar"
+            href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
             target="_blank"
             rel="noopener noreferrer"
-            >Wikipedia</a
-          >
-          <a
-            class="btn"
-            href="https://userbase.kde.org/Amarok/Manual/Various/Moodbar"
-            target="_blank"
-            rel="noopener noreferrer"
-            >KDE Manual</a
-          >
-        </div>
-        <figure>
-          <img
-            src="./assets/strip.png"
-            alt="Classic Strip Output"
-            width="1200"
-            height="96"
-          />
-          <figcaption>Classic Strip View</figcaption>
-        </figure>
-      </section>
-
-      <section class="section">
-        <h2>React Native Integration</h2>
-        <p>
-          The <code>@moodbar/native</code> package provides drop-in React Native
-          / Expo support. It uses the exact same Rust core for DSP via C ABI
-          bindings.
+            >from this song</a
+          >. Can you recognize its structure, drops, and changes from the color
+          signatures?
         </p>
-        <pre><code>import { analyze, render } from '@moodbar/native';
 
-// Pass advanced DSP options via JSON
-const options = { normalize_mode: "GlobalPeak", frames_per_color: 2 };
+        <div class="showcase-grid">
+          <!-- Item 1: Classic Waveform -->
+          <div class="showcase-card">
+            <div class="showcase-header">
+              <span class="showcase-title">Classic Waveform</span>
+              <span class="showcase-badge">Classic Theme</span>
+            </div>
+            <div class="showcase-preview showcase-preview-small">
+              <img
+                src="./assets/rick/classic-waveform.png"
+                alt="Classic Waveform from this song"
+              />
+            </div>
+            <div class="showcase-desc">
+              Rendered with <code>--svg-shape waveform --theme classic</code>.
+              An amplitude envelope styled with frequency color stops.
+            </div>
+          </div>
 
-// Analyze audio and render
-const analysis = await analyze({ uri: '/path/to/audio.flac' }, options);
-const pngBytes = await render(analysis, "png", { width: 1000, height: 100 });
-</code></pre>
+          <!-- Item 2: Split Stacked -->
+          <div class="showcase-card">
+            <div class="showcase-header">
+              <span class="showcase-title">Split Stacked</span>
+              <span class="showcase-badge">Classic Theme</span>
+            </div>
+            <div class="showcase-preview showcase-preview-small">
+              <img
+                src="./assets/rick/classic-split-stacked.png"
+                alt="Split Stacked Classic from this song"
+              />
+            </div>
+            <div class="showcase-desc">
+              Rendered with
+              <code>--svg-shape split-stacked --theme classic</code>. Separate
+              bass, midrange, and treble columns stacked vertically.
+            </div>
+          </div>
+
+          <!-- Item 3: Split Lanes -->
+          <div class="showcase-card">
+            <div class="showcase-header">
+              <span class="showcase-title">Split Lanes</span>
+              <span class="showcase-badge">Cool Theme</span>
+            </div>
+            <div class="showcase-preview showcase-preview-small">
+              <img
+                src="./assets/rick/cool-split-lanes.png"
+                alt="Split Lanes Cool from this song"
+              />
+            </div>
+            <div class="showcase-desc">
+              Rendered with <code>--svg-shape split-lanes --theme cool</code>.
+              Cyan/blue/green color mapping separating frequency lanes.
+            </div>
+          </div>
+
+          <!-- Item 4: Split Centrifugal -->
+          <div class="showcase-card">
+            <div class="showcase-header">
+              <span class="showcase-title">Split Centrifugal</span>
+              <span class="showcase-badge">Light Theme</span>
+            </div>
+            <div class="showcase-preview showcase-preview-small">
+              <img
+                src="./assets/rick/light-split-centrifugal.png"
+                alt="Split Centrifugal Light from this song"
+              />
+            </div>
+            <div class="showcase-desc">
+              Rendered with
+              <code>--svg-shape split-centrifugal --theme light</code>. Pastel
+              tone distribution pushing lows and mids outward.
+            </div>
+          </div>
+
+          <!-- Item 5: Split Overlapping -->
+          <div class="showcase-card">
+            <div class="showcase-header">
+              <span class="showcase-title">Split Overlapping</span>
+              <span class="showcase-badge">Custom Colors</span>
+            </div>
+            <div class="showcase-preview showcase-preview-small">
+              <img
+                src="./assets/rick/custom-split-overlapping.png"
+                alt="Split Overlapping Custom from this song"
+              />
+            </div>
+            <div class="showcase-desc">
+              Rendered with
+              <code
+                >--svg-shape split-overlapping --colors
+                "#e91e63,#00ffcc,#ffeb3b"</code
+              >. Translucent overlapping channels.
+            </div>
+          </div>
+
+          <!-- Item 6: Classic Strip -->
+          <div class="showcase-card">
+            <div class="showcase-header">
+              <span class="showcase-title">Classic Strip</span>
+              <span class="showcase-badge">Classic Theme</span>
+            </div>
+            <div class="showcase-preview showcase-preview-small">
+              <img
+                src="./assets/rick/classic-strip.png"
+                alt="Classic Strip from this song"
+              />
+            </div>
+            <div class="showcase-desc">
+              Rendered with <code>--svg-shape strip --theme classic</code>. Flat
+              legacy bar representation of track frequencies.
+            </div>
+          </div>
+        </div>
       </section>
 
-      <section class="section">
-        <h2>CLI Quick Start</h2>
-        <pre><code>cargo install moodbar
-moodbar generate -i input.flac -o output.svg --format svg
-moodbar --help</code></pre>
+      <!-- Developer Integration Guide (Information Architecture) -->
+      <section id="integration">
+        <h2>Developer Integration</h2>
+        <p class="lede">
+          Moodbar.rs is built to deploy anywhere. Choose your platform block to
+          view integration patterns.
+        </p>
+
+        <div class="tabs-container">
+          <!-- Headers -->
+          <div class="tabs-headers">
+            <button class="tab-header active" data-tab="cli-tab">
+              Command Line CLI
+            </button>
+            <button class="tab-header" data-tab="wasm-tab">
+              WebAssembly JS
+            </button>
+            <button class="tab-header" data-tab="mobile-tab">
+              React Native Expo
+            </button>
+            <button class="tab-header" data-tab="ffi-tab">
+              Rust Core & FFI
+            </button>
+          </div>
+
+          <!-- Tab Content 1: CLI -->
+          <div class="tab-panel active" id="cli-tab">
+            <div class="docs-grid">
+              <div>
+                <h3>Command Line Tools</h3>
+                <p style="margin-bottom: 1rem">
+                  Generate moodbars inside local build systems, directories, or
+                  scripts. Compile directly from crates.io with the native
+                  decoder.
+                  <a
+                    href="https://crates.io/crates/moodbar"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >View moodbar on Crates.io</a
+                  >
+                </p>
+                <pre><code><span class="comment"># Install CLI tool globally</span>
+cargo install moodbar --features="decode,png"
+
+<span class="comment"># Output a Waveform SVG</span>
+moodbar generate -i song.flac -o signature.svg --format svg --shape Waveform
+
+<span class="comment"># Batch convert an entire folder using all CPU cores</span>
+moodbar batch -i ./music -o ./moodbars --format png --shape SplitStacked</code></pre>
+              </div>
+              <div class="card">
+                <h4 style="color: var(--accent); margin-bottom: 0.75rem">
+                  CLI Reference
+                </h4>
+                <p
+                  style="
+                    font-size: 0.85rem;
+                    line-height: 1.5;
+                    margin-bottom: 0.75rem;
+                  "
+                >
+                  <strong>--format</strong>: <code>svg</code>, <code>png</code>,
+                  <code>raw</code> (Amarok legacy bytes).
+                </p>
+                <p
+                  style="
+                    font-size: 0.85rem;
+                    line-height: 1.5;
+                    margin-bottom: 0.75rem;
+                  "
+                >
+                  <strong>--shape</strong>: <code>Strip</code>,
+                  <code>Waveform</code>, <code>SplitStacked</code>,
+                  <code>SplitWaveform</code>, <code>SplitLanes</code>,
+                  <code>SplitCentrifugal</code>, <code>SplitOverlapping</code>.
+                </p>
+                <p style="font-size: 0.85rem; line-height: 1.5">
+                  <strong>--fft-size</strong>: Power of 2 window size (64 to
+                  8192).
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab Content 2: WASM -->
+          <div class="tab-panel" id="wasm-tab">
+            <div class="docs-grid">
+              <div>
+                <h3>WebAssembly Integration</h3>
+                <p style="margin-bottom: 1rem">
+                  Deploy interactive, responsive moodbars on the web. Decodes
+                  audio in the browser via <code>OfflineAudioContext</code> and
+                  runs DSP in Rust WASM.
+                  <a
+                    href="https://www.npmjs.com/package/@moodbar/wasm"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >View @moodbar/wasm on NPM</a
+                  >
+                </p>
+                <pre><code>import init, { analyze_with_options, svg, png } from '@moodbar/wasm';
+
+<span class="comment">// 1. Load WASM module</span>
+await init();
+
+<span class="comment">// 2. Decode file to mono PCM using Web Audio API</span>
+const audioCtx = new OfflineAudioContext(1, duration * 11025, 11025);
+const audioBuffer = await audioCtx.decodeAudioData(fileBuffer);
+const pcm = audioBuffer.getChannelData(0);
+
+<span class="comment">// 3. Run Rust DSP engine</span>
+const analysis = analyze_with_options(pcm, 11025, {
+  fft_size: 2048,
+  normalize_mode: 'PerChannelPeak'
+});
+
+<span class="comment">// 4. Render directly to vector SVG string</span>
+const svgMarkup = svg(analysis, {
+  shape: 'SplitStacked',
+  width: 900,
+  height: 96
+});
+document.getElementById('container').innerHTML = svgMarkup;</code></pre>
+              </div>
+              <div class="card">
+                <h4 style="color: var(--accent); margin-bottom: 0.75rem">
+                  NPM WebAssembly
+                </h4>
+                <p
+                  style="
+                    font-size: 0.85rem;
+                    line-height: 1.5;
+                    margin-bottom: 0.75rem;
+                  "
+                >
+                  <strong>Size</strong>: ~180KB gzipped WASM payload.
+                </p>
+                <p
+                  style="
+                    font-size: 0.85rem;
+                    line-height: 1.5;
+                    margin-bottom: 0.75rem;
+                  "
+                >
+                  <strong>Performance</strong>: Blazing fast analysis (&lt;40ms
+                  for 60s of audio after decoding).
+                </p>
+                <p style="font-size: 0.85rem; line-height: 1.5">
+                  <strong>No Backend required</strong>: Client-side standalone
+                  visualization.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab Content 3: Mobile -->
+          <div class="tab-panel" id="mobile-tab">
+            <div class="docs-grid">
+              <div>
+                <h3>Expo / React Native Module</h3>
+                <p style="margin-bottom: 1rem">
+                  Native mobile bindings for high-performance audio scrubbing.
+                  Ships pre-built iOS XCFramework static library and Android JNI
+                  binaries.
+                  <a
+                    href="https://www.npmjs.com/package/@moodbar/native"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >View @moodbar/native on NPM</a
+                  >
+                </p>
+                <pre><code>import { analyze, render } from '@moodbar/native';
+
+<span class="comment">// 1. Run native decoding & analysis on background thread</span>
+const analysis = await analyze({
+  uri: 'file:///path/to/song.m4a'
+}, {
+  normalize_mode: 'GlobalPeak',
+  fft_size: 1024
+});
+
+<span class="comment">// 2. Generate PNG bytes as base64 or file</span>
+const pngResult = await render(analysis, 'png', {
+  shape: 'SplitLanes',
+  width: 800,
+  height: 120
+});
+
+<span class="comment">// 3. Dispose of handle in Rust registry to clear memory</span>
+analysis.dispose();</code></pre>
+              </div>
+              <div class="card">
+                <h4 style="color: var(--accent); margin-bottom: 0.75rem">
+                  Mobile Packaging
+                </h4>
+                <p
+                  style="
+                    font-size: 0.85rem;
+                    line-height: 1.5;
+                    margin-bottom: 0.75rem;
+                  "
+                >
+                  <strong>Android ABIs</strong>: Includes compiled libraries for
+                  <code>arm64-v8a</code>, <code>armeabi-v7a</code>,
+                  <code>x86</code>, and <code>x86_64</code>.
+                </p>
+                <p
+                  style="
+                    font-size: 0.85rem;
+                    line-height: 1.5;
+                    margin-bottom: 0.75rem;
+                  "
+                >
+                  <strong>iOS Support</strong>: Static binaries packed into a
+                  fat <code>MoodbarNativeFFI.xcframework</code> supporting real
+                  devices and simulator architectures.
+                </p>
+                <p
+                  style="
+                    font-size: 0.85rem;
+                    line-height: 1.5;
+                    margin-bottom: 0.75rem;
+                  "
+                >
+                  <strong>Expo support</strong>: Direct configuration via custom
+                  plugin.
+                </p>
+                <p style="font-size: 0.85rem; line-height: 1.5">
+                  <strong>Performance</strong>: Blazing fast native DSP
+                  (&lt;40ms for 60s of audio after decoding).
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab Content 4: FFI -->
+          <div class="tab-panel" id="ffi-tab">
+            <div class="docs-grid">
+              <div>
+                <h3>Rust Core & FFI Protocols</h3>
+                <p style="margin-bottom: 1rem">
+                  Advanced low-level FFI binding patterns used by C/C++ clients
+                  or custom language bridges.
+                </p>
+                <pre><code><span class="comment">// Avoid raw pointer management across FFI boundaries.
+// Rust stores structs in a global registry using atomic u64 IDs.</span>
+pub struct MoodbarAnalysisRegistry {
+    handles: Mutex&lt;HashMap&lt;u64, MoodbarAnalysis&gt;&gt;
+}
+
+<span class="comment">// Buffer allocations are transferred using direct structs</span>
+#[repr(C)]
+pub struct MoodbarNativeBuffer {
+    pub ptr: *mut u8,
+    pub len: usize,
+    pub cap: usize,
+}
+
+<span class="comment">// Standard C ABI exports</span>
+#[no_mangle]
+pub unsafe extern "C" fn moodbar_native_buffer_free(
+    buf: *mut MoodbarNativeBuffer
+) {
+    if !buf.is_null() && !(*buf).ptr.is_null() {
+        let _ = Vec::from_raw_parts((*buf).ptr, (*buf).len, (*buf).cap);
+        (*buf).ptr = std::ptr::null_mut();
+    }
+}</code></pre>
+              </div>
+              <div class="card">
+                <h4 style="color: var(--accent); margin-bottom: 0.75rem">
+                  Memory Safety
+                </h4>
+                <p
+                  style="
+                    font-size: 0.85rem;
+                    line-height: 1.5;
+                    margin-bottom: 0.75rem;
+                  "
+                >
+                  <strong>Panic Boundary</strong>: All exports are wrapped in
+                  <code>ffi_guard</code> catching unwinds to avoid host process
+                  crashes.
+                </p>
+                <p
+                  style="
+                    font-size: 0.85rem;
+                    line-height: 1.5;
+                    margin-bottom: 0.75rem;
+                  "
+                >
+                  <strong>JNI Envelope</strong>: Android JNI returns JSON
+                  envelopes for success/failure to simplify Java mapping.
+                </p>
+                <p style="font-size: 0.85rem; line-height: 1.5">
+                  <strong>Deterministic Performance</strong>: Static scratch
+                  buffers recycled in the analysis loops.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
-      <footer></footer>
+      <!-- History / Classic Moodbar Section -->
+      <section id="history">
+        <h2>History of the Moodbar</h2>
+        <p class="lede">
+          Moodbar was born in the early 2000s as a KDE Amarok feature to
+          visually navigate music timelines. Today, it lives on as a modern
+          cross-platform tool.
+        </p>
+
+        <div class="docs-grid">
+          <div>
+            <p>
+              The Moodbar concept maps the frequency spectrum of a song directly
+              to visual hues: Bass energy drives red, Midrange drives green, and
+              Treble drives blue. This creates a signature color strip that
+              reveals the song's structure, drops, and changes at a single
+              glance before you even hit play.
+            </p>
+            <p>
+              Originally developed as a plugin for KDE's Amarok audio player,
+              legacy moodbars were generated using GStreamer pipelines and
+              written to <code>.mood</code> files as raw RGB byte triples.
+              Moodbar.rs keeps full compatibility with these legacy systems
+              while upgrading the DSP pipeline to Rust and modern vector
+              formats.
+            </p>
+            <div class="hero-cta">
+              <a
+                href="https://en.wikipedia.org/wiki/Moodbar"
+                class="btn"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Wikipedia Article</a
+              >
+              <a
+                href="https://userbase.kde.org/Amarok/Manual/Various/Moodbar"
+                class="btn"
+                target="_blank"
+                rel="noopener noreferrer"
+                >KDE Wiki Manual</a
+              >
+            </div>
+          </div>
+          <div class="card legacy-card">
+            <h4>Classic Moodbar Strip</h4>
+            <div class="legacy-preview-container">
+              <img src="./assets/strip.png" alt="Classic Moodbar Strip" />
+            </div>
+            <p class="legacy-caption">
+              A legacy KDE-style 3-band color signature. The chronological
+              progression of a song is encoded as flat color columns.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Concept Section -->
+      <section id="concepts">
+        <h2>Under the Hood</h2>
+        <p class="lede">
+          How the Moodbar analyzes frequencies and translates them into visual
+          patterns.
+        </p>
+
+        <div class="features-grid">
+          <div class="feature-box">
+            <h3>FFT Band Splitting</h3>
+            <p>
+              During analysis, audio frames are passed through a Fast Fourier
+              Transform (FFT). FFT bins are aggregated into three main frequency
+              bands: Bass (0–500Hz), Midrange (500Hz–2kHz), and Treble
+              (2kHz–Nyquist).
+            </p>
+          </div>
+          <div class="feature-box">
+            <h3>Visual Coloring</h3>
+            <p>
+              Colors are calculated using the active energy of each band. In the
+              Classic theme, Bass drives the red channel (purple/pink hues),
+              Mids drive the green channel (orange/warm hues), and Treble drives
+              the blue channel (cyan/cool hues).
+            </p>
+          </div>
+          <div class="feature-box">
+            <h3>Deterministic Peaks</h3>
+            <p>
+              To keep rendering consistent across systems, normalization is
+              calculated either per-channel or globally across all channels,
+              avoiding visual clipping or silent channels appearing empty.
+            </p>
+          </div>
+          <div class="feature-box">
+            <h3>Blazing Fast DSP</h3>
+            <p>
+              Once audio is decoded (which is platform-dependent), the DSP core
+              runs extremely fast, analyzing 60 seconds of sound in under 40
+              milliseconds by recycling pre-allocated FFT and frame scratch
+              buffers.
+            </p>
+          </div>
+        </div>
+      </section>
     </main>
+
+    <footer>
+      <div class="footer-content">
+        <p>
+          &copy; 2026 Moodbar.rs contributors. Rebuilt under MIT/Apache
+          licenses.
+        </p>
+        <p>
+          <a
+            href="https://github.com/gildesmarais/moodbar.rs"
+            target="_blank"
+            rel="noopener noreferrer"
+            >GitHub</a
+          >
+          · Crates:
+          <a
+            href="https://crates.io/crates/moodbar"
+            target="_blank"
+            rel="noopener noreferrer"
+            >moodbar (CLI)</a
+          >
+          /
+          <a
+            href="https://crates.io/crates/moodbar-core"
+            target="_blank"
+            rel="noopener noreferrer"
+            >moodbar-core</a
+          >
+          /
+          <a
+            href="https://crates.io/crates/moodbar-analysis"
+            target="_blank"
+            rel="noopener noreferrer"
+            >moodbar-analysis</a
+          >
+          · NPM:
+          <a
+            href="https://www.npmjs.com/package/@moodbar/wasm"
+            target="_blank"
+            rel="noopener noreferrer"
+            >@moodbar/wasm</a
+          >
+          /
+          <a
+            href="https://www.npmjs.com/package/@moodbar/native"
+            target="_blank"
+            rel="noopener noreferrer"
+            >@moodbar/native</a
+          >
+        </p>
+      </div>
+    </footer>
+
+    <!-- Lightbox Overlay -->
+    <div id="lightbox" class="lightbox-overlay">
+      <div class="lightbox-content">
+        <button class="lightbox-close" id="lightboxClose">&times;</button>
+        <img id="lightboxImage" src="" alt="Full size preview" />
+      </div>
+    </div>
+
+    <!-- WebAssembly & Interactive Logic Module -->
+    <script type="module" src="./assets/app.js"></script>
   </body>
 </html>
