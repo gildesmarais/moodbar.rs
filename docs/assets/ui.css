@@ -1004,3 +1004,147 @@ section[id] {
     padding: 1rem;
   }
 }
+
+/* Hero section top label */
+.topline {
+  border: 2px solid var(--accent);
+  padding: 0.25rem 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--accent);
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  display: inline-block;
+}
+
+/* Margin adjustments for hero title */
+.hero h1 {
+  margin-bottom: 1rem;
+}
+
+/* Synthesizer vs upload OR separator */
+.or-divider {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0.5rem 0;
+}
+
+/* Fine-print description/help texts under controls */
+.help-text {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+/* details.card cursor */
+details.card {
+  cursor: pointer;
+}
+
+/* details.card summary margin adjustment */
+details.card summary {
+  margin-bottom: 0;
+}
+
+/* details card inner content */
+details.card > div {
+  margin-top: 1.25rem;
+  cursor: default;
+}
+
+/* Crossover frequency input grid */
+.crossover-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+/* Active output card */
+.output-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Active output SVG container width */
+#output {
+  width: 100%;
+}
+
+/* Play button min width */
+#playBtn {
+  min-width: 130px;
+}
+
+/* Flex buttons row */
+.btn-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Copy config button cursor */
+#copyConfigBtn {
+  cursor: pointer;
+  color: var(--accent);
+}
+
+/* Showcase gallery images auto sizing */
+.showcase-preview img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Showcase preview container override (reduces padding slightly for PNGs) */
+.showcase-preview-small {
+  padding: 0.5rem;
+}
+
+/* History page layout */
+#history p {
+  margin-bottom: 1rem;
+}
+#history p:last-of-type {
+  margin-bottom: 1.5rem;
+}
+
+/* History CTA layout override */
+#history .hero-cta {
+  margin-top: 0;
+}
+
+/* Legacy strip history card */
+.legacy-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.25rem;
+  background-color: #000000;
+}
+
+.legacy-card h4 {
+  color: var(--accent);
+}
+
+/* Legacy preview wrapper */
+.legacy-preview-container {
+  border: 2px solid var(--border);
+  padding: 0.5rem;
+  background-color: #020202;
+}
+
+.legacy-preview-container img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Caption under legacy strip */
+.legacy-caption {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
