@@ -719,6 +719,7 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
       let cachedDecode = null;   // { pcm, sampleRate, duration, decodeTimeMs }
       let latestAnalysis = null;
       let activePresetName = "Techno";
+      let activeShowcaseRenderId = 0;
       
       let isPlaying = false;
       let audioCtx = null;
@@ -930,7 +931,9 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
         const decodeCtx = new OfflineAudioContext(1, 1, TARGET_SAMPLE_RATE);
         const audioBuffer = await decodeCtx.decodeAudioData(arrayBuffer);
 
-        const monoCtx = new OfflineAudioContext(1, audioBuffer.length, TARGET_SAMPLE_RATE);
+        // Correctly calculate target length at the target sample rate instead of using audioBuffer.length
+        const targetLength = Math.ceil(audioBuffer.duration * TARGET_SAMPLE_RATE);
+        const monoCtx = new OfflineAudioContext(1, targetLength, TARGET_SAMPLE_RATE);
         const source = monoCtx.createBufferSource();
         source.buffer = audioBuffer;
         source.connect(monoCtx.destination);
@@ -1058,6 +1061,8 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
       // Analysis & Rendering
       async function runAnalysisAndRender() {
         if (!cachedDecode) return;
+
+        const currentRenderId = ++activeShowcaseRenderId;
         
         try {
           await ensureWasmInit();
@@ -1068,22 +1073,22 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
           
           metricDecode.textContent = `${(cachedDecode.decodeTimeMs / 1000).toFixed(2)}s`;
 
-          // 1. Analyze PCM
+          // 1. Analyze PCM for the main output (high-res, max 1000 frames)
           const t0 = performance.now();
           if (latestAnalysis) {
             latestAnalysis.free();
             latestAnalysis = null;
           }
-          latestAnalysis = wasmAnalyzeWithOptions(cachedDecode.pcm, cachedDecode.sampleRate, dspOpts);
+          const mainDspOpts = { ...dspOpts, max_target_frames: 1000 };
+          latestAnalysis = wasmAnalyzeWithOptions(cachedDecode.pcm, cachedDecode.sampleRate, mainDspOpts);
           const tAnalyze = performance.now() - t0;
           metricAnalyze.textContent = `${(tAnalyze / 1000).toFixed(3)}s`;
           metricFrames.textContent = `${latestAnalysis.frame_count()} frames`;
 
-          // 2. Render SVGs
-          setStatus("Rendering moodbars...");
+          // 2. Render Main SVG (synchronous, instant feedback)
+          setStatus("Rendering active moodbar...");
           const t1 = performance.now();
           
-          // Render Main SVG
           const svgMarkup = wasmSvg(latestAnalysis, {
             width: 900,
             height: 120,
@@ -1094,42 +1099,69 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(
           const tRender = performance.now() - t1;
           metricRender.textContent = `${(tRender / 1000).toFixed(3)}s`;
 
-          // Render Showcase SVGs
-          const shapes = ["Strip", "Waveform", "SplitStacked", "SplitWaveform", "SplitLanes", "SplitCentrifugal", "SplitOverlapping"];
-          shapes.forEach(sh => {
-            const container = document.getElementById(`showcase-${sh}`);
-            if (container) {
-              const miniMarkup = wasmSvg(latestAnalysis, {
-                width: 320,
-                height: 80,
-                shape: sh,
-                background: "transparent"
-              });
-              container.innerHTML = miniMarkup;
-            }
-          });
-
-          // Render Hero Preview (Sleek wave pattern)
-          renderHeroPreview();
-
           savePngBtn.disabled = false;
           updateConfigJson();
-          setStatus("Ready.");
+
+          // 3. Render Showcase and Hero asynchronously using a downsampled analysis (max 150 frames)
+          setStatus("Rendering showcase previews...");
+          
+          const showcaseDspOpts = { ...dspOpts, max_target_frames: 150 };
+          const showcaseAnalysis = wasmAnalyzeWithOptions(cachedDecode.pcm, cachedDecode.sampleRate, showcaseDspOpts);
+
+          const shapes = ["Strip", "Waveform", "SplitStacked", "SplitWaveform", "SplitLanes", "SplitCentrifugal", "SplitOverlapping"];
+          let step = 0;
+
+          function renderNextStep() {
+            // Abort if a new render has started
+            if (currentRenderId !== activeShowcaseRenderId) {
+              showcaseAnalysis.free();
+              return;
+            }
+
+            try {
+              if (step === 0) {
+                // Render Hero Preview
+                const heroSvg = wasmSvg(showcaseAnalysis, {
+                  width: 500,
+                  height: 120,
+                  shape: "SplitWaveform",
+                  background: "transparent"
+                });
+                heroSvgContainer.innerHTML = heroSvg;
+                step++;
+                requestAnimationFrame(renderNextStep);
+              } else if (step <= shapes.length) {
+                const sh = shapes[step - 1];
+                const container = document.getElementById(`showcase-${sh}`);
+                if (container) {
+                  const miniMarkup = wasmSvg(showcaseAnalysis, {
+                    width: 320,
+                    height: 80,
+                    shape: sh,
+                    background: "transparent"
+                  });
+                  container.innerHTML = miniMarkup;
+                }
+                step++;
+                requestAnimationFrame(renderNextStep);
+              } else {
+                // Completed! Free showcase analysis
+                showcaseAnalysis.free();
+                setStatus("Ready.");
+              }
+            } catch (err) {
+              console.error(err);
+              showcaseAnalysis.free();
+              setStatus(err.message, true);
+            }
+          }
+
+          requestAnimationFrame(renderNextStep);
+
         } catch (error) {
           console.error(error);
           setStatus(error.message, true);
         }
-      }
-
-      function renderHeroPreview() {
-        if (!latestAnalysis) return;
-        const heroSvg = wasmSvg(latestAnalysis, {
-          width: 500,
-          height: 120,
-          shape: "SplitWaveform",
-          background: "transparent"
-        });
-        heroSvgContainer.innerHTML = heroSvg;
       }
 
       // Download utils
