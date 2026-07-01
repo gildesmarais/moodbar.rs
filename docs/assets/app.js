@@ -167,94 +167,9 @@ function generateSyntheticAudioInBackground(type, duration, sampleRate) {
       audioWorker.terminate();
     }
 
-    const workerCode = `
-      self.onmessage = function(e) {
-        const { type, duration, sampleRate } = e.data;
-        const totalSamples = sampleRate * duration;
-        const pcm = new Float32Array(totalSamples);
-
-        if (type === "Techno") {
-          const bpm = 140;
-          const beatLen = 60 / bpm;
-          const halfBeat = beatLen / 2;
-          const quarterBeat = beatLen / 4;
-          
-          for (let i = 0; i < totalSamples; i++) {
-            const t = i / sampleRate;
-            
-            // Kick drum
-            const tKick = t % beatLen;
-            const freqKick = 45 + 150 * Math.exp(-tKick * 35);
-            const kickEnv = Math.exp(-tKick * 10);
-            const kick = Math.sin(2 * Math.PI * freqKick * tKick) * kickEnv * 0.7;
-            const kickDist = Math.tanh(kick * 1.6);
-
-            // Open Hi-hat
-            const tHat = (t + halfBeat) % beatLen;
-            const hatEnv = Math.exp(-tHat * 14);
-            const hat = (Math.random() * 2 - 1) * hatEnv * 0.15;
-
-            // Rolling Bassline
-            const tBass = t % quarterBeat;
-            const bassStep = Math.floor(t / quarterBeat) % 16;
-            let bassAccent = 0.0;
-            if (bassStep % 4 === 1 || bassStep % 4 === 3) {
-              bassAccent = 0.22;
-            } else if (bassStep % 4 === 2) {
-              bassAccent = 0.35;
-            }
-            const bassEnv = Math.exp(-tBass * 18);
-            const freqBass = 55.0;
-            const phaseBass = t * freqBass;
-            const sawBass = 2.0 * (phaseBass - Math.floor(phaseBass + 0.5));
-            const bass = sawBass * bassEnv * bassAccent;
-
-            // Synth lead
-            const tSynth = t % (quarterBeat * 2);
-            const synthStep = Math.floor(t / (quarterBeat * 2)) % 16;
-            const melody = [110, 110, 130.81, 0, 164.81, 146.83, 110, 0, 110, 130.81, 164.81, 196.00, 164.81, 146.83, 110, 0];
-            const freqSynth = melody[synthStep];
-            let synth = 0;
-            if (freqSynth > 0) {
-              const synthEnv = Math.exp(-tSynth * 8);
-              const phaseSynth = t * freqSynth;
-              const sqSynth = Math.sign(Math.sin(2 * Math.PI * phaseSynth));
-              synth = sqSynth * synthEnv * 0.08;
-            }
-
-            pcm[i] = (kickDist * 0.55 + hat * 0.25 + bass * 0.35 + synth * 0.2) * 0.9;
-          }
-        } else if (type === "Ambient") {
-          for (let i = 0; i < totalSamples; i++) {
-            const t = i / sampleRate;
-            const bass = (Math.sin(2 * Math.PI * 65 * t) + Math.sin(2 * Math.PI * 98 * t)) * 0.3;
-            const lfo1 = 0.5 + 0.5 * Math.sin(2 * Math.PI * 0.15 * t);
-            const mids = (Math.sin(2 * Math.PI * 261 * t) + Math.sin(2 * Math.PI * 329 * t) + Math.sin(2 * Math.PI * 392 * t)) * lfo1 * 0.2;
-            const lfo2 = 0.5 + 0.5 * Math.cos(2 * Math.PI * 0.4 * t);
-            const highs = Math.sin(2 * Math.PI * 2500 * t) * lfo2 * 0.08;
-            pcm[i] = (bass + mids + highs) * 0.9;
-          }
-        } else if (type === "Sweep") {
-          const f0 = 20;
-          const f1 = 5000;
-          const r = Math.log(f1 / f0) / duration;
-          for (let i = 0; i < totalSamples; i++) {
-            const t = i / sampleRate;
-            const freq = f0 * Math.exp(r * t);
-            pcm[i] = Math.sin(2 * Math.PI * freq * t) * 0.5;
-          }
-        }
-
-        self.postMessage(pcm, [pcm.buffer]);
-      };
-    `;
-
-    const blob = new Blob([workerCode], { type: "application/javascript" });
-    const workerUrl = URL.createObjectURL(blob);
-    audioWorker = new Worker(workerUrl);
+    audioWorker = new Worker("./assets/computer-generated-sounds.js");
 
     audioWorker.onmessage = (e) => {
-      URL.revokeObjectURL(workerUrl);
       resolve(e.data);
     };
 
