@@ -60,7 +60,7 @@ self.onmessage = function (e) {
       880.0, 1046.5, 1318.51, 1567.98, 1760.0, 2093.0, 2637.02, 3135.96,
     ];
 
-    // Song arrangement routing tables
+    // Song arrangement routing tables (mapped strictly by 16-beat phrases, i.e. 4 measures per phrase)
     const kickPatternIds = new Uint8Array(numMeasures);
     const hatPatternIds = new Uint8Array(numMeasures);
     const snareModes = new Uint8Array(numMeasures); // 0=silent, 1=active (on beats 2 & 4)
@@ -71,110 +71,134 @@ self.onmessage = function (e) {
     const padModes = new Uint8Array(numMeasures); // 0=silent, 1=soft, 2=full
     const cutoffCut = new Float32Array(numMeasures); // Filter cutoff: 0.0 - 1.0
 
-    const fillRange = (arr, startPct, endPct, val) => {
-      const start = Math.floor(numMeasures * startPct);
-      const end = Math.floor(numMeasures * endPct);
-      for (let m = start; m <= end && m < numMeasures; m++) {
-        arr[m] = val;
+    // A phrase is 16 beats = 4 measures.
+    const numPhrases = Math.ceil(numMeasures / 4);
+
+    let introPhrases = 2;      // 32 beats
+    let mainPhrases = 2;       // 32 beats
+    let devPhrases = 1;        // 16 beats
+    let breakdownPhrases = 1;  // 16 beats
+    let buildupPhrases = 1;    // 16 beats
+    let climaxPhrases = 3;     // 48 beats
+
+    // Adapt phrase lengths for shorter total duration
+    if (numPhrases < 10) {
+      introPhrases = Math.max(1, Math.floor(numPhrases * 0.15));
+      mainPhrases = Math.max(1, Math.floor(numPhrases * 0.20));
+      devPhrases = Math.max(1, Math.floor(numPhrases * 0.10));
+      breakdownPhrases = Math.max(1, Math.floor(numPhrases * 0.15));
+      buildupPhrases = Math.max(1, Math.floor(numPhrases * 0.10));
+      climaxPhrases = Math.max(1, numPhrases - introPhrases - mainPhrases - devPhrases - breakdownPhrases - buildupPhrases);
+    }
+
+    const introEnd = introPhrases - 1;
+    const mainStart = introEnd + 1;
+    const mainEnd = mainStart + mainPhrases - 1;
+    const devStart = mainEnd + 1;
+    const devEnd = devStart + devPhrases - 1;
+    const breakdownStart = devEnd + 1;
+    const breakdownEnd = breakdownStart + breakdownPhrases - 1;
+    const buildupStart = breakdownEnd + 1;
+    const buildupEnd = buildupStart + buildupPhrases - 1;
+    const climaxStart = buildupEnd + 1;
+    const climaxEnd = climaxStart + climaxPhrases - 1;
+    const outroStart = climaxEnd + 1;
+
+    // Convert phrase boundaries to measure indices for synthesis sweeps
+    const breakdownStartMeas = breakdownStart * 4;
+    const buildupStartMeas = buildupStart * 4;
+    const buildupEndMeas = (buildupEnd + 1) * 4 - 1;
+
+    // Populate routing tables by phrase
+    for (let m = 0; m < numMeasures; m++) {
+      const p = Math.floor(m / 4);
+
+      if (p <= introEnd) {
+        // Intro (Drone & build intro melody/drums)
+        const isSecondHalf = (p === introEnd);
+        bassModes[m] = isSecondHalf ? 2 : 1;
+        padModes[m] = 1;
+        cutoffCut[m] = isSecondHalf ? 0.35 : 0.2;
+        if (isSecondHalf) {
+          kickPatternIds[m] = 1;
+          melodyIds[m] = 1;
+          if ((m % 4) >= 2) {
+            hatPatternIds[m] = 1;
+          }
+        }
+      } else if (p <= mainEnd) {
+        // Main Groove
+        kickPatternIds[m] = 1;
+        hatPatternIds[m] = 1;
+        snareModes[m] = 1;
+        bassModes[m] = 2;
+        padModes[m] = 1;
+        melodyIds[m] = (p === mainStart) ? 1 : 2;
+        arpModes[m] = (p === mainEnd) ? 1 : 0;
+        cutoffCut[m] = 0.55;
+      } else if (p <= devEnd) {
+        // Development / Energy Rise
+        kickPatternIds[m] = 2;
+        hatPatternIds[m] = 2;
+        snareModes[m] = 1;
+        bassModes[m] = 2;
+        padModes[m] = 1;
+        melodyIds[m] = 2;
+        arpModes[m] = 2;
+        cutoffCut[m] = 0.70;
+      } else if (p <= breakdownEnd) {
+        // Breakdown
+        kickPatternIds[m] = 0;
+        hatPatternIds[m] = 0;
+        snareModes[m] = 0;
+        bassModes[m] = 1;
+        padModes[m] = 2;
+        melodyIds[m] = 3;
+        arpModes[m] = 1;
+        cutoffCut[m] = 0.45;
+      } else if (p <= buildupEnd) {
+        // Buildup
+        kickPatternIds[m] = 3;
+        hatPatternIds[m] = 1;
+        snareModes[m] = 1;
+        bassModes[m] = 0;
+        padModes[m] = 1;
+        melodyIds[m] = 2;
+        arpModes[m] = 2;
+        cutoffCut[m] = 0.5;
+      } else if (p <= climaxEnd) {
+        // Climax / Drop
+        kickPatternIds[m] = 2;
+        hatPatternIds[m] = 3;
+        snareModes[m] = 1;
+        rideModes[m] = 1;
+        bassModes[m] = 2;
+        padModes[m] = 2;
+        melodyIds[m] = 4;
+        arpModes[m] = 2;
+        cutoffCut[m] = 0.85;
+      } else {
+        // Outro
+        const outroProg = (p - outroStart) / Math.max(1, numPhrases - outroStart);
+        if (outroProg < 0.5) {
+          kickPatternIds[m] = 1;
+          hatPatternIds[m] = 1;
+          snareModes[m] = 0;
+          bassModes[m] = 2;
+          padModes[m] = 1;
+          melodyIds[m] = 1;
+          cutoffCut[m] = 0.45;
+        } else {
+          kickPatternIds[m] = 1;
+          hatPatternIds[m] = 0;
+          snareModes[m] = 0;
+          bassModes[m] = 1;
+          padModes[m] = 1;
+          melodyIds[m] = 0;
+          cutoffCut[m] = 0.20;
+        }
       }
-    };
-
-    // Default configuration
-    kickPatternIds.fill(0);
-    hatPatternIds.fill(0);
-    snareModes.fill(0);
-    rideModes.fill(0);
-    bassModes.fill(0);
-    melodyIds.fill(0);
-    arpModes.fill(0);
-    padModes.fill(0);
-    cutoffCut.fill(0.5);
-
-    // 1. Intro (0% - 15%)
-    const introEndPct = 0.15;
-    fillRange(bassModes, 0, introEndPct, 1); // drone bass
-    fillRange(padModes, 0, introEndPct, 1); // soft chords (mid-freq)
-    fillRange(cutoffCut, 0, introEndPct, 0.2); // dark filter
-
-    const kickStartPct = 0.15 * 0.3;
-    const hatStartPct = 0.15 * 0.75;
-    fillRange(kickPatternIds, kickStartPct, introEndPct, 1); // standard kick
-    fillRange(bassModes, kickStartPct, introEndPct, 2); // rolling bass
-    fillRange(melodyIds, kickStartPct, introEndPct, 1); // intro melody
-    fillRange(hatPatternIds, hatStartPct, introEndPct, 1); // offbeat hats
-    fillRange(cutoffCut, kickStartPct, introEndPct, 0.35);
-
-    // 2. Main Groove (15% - 40%)
-    fillRange(kickPatternIds, 0.15, 0.4, 1);
-    fillRange(hatPatternIds, 0.15, 0.4, 1);
-    fillRange(snareModes, 0.15, 0.4, 1); // snare enters
-    fillRange(bassModes, 0.15, 0.4, 2);
-    fillRange(padModes, 0.15, 0.4, 1);
-    fillRange(melodyIds, 0.15, 0.25, 1);
-    fillRange(melodyIds, 0.25, 0.4, 2); // main melody
-    fillRange(arpModes, 0.25, 0.4, 1); // sparkling arp starts (high-freq)
-    fillRange(cutoffCut, 0.15, 0.4, 0.55);
-
-    // 3. Development / Energy Rise (40% - 55%)
-    fillRange(kickPatternIds, 0.4, 0.55, 2); // accented kick
-    fillRange(hatPatternIds, 0.4, 0.55, 2); // driving hats
-    fillRange(snareModes, 0.4, 0.55, 1);
-    fillRange(bassModes, 0.4, 0.55, 2);
-    fillRange(padModes, 0.4, 0.55, 1);
-    fillRange(melodyIds, 0.4, 0.55, 2);
-    fillRange(arpModes, 0.4, 0.55, 2); // faster arpeggiator
-    fillRange(cutoffCut, 0.4, 0.55, 0.7);
-
-    // 4. Breakdown (55% - 70%)
-    const breakdownStart = Math.floor(numMeasures * 0.55);
-    const breakdownEnd = Math.floor(numMeasures * 0.7);
-    fillRange(kickPatternIds, 0.55, 0.7, 0); // silence kick
-    fillRange(hatPatternIds, 0.55, 0.7, 0); // silence hats
-    fillRange(snareModes, 0.55, 0.7, 0);
-    fillRange(bassModes, 0.55, 0.7, 1); // drone bass only
-    fillRange(padModes, 0.55, 0.7, 2); // full chords (rich mids)
-    fillRange(melodyIds, 0.55, 0.7, 3); // breakdown melody
-    fillRange(arpModes, 0.55, 0.7, 1); // gentle high arp
-    fillRange(cutoffCut, 0.55, 0.7, 0.45);
-
-    // 5. Build-up (70% - 77%)
-    const buildupStart = Math.floor(numMeasures * 0.7);
-    const buildupEnd = Math.floor(numMeasures * 0.77);
-    fillRange(kickPatternIds, 0.7, 0.77, 3); // kick roll
-    fillRange(hatPatternIds, 0.7, 0.77, 1);
-    fillRange(snareModes, 0.7, 0.77, 1);
-    fillRange(bassModes, 0.7, 0.77, 0); // bass drop
-    fillRange(padModes, 0.7, 0.77, 1);
-    fillRange(melodyIds, 0.7, 0.77, 2);
-    fillRange(arpModes, 0.7, 0.77, 2); // build-up fast arp
-
-    // 6. Drop / Climax (77% - 92%)
-    fillRange(kickPatternIds, 0.77, 0.92, 2); // busy kick
-    fillRange(hatPatternIds, 0.77, 0.92, 3); // climax hats
-    fillRange(snareModes, 0.77, 0.92, 1);
-    fillRange(rideModes, 0.77, 0.92, 1); // metallic cymbals enter
-    fillRange(bassModes, 0.77, 0.92, 2);
-    fillRange(padModes, 0.77, 0.92, 2); // full chords
-    fillRange(melodyIds, 0.77, 0.92, 4); // climax melody
-    fillRange(arpModes, 0.77, 0.92, 2); // fast arp
-    fillRange(cutoffCut, 0.77, 0.92, 0.85);
-
-    // 7. Outro & Fade (92% - 100%)
-    fillRange(kickPatternIds, 0.92, 0.97, 1);
-    fillRange(hatPatternIds, 0.92, 0.97, 1);
-    fillRange(snareModes, 0.92, 0.97, 0);
-    fillRange(bassModes, 0.92, 0.97, 2);
-    fillRange(padModes, 0.92, 0.97, 1);
-    fillRange(melodyIds, 0.92, 0.97, 1);
-    fillRange(arpModes, 0.92, 0.97, 0);
-    fillRange(cutoffCut, 0.92, 0.97, 0.45);
-
-    fillRange(kickPatternIds, 0.97, 1.0, 1);
-    fillRange(hatPatternIds, 0.97, 1.0, 0);
-    fillRange(bassModes, 0.97, 1.0, 1);
-    fillRange(padModes, 0.97, 1.0, 1);
-    fillRange(melodyIds, 0.97, 1.0, 0);
-    fillRange(cutoffCut, 0.97, 1.0, 0.2);
+    }
 
     // Sequencer runtime states
     let lastStepIndex = -1;
@@ -412,9 +436,9 @@ self.onmessage = function (e) {
           let cutoffFreq =
             300.0 + 1800.0 * (0.5 + 0.5 * Math.sin(2.0 * Math.PI * 0.2 * t));
 
-          if (measureIndex >= buildupStart && measureIndex <= buildupEnd) {
-            const buildupMeasures = buildupEnd - buildupStart + 1;
-            const currentOffset = measureIndex - buildupStart;
+          if (measureIndex >= buildupStartMeas && measureIndex <= buildupEndMeas) {
+            const buildupMeasures = buildupEndMeas - buildupStartMeas + 1;
+            const currentOffset = measureIndex - buildupStartMeas;
             const measureProgress = (t % measureLen) / measureLen;
             const totalProgress =
               (currentOffset + measureProgress) / buildupMeasures;
@@ -516,9 +540,9 @@ self.onmessage = function (e) {
 
       // 9. White Noise Riser (Resonant SVF Highpass Filter Sweep)
       let riser = 0.0;
-      if (measureIndex >= breakdownStart && measureIndex <= buildupEnd) {
-        const totalMeasures = buildupEnd - breakdownStart + 1;
-        const currentOffset = measureIndex - breakdownStart;
+      if (measureIndex >= breakdownStartMeas && measureIndex <= buildupEndMeas) {
+        const totalMeasures = buildupEndMeas - breakdownStartMeas + 1;
+        const currentOffset = measureIndex - breakdownStartMeas;
         const measureProgress = (t % measureLen) / measureLen;
         const progress = (currentOffset + measureProgress) / totalMeasures;
 
