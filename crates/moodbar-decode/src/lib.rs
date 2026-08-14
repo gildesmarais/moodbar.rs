@@ -1,11 +1,16 @@
 // Rust guideline compliant 2026-06-22
 
+//! Symphonia-based audio decoding pipeline for moodbar analysis.
+//!
+//! Streams audio packets directly into `FrameAnalyzer` with SIMD-accelerated downmixing
+//! and bounded memory usage.
+
 use std::fs::File;
 use std::io::Cursor;
 use std::path::Path;
 
 use moodbar_analysis::{
-    analysis_to_raw_rgb_bytes, analyze_pcm_mono, GenerateOptions, MoodbarAnalysis,
+    analysis_to_raw_rgb_bytes, FrameAnalyzer, GenerateOptions, MoodbarAnalysis,
 };
 use symphonia::core::audio::SampleBuffer;
 use symphonia::core::codecs::DecoderOptions;
@@ -16,27 +21,38 @@ use symphonia::core::meta::MetadataOptions;
 use symphonia::core::probe::Hint;
 use thiserror::Error;
 
+/// Error types returned by audio decoding and analysis operations.
 #[derive(Debug, Error)]
 pub enum MoodbarDecodeError {
+    /// No playable audio track found in media container.
     #[error("no playable audio track found")]
     NoAudioTrack,
+    /// Decoded audio stream contained zero valid audio samples.
     #[error("decoded stream has no samples")]
     EmptyAudio,
+    /// Underlying input/output failure.
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
+    /// Codec or container decoding failure.
     #[error("decode error: {0}")]
     Decode(#[from] SymphoniaError),
+    /// Invalid analysis or DSP options configuration.
     #[error("invalid options: {0}")]
     InvalidOptions(String),
 }
 
+/// Non-fatal diagnostics tracked across audio packet decode.
 #[derive(Debug, Clone, Default)]
 pub struct DecodeDiagnostics {
+    /// Count of packet decode errors recovered during stream processing.
     pub decode_errors: usize,
+    /// Count of audio packets reporting zero channels.
     pub zero_channel_packets: usize,
+    /// Count of incomplete multi-channel frames truncated at packet end.
     pub truncated_frames: usize,
 }
 
+/// Decodes and analyzes media from a filesystem path into moodbar frames.
 pub fn analyze_path(
     path: &Path,
     options: &GenerateOptions,
@@ -56,6 +72,7 @@ pub fn analyze_path(
     analyze_media_source(mss, hint, options)
 }
 
+/// Decodes and analyzes in-memory audio bytes into moodbar frames.
 pub fn analyze_bytes(
     bytes: &[u8],
     extension: Option<&str>,
@@ -77,6 +94,7 @@ pub fn analyze_bytes(
     analyze_media_source(mss, hint, options)
 }
 
+/// Convenience API to decode audio from a path directly to raw RGB bytes.
 pub fn generate_moodbar_from_path(
     path: &Path,
     options: &GenerateOptions,
@@ -85,6 +103,7 @@ pub fn generate_moodbar_from_path(
     Ok(analysis_to_raw_rgb_bytes(&analysis))
 }
 
+/// Convenience API to decode in-memory audio directly to raw RGB bytes.
 pub fn generate_moodbar_from_bytes(
     bytes: &[u8],
     extension: Option<&str>,
@@ -92,6 +111,65 @@ pub fn generate_moodbar_from_bytes(
 ) -> Result<Vec<u8>, MoodbarDecodeError> {
     let analysis = analyze_bytes(bytes, extension, options)?;
     Ok(analysis_to_raw_rgb_bytes(&analysis))
+}
+
+#[cfg(target_arch = "aarch64")]
+#[inline]
+unsafe fn downmix_stereo_neon(interleaved: &[f32], out: &mut Vec<f32>) -> usize {
+    use core::arch::aarch64::*;
+    let num_pairs = interleaved.len() / 2;
+    let chunks_4 = num_pairs / 4;
+    let mut ptr = interleaved.as_ptr();
+    let half = vdupq_n_f32(0.5);
+
+    let start_len = out.len();
+    out.reserve(num_pairs);
+    let mut out_ptr = out.as_mut_ptr().add(start_len);
+
+    for _ in 0..chunks_4 {
+        let loaded = vld2q_f32(ptr);
+        let sum = vaddq_f32(loaded.0, loaded.1);
+        let mono = vmulq_f32(sum, half);
+        vst1q_f32(out_ptr, mono);
+        ptr = ptr.add(8);
+        out_ptr = out_ptr.add(4);
+    }
+    out.set_len(start_len + chunks_4 * 4);
+    chunks_4 * 8
+}
+
+#[inline]
+fn downmix_stereo_to_mono(interleaved: &[f32], out: &mut Vec<f32>) {
+    #[cfg(target_arch = "aarch64")]
+    let processed = {
+        // SAFETY: Pointer offsets and lengths are strictly bounded by `interleaved.len() / 8 * 8`.
+        unsafe { downmix_stereo_neon(interleaved, out) }
+    };
+    #[cfg(not(target_arch = "aarch64"))]
+    let processed = 0;
+
+    for pair in interleaved[processed..].chunks_exact(2) {
+        out.push((pair[0] + pair[1]) * 0.5);
+    }
+}
+
+#[inline]
+fn downmix_multichannel_to_mono(
+    interleaved: &[f32],
+    channels: usize,
+    max_channels: usize,
+    out: &mut Vec<f32>,
+    diagnostics: &mut DecodeDiagnostics,
+) {
+    let inv_channels = 1.0 / max_channels as f32;
+    for frame in interleaved.chunks(channels) {
+        if frame.len() != channels {
+            diagnostics.truncated_frames += 1;
+            continue;
+        }
+        let sum: f32 = frame[..max_channels].iter().copied().sum();
+        out.push(sum * inv_channels);
+    }
 }
 
 fn analyze_media_source(
@@ -121,11 +199,12 @@ fn analyze_media_source(
 
     let mut decoder =
         symphonia::default::get_codecs().make(&track.codec_params, &DecoderOptions::default())?;
-    let estimated_samples = track.codec_params.n_frames.unwrap_or(0) as usize;
-    let mut samples = Vec::<f32>::with_capacity(estimated_samples);
+    let estimated_samples = track.codec_params.n_frames.map(|n| n as usize);
+    let mut analyzer = FrameAnalyzer::new(sample_rate, options, estimated_samples);
     let mut saw_samples = false;
     let mut diagnostics = DecodeDiagnostics::default();
     let mut sample_buf: Option<SampleBuffer<f32>> = None;
+    let mut mono_scratch = Vec::<f32>::new();
 
     loop {
         let packet = match format.next_packet() {
@@ -162,29 +241,25 @@ fn analyze_media_source(
                     continue;
                 }
 
+                mono_scratch.clear();
                 if channels == 1 {
-                    samples.extend_from_slice(interleaved);
-                    if !interleaved.is_empty() {
-                        saw_samples = true;
-                    }
+                    mono_scratch.extend_from_slice(interleaved);
                 } else if channels == 2 {
-                    for pair in interleaved.chunks_exact(2) {
-                        samples.push((pair[0] + pair[1]) * 0.5);
-                    }
-                    if !interleaved.is_empty() {
-                        saw_samples = true;
-                    }
+                    downmix_stereo_to_mono(interleaved, &mut mono_scratch);
                 } else {
                     let max_channels = channels.min(2);
-                    for frame in interleaved.chunks(channels) {
-                        if frame.len() != channels {
-                            diagnostics.truncated_frames += 1;
-                            continue;
-                        }
-                        let sum = frame[..max_channels].iter().copied().sum::<f32>();
-                        samples.push(sum / max_channels as f32);
-                        saw_samples = true;
-                    }
+                    downmix_multichannel_to_mono(
+                        interleaved,
+                        channels,
+                        max_channels,
+                        &mut mono_scratch,
+                        &mut diagnostics,
+                    );
+                }
+
+                if !mono_scratch.is_empty() {
+                    saw_samples = true;
+                    analyzer.feed_mono_samples(&mono_scratch);
                 }
             }
             Err(SymphoniaError::DecodeError(_)) => {
@@ -204,7 +279,7 @@ fn analyze_media_source(
         return Err(MoodbarDecodeError::EmptyAudio);
     }
 
-    let mut analysis = analyze_pcm_mono(sample_rate, &samples, options);
+    let mut analysis = analyzer.finish();
     analysis.diagnostics.decode_errors = diagnostics.decode_errors;
     analysis.diagnostics.zero_channel_packets = diagnostics.zero_channel_packets;
     analysis.diagnostics.truncated_frames = diagnostics.truncated_frames;
