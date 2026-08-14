@@ -10,21 +10,15 @@ readme = "README.md"
 
 [features]
 default = ["decode", "png"]
-decode = ["dep:symphonia", "dep:moodbar-decode"]
-png = ["dep:image"]
+decode = ["dep:moodbar-decode"]
+png = ["moodbar-analysis/png"]
 
 [dependencies]
-moodbar-analysis = { workspace = true, features = ["png"] }
+moodbar-analysis = { workspace = true, default-features = false }
 moodbar-decode = { workspace = true, optional = true }
-num-complex.workspace = true
-rustfft.workspace = true
-thiserror.workspace = true
-symphonia = { workspace = true, optional = true }
-image = { workspace = true, optional = true }
 
 [dev-dependencies]
 anyhow.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 image.workspace = true
-moodbar-analysis = { workspace = true, features = ["png"] }

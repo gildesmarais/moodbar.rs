@@ -466,6 +466,7 @@ fn build_options(dsp: &DspArgs) -> Result<GenerateOptions> {
         detection_mode: dsp.detection_mode.into_core(),
         frames_per_color: dsp.frames_per_color,
         band_edges_hz: dsp.band_edges_hz.clone(),
+        max_target_frames: None,
         playback_rate: dsp.playback_rate,
         theme: dsp.theme.into_core(),
         custom_colors,
