@@ -9,7 +9,11 @@ use crate::analyze::normalize::{aggregate_frames_flat, normalize_frames_flat};
 use crate::options::{DetectionMode, GenerateOptions};
 use crate::types::{AnalysisDiagnostics, MoodbarAnalysis};
 
-pub(crate) struct FrameAnalyzer<'a> {
+/// Incremental stream analyzer that accumulates mono PCM audio frames.
+///
+/// Pre-allocates FFT and scratch buffers to process audio chunks without per-frame
+/// heap allocations.
+pub struct FrameAnalyzer<'a> {
     options: &'a GenerateOptions,
     fft_size: usize,
     pub(crate) hop_size: usize,
@@ -28,7 +32,14 @@ pub(crate) struct FrameAnalyzer<'a> {
 }
 
 impl<'a> FrameAnalyzer<'a> {
-    pub(crate) fn new(
+    /// Creates a new streaming analyzer instance for a given sample rate and options.
+    ///
+    /// # Arguments
+    ///
+    /// * `sample_rate` - Audio sampling frequency in Hz.
+    /// * `options` - Configured analysis parameters.
+    /// * `total_samples` - Optional expected total sample count for dynamic hop calculation.
+    pub fn new(
         sample_rate: u32,
         options: &'a GenerateOptions,
         total_samples: Option<usize>,
@@ -69,7 +80,18 @@ impl<'a> FrameAnalyzer<'a> {
         }
     }
 
-    pub(crate) fn feed_mono_samples(&mut self, samples: &[f32]) {
+    /// Returns the active hop size in samples between consecutive FFT windows.
+    pub fn hop_size(&self) -> usize {
+        self.hop_size
+    }
+
+    /// Returns the number of frequency band channels analyzed per frame.
+    pub fn channel_count(&self) -> usize {
+        self.channel_count
+    }
+
+    /// Feeds incremental mono PCM samples into the streaming analyzer.
+    pub fn feed_mono_samples(&mut self, samples: &[f32]) {
         if !samples.is_empty() {
             self.pending.extend_from_slice(samples);
         }
@@ -82,7 +104,8 @@ impl<'a> FrameAnalyzer<'a> {
         }
     }
 
-    pub(crate) fn finish(mut self) -> MoodbarAnalysis {
+    /// Finalizes the stream and aggregates/normalizes output moodbar frames.
+    pub fn finish(mut self) -> MoodbarAnalysis {
         if self.frame_count == 0 && !self.pending.is_empty() {
             let available = self.pending.len().saturating_sub(self.pending_start);
             let copy_len = available.min(self.fft_size);
@@ -189,6 +212,11 @@ impl<'a> FrameAnalyzer<'a> {
     }
 
     fn compact_pending_if_needed(&mut self) {
+        if self.pending_start == self.pending.len() {
+            self.pending.clear();
+            self.pending_start = 0;
+            return;
+        }
         let threshold = self.fft_size * 8;
         if self.pending_start > threshold {
             self.pending.drain(0..self.pending_start);

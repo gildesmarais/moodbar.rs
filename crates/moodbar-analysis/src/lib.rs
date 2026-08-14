@@ -6,7 +6,7 @@ mod options;
 mod render;
 mod types;
 
-use analyze::frame_analyzer::FrameAnalyzer;
+pub use analyze::frame_analyzer::FrameAnalyzer;
 pub use options::{DetectionMode, GenerateOptions, NormalizeMode, Theme};
 #[doc(inline)]
 pub use render::{render_png, render_svg};
