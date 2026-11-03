@@ -546,20 +546,19 @@ fn read_stdin_pcm_mono(format: StdinFormat, channels: usize) -> Result<Vec<f32>>
             if bytes.len() % 4 != 0 {
                 anyhow::bail!("stdin length must be a multiple of 4 bytes for f32le");
             }
-            let samples = bytes
-                .chunks_exact(4)
-                .map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
-                .collect::<Vec<_>>();
+            let (words, _) = bytes.as_chunks();
+            let samples: Vec<f32> = words.iter().copied().map(f32::from_le_bytes).collect();
             downmix_to_mono(&samples, channels)
         }
         StdinFormat::S16Le => {
             if bytes.len() % 2 != 0 {
                 anyhow::bail!("stdin length must be a multiple of 2 bytes for s16le");
             }
-            let samples = bytes
-                .chunks_exact(2)
-                .map(|b| i16::from_le_bytes([b[0], b[1]]) as f32 / i16::MAX as f32)
-                .collect::<Vec<_>>();
+            let (words, _) = bytes.as_chunks();
+            let samples: Vec<f32> = words
+                .iter()
+                .map(|b| i16::from_le_bytes(*b) as f32 / i16::MAX as f32)
+                .collect();
             downmix_to_mono(&samples, channels)
         }
     }
@@ -569,7 +568,7 @@ fn downmix_to_mono(samples: &[f32], channels: usize) -> Result<Vec<f32>> {
     if channels == 1 {
         return Ok(samples.to_vec());
     }
-    if samples.len() % channels != 0 {
+    if !samples.len().is_multiple_of(channels) {
         anyhow::bail!("sample count is not divisible by channel count");
     }
 

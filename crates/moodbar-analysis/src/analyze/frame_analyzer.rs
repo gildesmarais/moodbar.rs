@@ -90,7 +90,8 @@ impl<'a> FrameAnalyzer<'a> {
         })
     }
 
-    /// Returns the active hop size in samples between consecutive FFT windows.
+    /// Returns the hop size in samples between FFT windows. Without a `total_samples` estimate
+    /// this is the base hop (`fft_size / 2`); `finish` then decimates to `max_target_frames`.
     pub fn hop_size(&self) -> usize {
         self.hop_size
     }
@@ -463,10 +464,8 @@ mod tests {
         .unwrap();
 
         let max_per_channel = |frames: &Vec<f64>, idx: usize| {
-            frames
-                .chunks_exact(3)
-                .map(|f| f[idx])
-                .fold(0.0f64, f64::max)
+            let (triples, _) = frames.as_chunks::<3>();
+            triples.iter().map(|f| f[idx]).fold(0.0f64, f64::max)
         };
         let max_overall = |frames: &Vec<f64>| frames.iter().copied().fold(0.0f64, f64::max);
         assert!((max_per_channel(&per_channel.frames, 0) - 1.0).abs() < 1e-9);
