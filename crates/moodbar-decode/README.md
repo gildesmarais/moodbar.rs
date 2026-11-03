@@ -4,7 +4,7 @@
 
 Symphonia-based audio decode for the moodbar pipeline.
 
-Decodes an audio file or in-memory bytes to mono PCM, then calls `moodbar_analysis::analyze_pcm_mono`. Decode diagnostics (`decode_errors`, `zero_channel_packets`, `truncated_frames`) are copied onto the returned `MoodbarAnalysis`.
+Decodes an audio file or in-memory bytes packet by packet, downmixes each packet to mono and streams it into `moodbar_analysis::FrameAnalyzer`; the full PCM is never buffered. Stereo is averaged (NEON on aarch64); streams with more than two channels average the first two channels. Decode diagnostics (`decode_errors`, `zero_channel_packets`, `truncated_frames`) are set on the returned `MoodbarAnalysis`.
 
 Omit this crate when the host already provides PCM (browser Web Audio API, platform decoders).
 
@@ -31,7 +31,3 @@ Convenience helpers `generate_moodbar_from_path` and `generate_moodbar_from_byte
 ## Supported formats
 
 All formats enabled by default in Symphonia: `mp3`, `ogg` (Vorbis), `flac`, `wav`, `aac`, `mp4`, and others Symphonia probes.
-
-## Note on buffering
-
-The decode path collects the full mono PCM buffer before analysis. Streaming handoff into `FrameAnalyzer` is a future optimization; analysis itself supports chunked `feed_mono_samples` when driven directly via `moodbar-analysis`.
