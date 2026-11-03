@@ -7,7 +7,7 @@ mod render;
 mod types;
 
 pub use analyze::frame_analyzer::FrameAnalyzer;
-pub use options::{DetectionMode, GenerateOptions, NormalizeMode, Theme};
+pub use options::{parse_hex_color, DetectionMode, GenerateOptions, NormalizeMode, Theme};
 #[doc(inline)]
 pub use render::{render_png, render_svg};
 #[doc(inline)]
@@ -16,14 +16,18 @@ pub use types::{
 };
 
 /// Analyze already-decoded mono PCM samples.
+///
+/// # Errors
+///
+/// Returns `MoodbarError::InvalidOptions` when `sample_rate` or `options` are out of range.
 pub fn analyze_pcm_mono(
     sample_rate: u32,
     samples: &[f32],
     options: &GenerateOptions,
-) -> MoodbarAnalysis {
-    let mut analyzer = FrameAnalyzer::new(sample_rate, options, Some(samples.len()));
+) -> Result<MoodbarAnalysis, MoodbarError> {
+    let mut analyzer = FrameAnalyzer::new(sample_rate, options, Some(samples.len()))?;
     analyzer.feed_mono_samples(samples);
-    analyzer.finish()
+    Ok(analyzer.finish())
 }
 
 pub fn analysis_to_raw_rgb_bytes(analysis: &MoodbarAnalysis) -> Vec<u8> {
@@ -59,7 +63,7 @@ mod tests {
         pcm.extend(sine(5000.0, sample_rate, 0.5));
 
         let options = GenerateOptions::default();
-        let analysis = analyze_pcm_mono(sample_rate, &pcm, &options);
+        let analysis = analyze_pcm_mono(sample_rate, &pcm, &options).unwrap();
         let bytes = analysis_to_raw_rgb_bytes(&analysis);
         let frame_count = bytes.len() / 3;
         assert!(frame_count > 10);
@@ -94,7 +98,7 @@ mod tests {
             ..GenerateOptions::default()
         };
 
-        let analysis = analyze_pcm_mono(sample_rate, &pcm, &options);
+        let analysis = analyze_pcm_mono(sample_rate, &pcm, &options).unwrap();
         assert_eq!(analysis.channel_count, 5);
         assert!(!analysis.frames.is_empty());
     }
@@ -104,7 +108,7 @@ mod tests {
         let sample_rate = 44_100;
         let pcm = sine(400.0, sample_rate, 1.0);
 
-        let baseline = analyze_pcm_mono(sample_rate, &pcm, &GenerateOptions::default());
+        let baseline = analyze_pcm_mono(sample_rate, &pcm, &GenerateOptions::default()).unwrap();
         let dense = analyze_pcm_mono(
             sample_rate,
             &pcm,
@@ -112,7 +116,8 @@ mod tests {
                 frames_per_color: 1000,
                 ..GenerateOptions::default()
             },
-        );
+        )
+        .unwrap();
 
         assert!(baseline.frames.len() > dense.frames.len());
         assert_eq!(dense.frames.len() / dense.channel_count.max(1), 1);
@@ -130,7 +135,8 @@ mod tests {
                 detection_mode: DetectionMode::SpectralEnergy,
                 ..GenerateOptions::default()
             },
-        );
+        )
+        .unwrap();
         let flux = analyze_pcm_mono(
             sample_rate,
             &pcm,
@@ -138,7 +144,8 @@ mod tests {
                 detection_mode: DetectionMode::SpectralFlux,
                 ..GenerateOptions::default()
             },
-        );
+        )
+        .unwrap();
 
         let energy_sum: f64 = energy.frames.iter().copied().sum();
         let flux_sum: f64 = flux.frames.iter().copied().sum();
@@ -154,7 +161,7 @@ mod tests {
             ..GenerateOptions::default()
         };
 
-        let baseline = analyze_pcm_mono(sample_rate, &pcm, &stable);
+        let baseline = analyze_pcm_mono(sample_rate, &pcm, &stable).unwrap();
         let faster = analyze_pcm_mono(
             sample_rate,
             &pcm,
@@ -162,7 +169,8 @@ mod tests {
                 playback_rate: Some(1.10),
                 ..stable.clone()
             },
-        );
+        )
+        .unwrap();
         let slower = analyze_pcm_mono(
             sample_rate,
             &pcm,
@@ -170,7 +178,8 @@ mod tests {
                 playback_rate: Some(0.90),
                 ..stable
             },
-        );
+        )
+        .unwrap();
 
         let total_band_energy = |analysis: &MoodbarAnalysis, band: usize| -> f64 {
             analysis
@@ -233,7 +242,7 @@ mod tests {
             theme: Theme::Cool,
             ..GenerateOptions::default()
         };
-        let analysis_cool = analyze_pcm_mono(sample_rate, &pcm, &options_cool);
+        let analysis_cool = analyze_pcm_mono(sample_rate, &pcm, &options_cool).unwrap();
         assert_eq!(
             analysis_cool.band_colors,
             vec![[220, 20, 180], [240, 120, 0], [0, 160, 240]]
@@ -244,7 +253,7 @@ mod tests {
             theme: Theme::Light,
             ..GenerateOptions::default()
         };
-        let analysis_light = analyze_pcm_mono(sample_rate, &pcm, &options_light);
+        let analysis_light = analyze_pcm_mono(sample_rate, &pcm, &options_light).unwrap();
         assert_eq!(
             analysis_light.band_colors,
             vec![[240, 128, 128], [144, 238, 144], [173, 216, 230]]
@@ -255,7 +264,7 @@ mod tests {
             custom_colors: Some(vec![[255, 0, 255], [0, 255, 0], [255, 255, 0]]),
             ..GenerateOptions::default()
         };
-        let analysis_custom = analyze_pcm_mono(sample_rate, &pcm, &options_custom);
+        let analysis_custom = analyze_pcm_mono(sample_rate, &pcm, &options_custom).unwrap();
         assert_eq!(
             analysis_custom.band_colors,
             vec![[255, 0, 255], [0, 255, 0], [255, 255, 0]]

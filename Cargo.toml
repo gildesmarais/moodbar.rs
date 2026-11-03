@@ -59,7 +59,8 @@ opt-level = "z"
 lto = true
 codegen-units = 1
 strip = true
-panic = "abort"
+# Unwind so `ffi_guard`'s catch_unwind turns Rust panics into a status code instead of aborting the host app.
+panic = "unwind"
 
 [profile.release]
 opt-level = 3

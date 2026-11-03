@@ -47,45 +47,23 @@ impl MoodbarNativeBuffer {
     }
 }
 
-fn write_summary(
-    out_summary: *mut MoodbarNativeAnalysisSummary,
-    summary: MoodbarNativeAnalysisSummary,
-) -> Result<(), FfiError> {
-    if out_summary.is_null() {
-        return Err(FfiError::InvalidArgument(
-            "out_summary pointer must not be null".to_string(),
-        ));
-    }
-
-    unsafe {
-        // SAFETY: caller guarantees `out_summary` points to writable memory.
-        *out_summary = summary;
-    }
-
-    Ok(())
+/// Borrows a host-provided out-parameter, rejecting null before any work is done.
+fn out_param<'a, T>(ptr: *mut T, name: &str) -> Result<&'a mut T, FfiError> {
+    // SAFETY: non-null is checked by `as_mut`; the caller guarantees the pointee is writable,
+    // aligned, and outlives this call.
+    unsafe { ptr.as_mut() }
+        .ok_or_else(|| FfiError::InvalidArgument(format!("{name} pointer must not be null")))
 }
 
-fn write_buffer(out_buffer: *mut MoodbarNativeBuffer, bytes: Vec<u8>) -> Result<(), FfiError> {
-    if out_buffer.is_null() {
-        return Err(FfiError::InvalidArgument(
-            "out_buffer pointer must not be null".to_string(),
-        ));
-    }
-
-    let mut bytes = bytes;
+/// Transfers ownership of `bytes` to the host; freed by `moodbar_native_buffer_free`.
+fn into_native_buffer(mut bytes: Vec<u8>) -> MoodbarNativeBuffer {
     let buffer = MoodbarNativeBuffer {
         ptr: bytes.as_mut_ptr(),
         len: bytes.len(),
         cap: bytes.capacity(),
     };
     std::mem::forget(bytes);
-
-    unsafe {
-        // SAFETY: caller guarantees `out_buffer` points to writable memory.
-        *out_buffer = buffer;
-    }
-
-    Ok(())
+    buffer
 }
 
 fn analyze_from_path_impl(
@@ -143,8 +121,9 @@ pub extern "C" fn moodbar_native_analysis_from_path(
     out_summary: *mut MoodbarNativeAnalysisSummary,
 ) -> MoodbarNativeStatus {
     ffi_guard(|| {
-        let summary = analyze_from_path_impl(path, options_json)?;
-        write_summary(out_summary, summary)
+        let out = out_param(out_summary, "out_summary")?;
+        *out = analyze_from_path_impl(path, options_json)?;
+        Ok(())
     })
 }
 
@@ -157,8 +136,9 @@ pub extern "C" fn moodbar_native_analysis_from_bytes(
     out_summary: *mut MoodbarNativeAnalysisSummary,
 ) -> MoodbarNativeStatus {
     ffi_guard(|| {
-        let summary = analyze_from_bytes_impl(bytes, bytes_len, extension, options_json)?;
-        write_summary(out_summary, summary)
+        let out = out_param(out_summary, "out_summary")?;
+        *out = analyze_from_bytes_impl(bytes, bytes_len, extension, options_json)?;
+        Ok(())
     })
 }
 
@@ -180,7 +160,7 @@ fn analyze_from_pcm_impl(
     };
 
     let options = parse_generate_options(options_json)?;
-    let analysis = moodbar_analysis::analyze_pcm_mono(sample_rate, pcm, &options);
+    let analysis = moodbar_analysis::analyze_pcm_mono(sample_rate, pcm, &options)?;
     store_analysis(analysis)
 }
 
@@ -193,8 +173,9 @@ pub extern "C" fn moodbar_native_analysis_from_pcm(
     out_summary: *mut MoodbarNativeAnalysisSummary,
 ) -> MoodbarNativeStatus {
     ffi_guard(|| {
-        let summary = analyze_from_pcm_impl(sample_rate, samples, samples_len, options_json)?;
-        write_summary(out_summary, summary)
+        let out = out_param(out_summary, "out_summary")?;
+        *out = analyze_from_pcm_impl(sample_rate, samples, samples_len, options_json)?;
+        Ok(())
     })
 }
 
@@ -210,8 +191,9 @@ pub extern "C" fn moodbar_native_render_svg(
     out_svg_utf8: *mut MoodbarNativeBuffer,
 ) -> MoodbarNativeStatus {
     ffi_guard(|| {
-        let bytes = render_svg_impl(handle, options_json)?;
-        write_buffer(out_svg_utf8, bytes)
+        let out = out_param(out_svg_utf8, "out_svg_utf8")?;
+        *out = into_native_buffer(render_svg_impl(handle, options_json)?);
+        Ok(())
     })
 }
 
@@ -222,8 +204,9 @@ pub extern "C" fn moodbar_native_render_png(
     out_png: *mut MoodbarNativeBuffer,
 ) -> MoodbarNativeStatus {
     ffi_guard(|| {
-        let bytes = render_png_impl(handle, options_json)?;
-        write_buffer(out_png, bytes)
+        let out = out_param(out_png, "out_png")?;
+        *out = into_native_buffer(render_png_impl(handle, options_json)?);
+        Ok(())
     })
 }
 
@@ -233,17 +216,10 @@ pub extern "C" fn moodbar_native_get_colors(
     out_colors: *mut MoodbarNativeBuffer,
 ) -> MoodbarNativeStatus {
     ffi_guard(|| {
-        let bytes = with_analysis(handle, |analysis| {
-            let colors = analysis.colors();
-            let mut out = Vec::<u8>::with_capacity(colors.len() * 3);
-            for color in colors {
-                out.push(color[0]);
-                out.push(color[1]);
-                out.push(color[2]);
-            }
-            Ok(out)
-        })?;
-        write_buffer(out_colors, bytes)
+        let out = out_param(out_colors, "out_colors")?;
+        let bytes = with_analysis(handle, |analysis| Ok(analysis.colors().concat()))?;
+        *out = into_native_buffer(bytes);
+        Ok(())
     })
 }
 
@@ -253,15 +229,14 @@ pub extern "C" fn moodbar_native_get_frames(
     out_frames: *mut MoodbarNativeBuffer,
 ) -> MoodbarNativeStatus {
     ffi_guard(|| {
+        let out = out_param(out_frames, "out_frames")?;
         let bytes = with_analysis(handle, |analysis| {
-            let mut out =
-                Vec::<u8>::with_capacity(analysis.frames.len() * std::mem::size_of::<f64>());
-            for &val in &analysis.frames {
-                out.extend_from_slice(&val.to_ne_bytes());
-            }
+            let mut out = Vec::with_capacity(analysis.frames.len() * std::mem::size_of::<f64>());
+            out.extend(analysis.frames.iter().flat_map(|v| v.to_ne_bytes()));
             Ok(out)
         })?;
-        write_buffer(out_frames, bytes)
+        *out = into_native_buffer(bytes);
+        Ok(())
     })
 }
 
@@ -270,8 +245,9 @@ pub extern "C" fn moodbar_native_last_error(
     out_message_utf8: *mut MoodbarNativeBuffer,
 ) -> MoodbarNativeStatus {
     ffi_guard(|| {
-        let message = last_error_message();
-        write_buffer(out_message_utf8, message.into_bytes())
+        *out_param(out_message_utf8, "out_message_utf8")? =
+            into_native_buffer(last_error_message().into_bytes());
+        Ok(())
     })
 }
 
@@ -287,7 +263,7 @@ pub unsafe extern "C" fn moodbar_native_buffer_free(buffer: *mut MoodbarNativeBu
         return;
     }
 
-    // SAFETY: caller guarantees pointer is valid and originated from `write_buffer`.
+    // SAFETY: caller guarantees pointer is valid and originated from `into_native_buffer`.
     let buf = &mut *buffer;
     if !buf.ptr.is_null() && buf.cap > 0 {
         let _ = Vec::from_raw_parts(buf.ptr, buf.len, buf.cap);
@@ -342,6 +318,49 @@ mod tests {
         // Dispose
         let dispose_status = moodbar_native_analysis_dispose(summary.handle);
         assert_eq!(dispose_status as i32, MoodbarNativeStatus::Ok as i32);
+    }
+
+    #[test]
+    fn null_out_summary_is_rejected_before_analysis_runs() {
+        let samples = vec![0.1f32; 8000];
+        let status = moodbar_native_analysis_from_pcm(
+            44_100,
+            samples.as_ptr(),
+            samples.len(),
+            ptr::null(),
+            ptr::null_mut(),
+        );
+        assert_eq!(status as i32, MoodbarNativeStatus::InvalidArgument as i32);
+        // Checked first: a null samples pointer would otherwise be reported instead.
+        let status =
+            moodbar_native_analysis_from_pcm(44_100, ptr::null(), 0, ptr::null(), ptr::null_mut());
+        assert_eq!(status as i32, MoodbarNativeStatus::InvalidArgument as i32);
+        assert!(errors::last_error_message().contains("out_summary"));
+    }
+
+    #[test]
+    fn invalid_options_json_maps_to_invalid_argument() {
+        let samples = vec![0.1f32; 8000];
+        let mut summary = MoodbarNativeAnalysisSummary {
+            handle: 0,
+            frame_count: 0,
+            channel_count: 0,
+            decode_errors: 0,
+            zero_channel_packets: 0,
+            truncated_frames: 0,
+        };
+        for json in [r#"{"fft_size": 0}"#, r##"{"custom_colors": ["#zz0000"]}"##] {
+            let json = std::ffi::CString::new(json).unwrap();
+            let status = moodbar_native_analysis_from_pcm(
+                44_100,
+                samples.as_ptr(),
+                samples.len(),
+                json.as_ptr(),
+                &mut summary,
+            );
+            assert_eq!(status as i32, MoodbarNativeStatus::InvalidArgument as i32);
+            assert_eq!(summary.handle, 0);
+        }
     }
 
     #[test]

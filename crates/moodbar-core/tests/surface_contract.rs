@@ -45,8 +45,8 @@ fn analyze_pcm_contract_matches_analysis_crate() {
         ..core::GenerateOptions::default()
     };
 
-    let core_analysis = core::analyze_pcm_mono(sample_rate, &pcm, &options);
-    let analysis_analysis = analysis::analyze_pcm_mono(sample_rate, &pcm, &options);
+    let core_analysis = core::analyze_pcm_mono(sample_rate, &pcm, &options).unwrap();
+    let analysis_analysis = analysis::analyze_pcm_mono(sample_rate, &pcm, &options).unwrap();
 
     assert_eq!(core_analysis.channel_count, analysis_analysis.channel_count);
     assert_eq!(core_analysis.frames.len(), analysis_analysis.frames.len());
@@ -60,7 +60,7 @@ fn render_contract_matches_analysis_crate_for_all_shapes() {
     let pcm = synthetic_pcm(sample_rate);
 
     let analysis_result =
-        core::analyze_pcm_mono(sample_rate, &pcm, &core::GenerateOptions::default());
+        core::analyze_pcm_mono(sample_rate, &pcm, &core::GenerateOptions::default()).unwrap();
 
     let core_raw = core::analysis_to_raw_rgb_bytes(&analysis_result);
     let analysis_raw = analysis::analysis_to_raw_rgb_bytes(&analysis_result);

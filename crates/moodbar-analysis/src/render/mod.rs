@@ -44,18 +44,19 @@ pub fn render_png(
     analysis: &MoodbarAnalysis,
     options: &crate::types::PngOptions,
 ) -> Result<Vec<u8>, MoodbarError> {
-    use crate::render::png::{empty_png, encode_png, new_rgba_buffer, render_shape_png};
+    use crate::render::png::{encode_png, new_rgba_buffer, render_shape_png};
 
-    let width = options.width.max(1);
-    let height = options.height.max(1);
-
-    if analysis.frames.is_empty() {
-        return empty_png(width, height);
+    let options = crate::types::PngOptions {
+        width: options.width.max(1),
+        height: options.height.max(1),
+        shape: options.shape,
+    };
+    let (width, height) = (options.width, options.height);
+    let mut buf = new_rgba_buffer(width, height)?;
+    if !analysis.frames.is_empty() {
+        render_shape_png(&mut buf, analysis, &options);
     }
-
-    let mut buf = new_rgba_buffer(width, height);
-    render_shape_png(&mut buf, analysis, options);
-    encode_png(buf, width, height)
+    encode_png(&buf, width, height)
 }
 
 #[cfg(test)]

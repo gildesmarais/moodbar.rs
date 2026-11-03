@@ -19,24 +19,25 @@ impl MoodbarNativeStatus {
             FfiError::InvalidArgument(_) => Self::InvalidArgument,
             FfiError::NotFound(_) => Self::NotFound,
             FfiError::Decode(decode_err) => match decode_err {
-                MoodbarDecodeError::NoAudioTrack
-                | MoodbarDecodeError::EmptyAudio
-                | MoodbarDecodeError::InvalidOptions(_) => Self::InvalidArgument,
-                MoodbarDecodeError::Io(io_err) => {
-                    if io_err.kind() == std::io::ErrorKind::NotFound {
-                        Self::NotFound
-                    } else {
-                        Self::Internal
-                    }
+                MoodbarDecodeError::NoAudioTrack | MoodbarDecodeError::EmptyAudio => {
+                    Self::InvalidArgument
                 }
-                MoodbarDecodeError::Decode(_) => Self::Internal,
+                MoodbarDecodeError::Analysis(analysis_err) => Self::from_analysis(analysis_err),
+                MoodbarDecodeError::Io(io_err) if io_err.kind() == std::io::ErrorKind::NotFound => {
+                    Self::NotFound
+                }
+                MoodbarDecodeError::Io(_) | MoodbarDecodeError::Decode(_) => Self::Internal,
             },
-            FfiError::Analysis(analysis_err) => match analysis_err {
-                MoodbarError::InvalidOptions(_) => Self::InvalidArgument,
-                MoodbarError::Image(_) => Self::Internal,
-            },
+            FfiError::Analysis(analysis_err) => Self::from_analysis(analysis_err),
             FfiError::Utf8 | FfiError::Json(_) => Self::InvalidArgument,
             FfiError::Poisoned | FfiError::Panic => Self::Internal,
+        }
+    }
+
+    fn from_analysis(err: &MoodbarError) -> Self {
+        match err {
+            MoodbarError::InvalidOptions(_) => Self::InvalidArgument,
+            MoodbarError::Image(_) => Self::Internal,
         }
     }
 }
@@ -143,7 +144,9 @@ mod tests {
                 MoodbarNativeStatus::InvalidArgument,
             ),
             (
-                FfiError::Decode(MoodbarDecodeError::InvalidOptions("bad".to_string())),
+                FfiError::Decode(MoodbarDecodeError::Analysis(MoodbarError::InvalidOptions(
+                    "bad".to_string(),
+                ))),
                 MoodbarNativeStatus::InvalidArgument,
             ),
             (
