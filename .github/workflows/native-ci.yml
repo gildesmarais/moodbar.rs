@@ -13,7 +13,9 @@ on:
       - "crates/moodbar-decode/**"
       - "crates/moodbar-native-ffi/**"
       - "packages/moodbar-native/**"
-      - "scripts/**"
+      - "scripts/build-native-*.sh"
+      - "scripts/prepare-package.mjs"
+      - "scripts/verify-npm-package.mjs"
       - ".github/workflows/native-ci.yml"
   pull_request:
     paths:
@@ -25,12 +27,19 @@ on:
       - "crates/moodbar-decode/**"
       - "crates/moodbar-native-ffi/**"
       - "packages/moodbar-native/**"
-      - "scripts/**"
+      - "scripts/build-native-*.sh"
+      - "scripts/prepare-package.mjs"
+      - "scripts/verify-npm-package.mjs"
       - ".github/workflows/native-ci.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   android:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       NODE_VERSION: "22.22.0"
       NPM_VERSION: "11.8.0"
@@ -50,14 +59,18 @@ jobs:
         with:
           workspaces: . -> target
 
-      - name: Setup Android SDK + NDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install NDK
-        run: sdkmanager "ndk;${ANDROID_NDK_VERSION}"
-
-      - name: Export NDK path
-        run: echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/${ANDROID_NDK_VERSION}" >> "$GITHUB_ENV"
+      # Uses the runner's preinstalled SDK; setup-android@v3 requested the
+      # deprecated 'tools' package, which Google no longer serves.
+      - name: Install pinned Android NDK
+        run: |
+          sdkmanager="${ANDROID_HOME:?runner has no Android SDK}/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$sdkmanager" || { echo "::error::sdkmanager missing at $sdkmanager"; exit 1; }
+          ndk="$ANDROID_HOME/ndk/${ANDROID_NDK_VERSION}"
+          if [ ! -d "$ndk" ]; then
+            (yes || true) | "$sdkmanager" --licenses > /dev/null
+            "$sdkmanager" --install "ndk;${ANDROID_NDK_VERSION}"
+          fi
+          echo "ANDROID_NDK_HOME=$ndk" >> "$GITHUB_ENV"
 
       - name: Install cargo-ndk
         uses: taiki-e/install-action@v2
@@ -72,7 +85,7 @@ jobs:
           cache-dependency-path: "packages/moodbar-native/package.json"
 
       - name: Pin npm
-        run: npm install -g npm@${NPM_VERSION}
+        run: npm install -g "npm@${NPM_VERSION}"
 
       - name: Build Android native artifacts
         run: make native-android
@@ -82,6 +95,7 @@ jobs:
 
   ios:
     runs-on: macos-latest
+    timeout-minutes: 30
     env:
       NODE_VERSION: "22.22.0"
       NPM_VERSION: "11.8.0"
@@ -108,7 +122,7 @@ jobs:
           cache-dependency-path: "packages/moodbar-native/package.json"
 
       - name: Pin npm
-        run: npm install -g npm@${NPM_VERSION}
+        run: npm install -g "npm@${NPM_VERSION}"
 
       - name: Build iOS native artifacts
         run: make native-ios

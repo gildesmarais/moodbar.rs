@@ -11,7 +11,8 @@ on:
       - "crates/moodbar-analysis/**"
       - "crates/moodbar-bindings-schema/**"
       - "crates/moodbar-wasm/**"
-      - "scripts/**"
+      - "scripts/prepare-package.mjs"
+      - "scripts/verify-npm-package.mjs"
       - ".github/workflows/wasm-ci.yml"
   pull_request:
     paths:
@@ -21,12 +22,18 @@ on:
       - "crates/moodbar-analysis/**"
       - "crates/moodbar-bindings-schema/**"
       - "crates/moodbar-wasm/**"
-      - "scripts/**"
+      - "scripts/prepare-package.mjs"
+      - "scripts/verify-npm-package.mjs"
       - ".github/workflows/wasm-ci.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   package-check:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       WASM_PACK_VERSION: "0.13.1"
       NODE_VERSION: "22.22.0"
@@ -47,7 +54,9 @@ jobs:
           workspaces: . -> target
 
       - name: Install wasm-pack
-        run: cargo install wasm-pack --version ${WASM_PACK_VERSION} --locked
+        uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack@${{ env.WASM_PACK_VERSION }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -55,7 +64,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Pin npm
-        run: npm install -g npm@${NPM_VERSION}
+        run: npm install -g "npm@${NPM_VERSION}"
 
       - name: Validate publishable WASM package
         run: make publish-check-wasm

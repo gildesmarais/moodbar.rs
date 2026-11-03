@@ -9,7 +9,6 @@ on:
       - "Cargo.lock"
       - "Makefile"
       - "crates/**"
-      - "scripts/**"
       - "tests/**"
       - ".github/workflows/rust-ci.yml"
   pull_request:
@@ -18,13 +17,21 @@ on:
       - "Cargo.lock"
       - "Makefile"
       - "crates/**"
-      - "scripts/**"
       - "tests/**"
       - ".github/workflows/rust-ci.yml"
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   linux:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -49,8 +56,11 @@ jobs:
       - name: Unit tests
         run: cargo test --workspace --locked
 
+  # MSRV drifts with dependency bumps, not per-PR code: check post-merge and weekly.
   msrv:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout

@@ -21,6 +21,7 @@ jobs:
             target: aarch64-apple-darwin
 
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     env:
       GITHUB_REF_NAME: ${{ github.event.release.tag_name }}
 
@@ -40,9 +41,9 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME}"
           NAME="moodbar-${VERSION}-${{ matrix.target }}"
-          mkdir -p dist/${NAME}
-          cp target/${{ matrix.target }}/release/moodbar dist/${NAME}/
-          tar -C dist -czf dist/${NAME}.tar.gz ${NAME}
+          mkdir -p "dist/${NAME}"
+          cp "target/${{ matrix.target }}/release/moodbar" "dist/${NAME}/"
+          tar -C dist -czf "dist/${NAME}.tar.gz" "${NAME}"
 
       - name: Upload packaged artifact
         uses: actions/upload-artifact@v4
@@ -57,6 +58,7 @@ jobs:
 
   release-assets:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: build
 
     steps:
