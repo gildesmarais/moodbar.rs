@@ -75,6 +75,9 @@ MoodbarNativeStatus moodbar_native_last_error(struct MoodbarNativeBuffer *out_me
  *
  * `buffer` must be a valid, writable pointer obtained from this library, and must not be
  * freed more than once.
+ *
+ * Deliberately not wrapped in `ffi_guard`: it has no panicking path (`u8` has no `Drop`), and a
+ * guard would clear the thread-local last error that hosts free buffers around.
  */
 void moodbar_native_buffer_free(struct MoodbarNativeBuffer *buffer);
 

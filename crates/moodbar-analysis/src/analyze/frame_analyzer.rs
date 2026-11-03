@@ -52,7 +52,12 @@ impl<'a> FrameAnalyzer<'a> {
         options: &'a GenerateOptions,
         total_samples: Option<usize>,
     ) -> Result<Self, MoodbarError> {
-        options.validate(sample_rate)?;
+        if sample_rate == 0 {
+            return Err(MoodbarError::InvalidOptions(
+                "sample_rate must be greater than 0".to_string(),
+            ));
+        }
+        options.validate()?;
         let fft_size = options.fft_size;
         let hop_size = match (total_samples, options.max_target_frames) {
             (Some(total), Some(target)) => dynamic_hop(fft_size, total, target),
@@ -236,7 +241,7 @@ impl<'a> FrameAnalyzer<'a> {
         if hop == base || total < self.fft_size {
             return;
         }
-        let kept = ((total - self.fft_size) / hop + 1).min(target.max(1));
+        let kept = (total - self.fft_size) / hop + 1;
         let ch = self.channel_count;
         for k in 0..kept {
             let j = ((k * hop + base / 2) / base).min(self.frame_count - 1);
@@ -263,8 +268,11 @@ impl<'a> FrameAnalyzer<'a> {
 }
 
 /// Hop that spreads `total` samples over at most `target` windows, never below half a window.
+/// The floored `total / target` hop is bumped by one sample when it would overshoot `target`.
 fn dynamic_hop(fft_size: usize, total: usize, target: usize) -> usize {
-    (fft_size / 2).max(total / target.max(1))
+    let target = target.max(1);
+    let hop = (fft_size / 2).max(total / target);
+    hop + usize::from(total.saturating_sub(fft_size) / hop >= target)
 }
 
 fn resolve_band_colors(channel_count: usize, options: &GenerateOptions) -> Vec<[u8; 3]> {
@@ -438,6 +446,24 @@ mod tests {
     }
 
     #[test]
+    fn known_length_never_exceeds_target_when_floored_hop_overshoots() {
+        // Floored hop 4_103_999 / 4000 = 1025 would fit 4002 windows of 2048 samples.
+        let mut pcm = sine(440.0, 44_100, 94.0);
+        pcm.truncate(4_103_999);
+        let options = GenerateOptions {
+            max_target_frames: Some(4000),
+            ..GenerateOptions::default()
+        };
+        assert_eq!(dynamic_hop(options.fft_size, pcm.len(), 4000), 1026);
+        let known = crate::analyze_pcm_mono(44_100, &pcm, &options).unwrap();
+        assert!(known.colors.len() <= 4000, "{}", known.colors.len());
+        assert_eq!(
+            stream_unestimated(&pcm, &options).colors.len(),
+            known.colors.len()
+        );
+    }
+
+    #[test]
     fn global_peak_normalization_caps_all_channels_uniformly() {
         let sample_rate = 44_100;
         let mut pcm = Vec::new();
@@ -484,6 +510,10 @@ mod tests {
         };
         assert!(matches!(
             FrameAnalyzer::new(44_100, &options, None),
+            Err(MoodbarError::InvalidOptions(_))
+        ));
+        assert!(matches!(
+            FrameAnalyzer::new(0, &GenerateOptions::default(), None),
             Err(MoodbarError::InvalidOptions(_))
         ));
     }

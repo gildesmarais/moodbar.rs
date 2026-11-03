@@ -258,6 +258,9 @@ pub extern "C" fn moodbar_native_last_error(
 ///
 /// `buffer` must be a valid, writable pointer obtained from this library, and must not be
 /// freed more than once.
+///
+/// Deliberately not wrapped in `ffi_guard`: it has no panicking path (`u8` has no `Drop`), and a
+/// guard would clear the thread-local last error that hosts free buffers around.
 pub unsafe extern "C" fn moodbar_native_buffer_free(buffer: *mut MoodbarNativeBuffer) {
     if buffer.is_null() {
         return;
