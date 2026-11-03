@@ -1,37 +1,27 @@
-use crate::MoodbarNativeBuffer;
-use crate::MoodbarNativeStatus;
+use crate::errors::ffi_guard;
+use crate::{MoodbarNativeAnalysisSummary, MoodbarNativeBuffer, MoodbarNativeStatus};
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
 use jni::objects::{JByteArray, JClass, JObject, JString};
 use jni::sys::{jlong, jstring};
 use jni::JNIEnv;
-use serde_json::json;
+use serde_json::{json, Value};
 use std::ffi::CString;
 
-fn to_rust_string(env: &mut JNIEnv<'_>, value: JString<'_>) -> Result<String, String> {
-    env.get_string(&value)
-        .map(|s| s.into())
-        .map_err(|e| e.to_string())
-}
+/// A JNI body yields the success payload or a ready-made `{"ok": false, ...}` envelope.
+type Envelope = Result<Value, Value>;
 
-fn optional_rust_string(
-    env: &mut JNIEnv<'_>,
-    value: JObject<'_>,
-) -> Result<Option<String>, String> {
-    if value.is_null() {
-        return Ok(None);
-    }
-    let jstr = JString::from(value);
-    let s = to_rust_string(env, jstr)?;
-    if s.is_empty() {
-        Ok(None)
-    } else {
-        Ok(Some(s))
-    }
-}
-
-fn response(env: &mut JNIEnv<'_>, value: serde_json::Value) -> jstring {
-    let text = value.to_string();
+/// Runs `body` under `ffi_guard`, so a panic becomes the Internal-status error envelope
+/// carrying the guard's last-error message, then hands the envelope to the JVM.
+fn guarded(env: &mut JNIEnv<'_>, body: impl FnOnce(&mut JNIEnv<'_>) -> Envelope) -> jstring {
+    let mut envelope = None;
+    let status = ffi_guard(|| {
+        envelope = Some(body(env).unwrap_or_else(|error| error));
+        Ok(())
+    });
+    let text = envelope
+        .unwrap_or_else(|| last_error_json(status))
+        .to_string();
     match env.new_string(&text) {
         Ok(s) => s.into_raw(),
         Err(e) => {
@@ -44,36 +34,74 @@ fn response(env: &mut JNIEnv<'_>, value: serde_json::Value) -> jstring {
     }
 }
 
-fn status_message(mut buffer: MoodbarNativeBuffer) -> String {
-    let message = if buffer.ptr.is_null() || buffer.len == 0 {
-        String::new()
-    } else {
-        let bytes = unsafe { std::slice::from_raw_parts(buffer.ptr, buffer.len) };
-        String::from_utf8_lossy(bytes).to_string()
-    };
-    unsafe {
-        crate::moodbar_native_buffer_free(&mut buffer);
-    }
-    message
+fn invalid(error: impl std::fmt::Display) -> Value {
+    json!({"ok": false, "status": MoodbarNativeStatus::InvalidArgument as i32, "error": error.to_string()})
 }
 
-fn last_error_json(original_status: MoodbarNativeStatus) -> serde_json::Value {
+fn c_string(env: &mut JNIEnv<'_>, value: &JString<'_>, name: &str) -> Result<CString, Value> {
+    let text: String = env.get_string(value).map_err(invalid)?.into();
+    CString::new(text).map_err(|_| invalid(format!("{name} contains NUL byte")))
+}
+
+fn take_buffer(mut buffer: MoodbarNativeBuffer) -> Vec<u8> {
+    let bytes = if buffer.ptr.is_null() || buffer.len == 0 {
+        Vec::new()
+    } else {
+        // SAFETY: a non-null buffer returned by this library holds `len` initialized bytes.
+        unsafe { std::slice::from_raw_parts(buffer.ptr, buffer.len) }.to_vec()
+    };
+    // SAFETY: `buffer` came from this library and is freed exactly once here.
+    unsafe { crate::moodbar_native_buffer_free(&mut buffer) };
+    bytes
+}
+
+fn last_error_json(status: MoodbarNativeStatus) -> Value {
     let mut buffer = MoodbarNativeBuffer::empty();
     let _ = crate::moodbar_native_last_error(&mut buffer);
-    json!({
-        "ok": false,
-        "status": original_status as i32,
-        "error": status_message(buffer),
-    })
+    let error = String::from_utf8_lossy(&take_buffer(buffer)).into_owned();
+    json!({"ok": false, "status": status as i32, "error": error})
 }
 
-fn cstring_opt(value: Option<String>) -> Result<Option<CString>, serde_json::Value> {
-    match value {
-        None => Ok(None),
-        Some(v) => CString::new(v)
-            .map(Some)
-            .map_err(|_| json!({"ok": false, "status": 1, "error": "string contains NUL byte"})),
+fn check(status: MoodbarNativeStatus) -> Result<(), Value> {
+    match status {
+        MoodbarNativeStatus::Ok => Ok(()),
+        failed => Err(last_error_json(failed)),
     }
+}
+
+fn analyze(run: impl FnOnce(&mut MoodbarNativeAnalysisSummary) -> MoodbarNativeStatus) -> Envelope {
+    let mut summary = MoodbarNativeAnalysisSummary {
+        handle: 0,
+        frame_count: 0,
+        channel_count: 0,
+        decode_errors: 0,
+        zero_channel_packets: 0,
+        truncated_frames: 0,
+    };
+    check(run(&mut summary))?;
+    Ok(json!({
+        "ok": true,
+        "handle": summary.handle,
+        "frameCount": summary.frame_count,
+        "channelCount": summary.channel_count,
+        "decodeErrors": summary.decode_errors,
+        "zeroChannelPackets": summary.zero_channel_packets,
+        "truncatedFrames": summary.truncated_frames,
+    }))
+}
+
+fn render(
+    export: extern "C" fn(
+        u64,
+        *const std::ffi::c_char,
+        *mut MoodbarNativeBuffer,
+    ) -> MoodbarNativeStatus,
+    handle: jlong,
+    options: &CString,
+) -> Result<Vec<u8>, Value> {
+    let mut out = MoodbarNativeBuffer::empty();
+    check(export(handle as u64, options.as_ptr(), &mut out))?;
+    Ok(take_buffer(out))
 }
 
 #[no_mangle]
@@ -83,60 +111,13 @@ pub extern "system" fn Java_expo_modules_moodbarnative_NativeBridge_nativeAnalyz
     uri: JString<'_>,
     options_json: JString<'_>,
 ) -> jstring {
-    let uri = match to_rust_string(&mut env, uri) {
-        Ok(value) => value,
-        Err(error) => return response(&mut env, json!({"ok": false, "status": 1, "error": error})),
-    };
-    let options = match to_rust_string(&mut env, options_json) {
-        Ok(value) => value,
-        Err(error) => return response(&mut env, json!({"ok": false, "status": 1, "error": error})),
-    };
-
-    let path = match CString::new(uri) {
-        Ok(v) => v,
-        Err(_) => {
-            return response(
-                &mut env,
-                json!({"ok": false, "status": 1, "error": "uri contains NUL byte"}),
-            )
-        }
-    };
-    let opts = match CString::new(options) {
-        Ok(v) => v,
-        Err(_) => {
-            return response(
-                &mut env,
-                json!({"ok": false, "status": 1, "error": "options JSON contains NUL byte"}),
-            )
-        }
-    };
-
-    let mut summary = crate::MoodbarNativeAnalysisSummary {
-        handle: 0,
-        frame_count: 0,
-        channel_count: 0,
-        decode_errors: 0,
-        zero_channel_packets: 0,
-        truncated_frames: 0,
-    };
-    let status =
-        crate::moodbar_native_analysis_from_path(path.as_ptr(), opts.as_ptr(), &mut summary);
-    if (status as i32) != 0 {
-        return response(&mut env, last_error_json(status));
-    }
-
-    response(
-        &mut env,
-        json!({
-            "ok": true,
-            "handle": summary.handle,
-            "frameCount": summary.frame_count,
-            "channelCount": summary.channel_count,
-            "decodeErrors": summary.decode_errors,
-            "zeroChannelPackets": summary.zero_channel_packets,
-            "truncatedFrames": summary.truncated_frames,
-        }),
-    )
+    guarded(&mut env, |env| {
+        let path = c_string(env, &uri, "uri")?;
+        let opts = c_string(env, &options_json, "options JSON")?;
+        analyze(|summary| {
+            crate::moodbar_native_analysis_from_path(path.as_ptr(), opts.as_ptr(), summary)
+        })
+    })
 }
 
 #[no_mangle]
@@ -147,74 +128,28 @@ pub extern "system" fn Java_expo_modules_moodbarnative_NativeBridge_nativeAnalyz
     extension: JObject<'_>,
     options_json: JString<'_>,
 ) -> jstring {
-    let bytes = match env.convert_byte_array(&bytes) {
-        Ok(v) => v,
-        Err(e) => {
-            return response(
-                &mut env,
-                json!({"ok": false, "status": 1, "error": e.to_string()}),
+    guarded(&mut env, |env| {
+        let bytes = env.convert_byte_array(&bytes).map_err(invalid)?;
+        let ext = if extension.is_null() {
+            None
+        } else {
+            Some(c_string(env, &JString::from(extension), "extension")?)
+        };
+        let ext_ptr = ext
+            .as_ref()
+            .filter(|ext| !ext.is_empty())
+            .map_or(std::ptr::null(), |ext| ext.as_ptr());
+        let opts = c_string(env, &options_json, "options JSON")?;
+        analyze(|summary| {
+            crate::moodbar_native_analysis_from_bytes(
+                bytes.as_ptr(),
+                bytes.len(),
+                ext_ptr,
+                opts.as_ptr(),
+                summary,
             )
-        }
-    };
-
-    let ext = match optional_rust_string(&mut env, extension) {
-        Ok(v) => v,
-        Err(error) => return response(&mut env, json!({"ok": false, "status": 1, "error": error})),
-    };
-    let ext_c = match cstring_opt(ext) {
-        Ok(v) => v,
-        Err(error) => return response(&mut env, error),
-    };
-
-    let options = match to_rust_string(&mut env, options_json) {
-        Ok(value) => value,
-        Err(error) => return response(&mut env, json!({"ok": false, "status": 1, "error": error})),
-    };
-    let opts = match CString::new(options) {
-        Ok(v) => v,
-        Err(_) => {
-            return response(
-                &mut env,
-                json!({"ok": false, "status": 1, "error": "options JSON contains NUL byte"}),
-            )
-        }
-    };
-
-    let mut summary = crate::MoodbarNativeAnalysisSummary {
-        handle: 0,
-        frame_count: 0,
-        channel_count: 0,
-        decode_errors: 0,
-        zero_channel_packets: 0,
-        truncated_frames: 0,
-    };
-    let ext_ptr = ext_c
-        .as_ref()
-        .map(|value| value.as_ptr())
-        .unwrap_or(std::ptr::null());
-    let status = crate::moodbar_native_analysis_from_bytes(
-        bytes.as_ptr() as *const u8,
-        bytes.len(),
-        ext_ptr,
-        opts.as_ptr(),
-        &mut summary,
-    );
-    if (status as i32) != 0 {
-        return response(&mut env, last_error_json(status));
-    }
-
-    response(
-        &mut env,
-        json!({
-            "ok": true,
-            "handle": summary.handle,
-            "frameCount": summary.frame_count,
-            "channelCount": summary.channel_count,
-            "decodeErrors": summary.decode_errors,
-            "zeroChannelPackets": summary.zero_channel_packets,
-            "truncatedFrames": summary.truncated_frames,
-        }),
-    )
+        })
+    })
 }
 
 #[no_mangle]
@@ -224,28 +159,11 @@ pub extern "system" fn Java_expo_modules_moodbarnative_NativeBridge_nativeRender
     handle: jlong,
     options_json: JString<'_>,
 ) -> jstring {
-    let options = match to_rust_string(&mut env, options_json) {
-        Ok(value) => value,
-        Err(error) => return response(&mut env, json!({"ok": false, "status": 1, "error": error})),
-    };
-    let opts = match CString::new(options) {
-        Ok(v) => v,
-        Err(_) => {
-            return response(
-                &mut env,
-                json!({"ok": false, "status": 1, "error": "options JSON contains NUL byte"}),
-            )
-        }
-    };
-
-    let mut out = MoodbarNativeBuffer::empty();
-    let status = crate::moodbar_native_render_svg(handle as u64, opts.as_ptr(), &mut out);
-    if (status as i32) != 0 {
-        return response(&mut env, last_error_json(status));
-    }
-
-    let svg = status_message(out);
-    response(&mut env, json!({"ok": true, "svg": svg}))
+    guarded(&mut env, |env| {
+        let opts = c_string(env, &options_json, "options JSON")?;
+        let svg = render(crate::moodbar_native_render_svg, handle, &opts)?;
+        Ok(json!({"ok": true, "svg": String::from_utf8_lossy(&svg)}))
+    })
 }
 
 #[no_mangle]
@@ -255,36 +173,11 @@ pub extern "system" fn Java_expo_modules_moodbarnative_NativeBridge_nativeRender
     handle: jlong,
     options_json: JString<'_>,
 ) -> jstring {
-    let options = match to_rust_string(&mut env, options_json) {
-        Ok(value) => value,
-        Err(error) => return response(&mut env, json!({"ok": false, "status": 1, "error": error})),
-    };
-    let opts = match CString::new(options) {
-        Ok(v) => v,
-        Err(_) => {
-            return response(
-                &mut env,
-                json!({"ok": false, "status": 1, "error": "options JSON contains NUL byte"}),
-            )
-        }
-    };
-
-    let mut out = MoodbarNativeBuffer::empty();
-    let status = crate::moodbar_native_render_png(handle as u64, opts.as_ptr(), &mut out);
-    if (status as i32) != 0 {
-        return response(&mut env, last_error_json(status));
-    }
-
-    let encoded = if out.ptr.is_null() || out.len == 0 {
-        String::new()
-    } else {
-        let bytes = unsafe { std::slice::from_raw_parts(out.ptr, out.len) };
-        BASE64.encode(bytes)
-    };
-    unsafe {
-        crate::moodbar_native_buffer_free(&mut out);
-    }
-    response(&mut env, json!({"ok": true, "pngBase64": encoded}))
+    guarded(&mut env, |env| {
+        let opts = c_string(env, &options_json, "options JSON")?;
+        let png = render(crate::moodbar_native_render_png, handle, &opts)?;
+        Ok(json!({"ok": true, "pngBase64": BASE64.encode(png)}))
+    })
 }
 
 #[no_mangle]
@@ -293,9 +186,8 @@ pub extern "system" fn Java_expo_modules_moodbarnative_NativeBridge_nativeDispos
     _class: JClass<'_>,
     handle: jlong,
 ) -> jstring {
-    let status = crate::moodbar_native_analysis_dispose(handle as u64);
-    if (status as i32) != 0 {
-        return response(&mut env, last_error_json(status));
-    }
-    response(&mut env, json!({"ok": true}))
+    guarded(&mut env, |_| {
+        check(crate::moodbar_native_analysis_dispose(handle as u64))?;
+        Ok(json!({"ok": true}))
+    })
 }

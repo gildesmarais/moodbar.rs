@@ -59,13 +59,14 @@ impl GenerateOptions {
         sample_rate as f64 / 2.0 * rate
     }
 
-    /// Rejects options that would make analysis panic or produce garbage.
-    /// Called once by `FrameAnalyzer::new`, the only analysis entry point.
-    pub(crate) fn validate(&self, sample_rate: u32) -> Result<(), MoodbarError> {
+    /// Rejects options that would make analysis panic or produce garbage. `FrameAnalyzer::new`
+    /// always calls it; decoders call it first to fail fast before opening or probing media.
+    ///
+    /// # Errors
+    ///
+    /// Returns `MoodbarError::InvalidOptions` naming the first out-of-range field.
+    pub fn validate(&self) -> Result<(), MoodbarError> {
         let fail = |msg: &str| Err(MoodbarError::InvalidOptions(msg.to_string()));
-        if sample_rate == 0 {
-            return fail("sample_rate must be greater than 0");
-        }
         if !self.fft_size.is_power_of_two() || self.fft_size < 64 {
             return fail("fft_size must be a power of two and >= 64");
         }
@@ -129,7 +130,7 @@ mod tests {
     use super::*;
 
     fn rejects(options: GenerateOptions) -> String {
-        match options.validate(44_100) {
+        match options.validate() {
             Err(MoodbarError::InvalidOptions(msg)) => msg,
             other => panic!("expected InvalidOptions, got {other:?}"),
         }
@@ -164,11 +165,7 @@ mod tests {
             ..base()
         })
         .contains("playback_rate"));
-        assert!(matches!(
-            base().validate(0),
-            Err(MoodbarError::InvalidOptions(_))
-        ));
-        assert!(base().validate(44_100).is_ok());
+        assert!(base().validate().is_ok());
     }
 
     #[test]

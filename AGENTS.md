@@ -15,8 +15,8 @@ Rust rewrite of Moodbar. Legacy raw output (`R G B ...` bytes) must stay byte-co
 ## FFI and mobile (`moodbar-native-ffi`, `packages/moodbar-native`)
 
 - Never pass Rust pointers across the ABI. Analyses live in `registry.rs` as `Mutex<HashMap<u64, Arc<MoodbarAnalysis>>>`; only the `u64` handle crosses. Renders clone the `Arc` and release the lock before they run.
-- Returned buffers are created by `mem::forget` into `MoodbarNativeBuffer` and must be freed exactly once with `moodbar_native_buffer_free`, which zeroes the struct. In Swift, put `defer { moodbar_native_buffer_free(&out) }` before the first `try` in the same scope.
-- Wrap every `#[no_mangle]` export in `ffi_guard` (`errors.rs`), which uses `catch_unwind`. A panic becomes `MoodbarNativeStatus::Internal`.
+- Returned buffers are created by `mem::forget` into `MoodbarNativeBuffer` and must be freed exactly once with `moodbar_native_buffer_free`, which zeroes the struct. In Swift, put `defer { moodbar_native_buffer_free(&out) }` before the first `try` in the same scope. On failure the FFI never writes the out-param, which that pattern relies on.
+- Wrap every `#[no_mangle]` export in `ffi_guard` (`errors.rs`), which uses `catch_unwind`. A panic becomes `MoodbarNativeStatus::Internal`; JNI exports reuse it through `guarded`. Only `moodbar_native_buffer_free` is unguarded: it cannot panic and must not clear the last error.
 - Exports return `MoodbarNativeStatus` (0 = ok) and store the message in a thread-local. The host must call `moodbar_native_last_error` on the same thread right after a non-zero status, before any other FFI call.
 - JNI (`android_jni.rs`) returns JSON envelopes rather than marshalling structs: `{"ok": true, ...}` or `{"ok": false, "status": N, "error": "..."}`. Kotlin throws `CodedException` when `ok` is false.
 - iOS: lipo `aarch64-apple-ios-sim` and `x86_64-apple-ios` into one simulator slice before `xcodebuild -create-xcframework`, because XCFramework allows only one slice per platform variant.
