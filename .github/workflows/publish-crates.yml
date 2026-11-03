@@ -11,6 +11,7 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     env:
       GITHUB_REF_NAME: ${{ github.event.release.tag_name }}
 

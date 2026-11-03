@@ -11,6 +11,7 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       WASM_PACK_VERSION: "0.13.1"
       NODE_VERSION: "22.22.0"
@@ -32,7 +33,7 @@ jobs:
           workspaces: . -> target
 
       - name: Install wasm-pack
-        run: cargo install wasm-pack --version ${WASM_PACK_VERSION} --locked
+        run: cargo install wasm-pack --version "${WASM_PACK_VERSION}" --locked
 
       # Node 22+ / npm 11+ required for OIDC trusted publishing
       - name: Setup Node
@@ -41,7 +42,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Pin npm
-        run: npm install -g npm@${NPM_VERSION}
+        run: npm install -g "npm@${NPM_VERSION}"
 
       - name: Validate release tag matches workspace version
         run: |
