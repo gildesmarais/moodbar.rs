@@ -1,8 +1,5 @@
 // Rust guideline compliant 2026-06-22
 
-#[cfg(feature = "png")]
-use image::{ImageBuffer, Rgba};
-
 use crate::render::util::{fill_column_raw, frame_at_x};
 use crate::types::{MoodbarAnalysis, PngOptions, SvgShape};
 
@@ -87,24 +84,19 @@ pub(crate) fn render_waveform_png(
 
 #[cfg(feature = "png")]
 pub(crate) fn encode_png(
-    buf: Vec<u8>,
+    buf: &[u8],
     width: u32,
     height: u32,
 ) -> Result<Vec<u8>, crate::types::MoodbarError> {
     use image::ImageEncoder;
-    let img: ImageBuffer<Rgba<u8>, Vec<u8>> =
-        ImageBuffer::from_raw(width, height, buf).expect("valid rgba buffer");
     let mut out = Vec::new();
-    let encoder = image::codecs::png::PngEncoder::new(&mut out);
-    encoder.write_image(img.as_raw(), width, height, image::ColorType::Rgba8.into())?;
+    image::codecs::png::PngEncoder::new(&mut out).write_image(
+        buf,
+        width,
+        height,
+        image::ColorType::Rgba8.into(),
+    )?;
     Ok(out)
-}
-
-#[cfg(feature = "png")]
-pub(crate) fn empty_png(width: u32, height: u32) -> Result<Vec<u8>, crate::types::MoodbarError> {
-    let img: ImageBuffer<Rgba<u8>, Vec<u8>> =
-        ImageBuffer::from_pixel(width, height, Rgba([0, 0, 0, 0]));
-    encode_png(img.into_raw(), width, height)
 }
 
 #[cfg(feature = "png")]
@@ -119,9 +111,22 @@ pub(crate) fn render_shape_png(buf: &mut [u8], analysis: &MoodbarAnalysis, optio
     }
 }
 
+/// Largest accepted PNG side in pixels; bounds the RGBA buffer to 1 GiB.
 #[cfg(feature = "png")]
-pub(crate) fn new_rgba_buffer(width: u32, height: u32) -> Vec<u8> {
-    vec![0u8; (width * height * 4) as usize]
+pub(crate) const MAX_PNG_DIMENSION: u32 = 16_384;
+
+#[cfg(feature = "png")]
+pub(crate) fn new_rgba_buffer(
+    width: u32,
+    height: u32,
+) -> Result<Vec<u8>, crate::types::MoodbarError> {
+    if width > MAX_PNG_DIMENSION || height > MAX_PNG_DIMENSION {
+        return Err(crate::types::MoodbarError::InvalidOptions(format!(
+            "png dimensions {width}x{height} exceed the {MAX_PNG_DIMENSION}px maximum per side"
+        )));
+    }
+    // Lossless: both sides are <= 2^14, so the product fits in u32 and therefore in usize.
+    Ok(vec![0u8; width as usize * height as usize * 4])
 }
 
 #[cfg(test)]
@@ -151,7 +156,7 @@ mod tests {
         ] {
             let width = 64;
             let height = 24;
-            let mut buf = new_rgba_buffer(width, height);
+            let mut buf = new_rgba_buffer(width, height).expect("buffer");
             render_shape_png(
                 &mut buf,
                 &analysis,
@@ -161,8 +166,38 @@ mod tests {
                     shape,
                 },
             );
-            let png = encode_png(buf, width, height).expect("encode png");
+            let png = encode_png(&buf, width, height).expect("encode png");
             assert!(png.starts_with(b"\x89PNG\r\n\x1a\n"), "shape {shape:?}");
+        }
+    }
+
+    #[test]
+    fn oversized_png_is_rejected_without_allocating() {
+        let analysis = MoodbarAnalysis {
+            channel_count: 3,
+            frames: vec![1.0, 0.0, 0.0],
+            colors: vec![[255, 0, 0]],
+            diagnostics: AnalysisDiagnostics::default(),
+            band_colors: vec![[255, 0, 0], [0, 255, 0], [0, 0, 255]],
+        };
+        for (width, height) in [(65_536, 16_384), (MAX_PNG_DIMENSION + 1, 1), (1, u32::MAX)] {
+            let options = PngOptions {
+                width,
+                height,
+                shape: SvgShape::Strip,
+            };
+            assert!(matches!(
+                crate::render_png(&analysis, &options),
+                Err(crate::types::MoodbarError::InvalidOptions(_))
+            ));
+        }
+        for shape in [SvgShape::Waveform, SvgShape::SplitWaveform] {
+            let zero_height = PngOptions {
+                width: 8,
+                height: 0,
+                shape,
+            };
+            assert!(crate::render_png(&analysis, &zero_height).is_ok());
         }
     }
 }

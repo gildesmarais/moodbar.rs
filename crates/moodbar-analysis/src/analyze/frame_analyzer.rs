@@ -7,7 +7,7 @@ use crate::analyze::color::{frame_to_rgb, hsv_to_rgb, scale_to_u8};
 use crate::analyze::fft::{build_bin_to_band, hann_window};
 use crate::analyze::normalize::{aggregate_frames_flat, normalize_frames_flat};
 use crate::options::{DetectionMode, GenerateOptions};
-use crate::types::{AnalysisDiagnostics, MoodbarAnalysis};
+use crate::types::{AnalysisDiagnostics, MoodbarAnalysis, MoodbarError};
 
 /// Incremental stream analyzer that accumulates mono PCM audio frames.
 ///
@@ -39,11 +39,16 @@ impl<'a> FrameAnalyzer<'a> {
     /// * `sample_rate` - Audio sampling frequency in Hz.
     /// * `options` - Configured analysis parameters.
     /// * `total_samples` - Optional expected total sample count for dynamic hop calculation.
+    ///
+    /// # Errors
+    ///
+    /// Returns `MoodbarError::InvalidOptions` when `sample_rate` or `options` are out of range.
     pub fn new(
         sample_rate: u32,
         options: &'a GenerateOptions,
         total_samples: Option<usize>,
-    ) -> Self {
+    ) -> Result<Self, MoodbarError> {
+        options.validate(sample_rate)?;
         let fft_size = options.fft_size;
         let mut hop_size = fft_size / 2;
         if let (Some(total), Some(target)) = (total_samples, options.max_target_frames) {
@@ -57,7 +62,7 @@ impl<'a> FrameAnalyzer<'a> {
         let fft = planner.plan_fft_forward(fft_size);
         let scratch_len = fft.get_inplace_scratch_len();
 
-        Self {
+        Ok(Self {
             options,
             fft_size,
             hop_size,
@@ -77,7 +82,7 @@ impl<'a> FrameAnalyzer<'a> {
             frame_scratch: vec![0.0; channel_count],
             frames_flat: Vec::new(),
             frame_count: 0,
-        }
+        })
     }
 
     /// Returns the active hop size in samples between consecutive FFT windows.
@@ -99,7 +104,7 @@ impl<'a> FrameAnalyzer<'a> {
         while self.pending.len().saturating_sub(self.pending_start) >= self.fft_size {
             let start = self.pending_start;
             self.analyze_window_from_pending(start);
-            self.pending_start += self.hop_size.max(1);
+            self.pending_start += self.hop_size;
             self.compact_pending_if_needed();
         }
     }
@@ -115,7 +120,7 @@ impl<'a> FrameAnalyzer<'a> {
         let aggregated = aggregate_frames_flat(
             &self.frames_flat,
             self.channel_count,
-            self.options.frames_per_color.max(1),
+            self.options.frames_per_color,
         );
         let mut normalized = aggregated;
         normalize_frames_flat(&mut normalized, self.channel_count, self.options);
@@ -308,9 +313,9 @@ mod tests {
         pcm.extend(sine(3300.0, sample_rate, 0.4));
 
         let options = GenerateOptions::default();
-        let batch = crate::analyze_pcm_mono(sample_rate, &pcm, &options);
+        let batch = crate::analyze_pcm_mono(sample_rate, &pcm, &options).unwrap();
 
-        let mut stream = FrameAnalyzer::new(sample_rate, &options, None);
+        let mut stream = FrameAnalyzer::new(sample_rate, &options, None).unwrap();
         for chunk in pcm.chunks(257) {
             stream.feed_mono_samples(chunk);
         }
@@ -337,7 +342,8 @@ mod tests {
                 normalize_mode: NormalizeMode::PerChannelPeak,
                 ..GenerateOptions::default()
             },
-        );
+        )
+        .unwrap();
         let global = crate::analyze_pcm_mono(
             sample_rate,
             &pcm,
@@ -345,7 +351,8 @@ mod tests {
                 normalize_mode: NormalizeMode::GlobalPeak,
                 ..GenerateOptions::default()
             },
-        );
+        )
+        .unwrap();
 
         let max_per_channel = |frames: &Vec<f64>, idx: usize| {
             frames
@@ -363,6 +370,18 @@ mod tests {
     }
 
     #[test]
+    fn new_rejects_invalid_options_instead_of_panicking() {
+        let options = GenerateOptions {
+            fft_size: 0,
+            ..GenerateOptions::default()
+        };
+        assert!(matches!(
+            FrameAnalyzer::new(44_100, &options, None),
+            Err(MoodbarError::InvalidOptions(_))
+        ));
+    }
+
+    #[test]
     #[ignore = "dev-only throughput benchmark"]
     fn bench_analysis_throughput() {
         let sample_rate = 44_100;
@@ -370,7 +389,7 @@ mod tests {
         let options = GenerateOptions::default();
 
         let start = std::time::Instant::now();
-        let result = crate::analyze_pcm_mono(sample_rate, &pcm, &options);
+        let result = crate::analyze_pcm_mono(sample_rate, &pcm, &options).unwrap();
         let elapsed = start.elapsed();
         eprintln!(
             "Analysis throughput: 60s audio processed in {:?}, frames: {}",

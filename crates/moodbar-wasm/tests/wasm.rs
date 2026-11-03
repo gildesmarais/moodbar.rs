@@ -44,6 +44,15 @@ fn test_analyze_with_options_validation() {
         .unwrap()
         .contains("fft_size must be a power of two"));
 
+    // Invalid custom color is rejected rather than mapped to black
+    let opts = GenerateOptionsPatch {
+        custom_colors: Some(vec!["#GG0000".to_string()]),
+        ..Default::default()
+    };
+    let js_opts = serde_wasm_bindgen::to_value(&opts).unwrap();
+    let err = analyze_with_options(&pcm, 44100, js_opts.into()).unwrap_err();
+    assert!(err.as_string().unwrap().contains("invalid color"));
+
     // Valid custom options
     let opts_valid = GenerateOptionsPatch {
         fft_size: Some(256),

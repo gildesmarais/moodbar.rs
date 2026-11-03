@@ -14,8 +14,8 @@ use std::time::SystemTime;
 use anyhow::{Context, Result};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use moodbar_core::{
-    analysis_to_raw_rgb_bytes, analyze_path, analyze_pcm_mono, render_png, render_svg,
-    DetectionMode, GenerateOptions, NormalizeMode, PngOptions, SvgOptions, SvgShape,
+    analysis_to_raw_rgb_bytes, analyze_path, analyze_pcm_mono, parse_hex_color, render_png,
+    render_svg, DetectionMode, GenerateOptions, NormalizeMode, PngOptions, SvgOptions, SvgShape,
 };
 use rayon::prelude::*;
 use serde::Serialize;
@@ -271,7 +271,7 @@ fn run(cli: Cli) -> Result<i32> {
             let options = build_options(&dsp)?;
             let analysis = if stdin {
                 let mono = read_stdin_pcm_mono(stdin_format, channels)?;
-                analyze_pcm_mono(sample_rate, &mono, &options)
+                analyze_pcm_mono(sample_rate, &mono, &options)?
             } else {
                 let inpath = input.as_ref().expect("validated above");
                 analyze_path(inpath, &options).with_context(|| {
@@ -410,11 +410,11 @@ fn run(cli: Cli) -> Result<i32> {
                     Err(err) => {
                         failed += 1;
                         if cli.json {
-                            eprintln!(
-                                "{{\"input\":\"{}\",\"error\":\"{}\"}}",
-                                src.display(),
-                                escape_json_string(&format!("{err:#}"))
-                            );
+                            let line = serde_json::json!({
+                                "input": src.display().to_string(),
+                                "error": format!("{err:#}"),
+                            });
+                            eprintln!("{line}");
                         } else {
                             eprintln!("failed: {} ({err:#})", src.display());
                         }
@@ -444,17 +444,15 @@ fn run(cli: Cli) -> Result<i32> {
     }
 }
 fn build_options(dsp: &DspArgs) -> Result<GenerateOptions> {
-    use anyhow::Context as _;
     let custom_colors = if dsp.colors.is_empty() {
         None
     } else {
-        let mut parsed = Vec::new();
-        for s in &dsp.colors {
-            let color = parse_cli_hex_color(s)
-                .with_context(|| format!("invalid color hex value: '{}'", s))?;
-            parsed.push(color);
-        }
-        Some(parsed)
+        Some(
+            dsp.colors
+                .iter()
+                .map(|s| parse_hex_color(s))
+                .collect::<Result<_, _>>()?,
+        )
     };
 
     Ok(GenerateOptions {
@@ -471,17 +469,6 @@ fn build_options(dsp: &DspArgs) -> Result<GenerateOptions> {
         theme: dsp.theme.into_core(),
         custom_colors,
     })
-}
-
-fn parse_cli_hex_color(s: &str) -> Result<[u8; 3]> {
-    let cleaned = s.trim().trim_start_matches('#');
-    if cleaned.len() != 6 {
-        anyhow::bail!("length must be exactly 6 characters (e.g. #FF0000 or FF0000)");
-    }
-    let r = u8::from_str_radix(&cleaned[0..2], 16).context("invalid red channel hex")?;
-    let g = u8::from_str_radix(&cleaned[2..4], 16).context("invalid green channel hex")?;
-    let b = u8::from_str_radix(&cleaned[4..6], 16).context("invalid blue channel hex")?;
-    Ok([r, g, b])
 }
 
 #[derive(Copy, Clone)]
@@ -639,11 +626,4 @@ fn looks_like_audio(path: &Path) -> bool {
         ext.to_ascii_lowercase().as_str(),
         "mp3" | "ogg" | "flac" | "wav" | "m4a" | "aac" | "opus"
     )
-}
-
-fn escape_json_string(s: &str) -> String {
-    serde_json::to_string(s)
-        .unwrap_or_else(|_| "\"<encode-error>\"".to_string())
-        .trim_matches('"')
-        .to_string()
 }

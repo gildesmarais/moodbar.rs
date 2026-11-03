@@ -76,14 +76,9 @@ pub fn init_panic_hook() {
 
 #[wasm_bindgen]
 pub fn analyze(pcm: &[f32], sample_rate: u32) -> Result<WasmAnalysis, JsValue> {
-    if sample_rate == 0 {
-        return Err(JsValue::from_str("sample_rate must be greater than 0"));
-    }
-    Ok(WasmAnalysis(analyze_pcm_mono(
-        sample_rate,
-        pcm,
-        &GenerateOptions::default(),
-    )))
+    analyze_pcm_mono(sample_rate, pcm, &GenerateOptions::default())
+        .map(WasmAnalysis)
+        .map_err(js_err)
 }
 
 #[wasm_bindgen]
@@ -92,11 +87,10 @@ pub fn analyze_with_options(
     sample_rate: u32,
     opts: GenerateOptionsJs,
 ) -> Result<WasmAnalysis, JsValue> {
-    if sample_rate == 0 {
-        return Err(JsValue::from_str("sample_rate must be greater than 0"));
-    }
     let options = js_opts_to_generate_options(opts.into())?;
-    Ok(WasmAnalysis(analyze_pcm_mono(sample_rate, pcm, &options)))
+    analyze_pcm_mono(sample_rate, pcm, &options)
+        .map(WasmAnalysis)
+        .map_err(js_err)
 }
 
 #[wasm_bindgen]
@@ -108,7 +102,7 @@ pub fn svg(analysis: &WasmAnalysis, opts: SvgOptionsJs) -> Result<String, JsValu
 #[wasm_bindgen]
 pub fn png(analysis: &WasmAnalysis, opts: PngOptionsJs) -> Result<Vec<u8>, JsValue> {
     let options = js_opts_to_png_options(opts.into())?;
-    render_png(&analysis.0, &options).map_err(|e| JsValue::from_str(&e.to_string()))
+    render_png(&analysis.0, &options).map_err(js_err)
 }
 
 #[wasm_bindgen]
@@ -119,21 +113,18 @@ pub fn raw_rgb(analysis: &WasmAnalysis) -> Vec<u8> {
 fn js_opts_to_generate_options(opts: JsValue) -> Result<GenerateOptions, JsValue> {
     let parsed: GenerateOptionsPatch = decode_opts(opts)?;
     let mut options = GenerateOptions::default();
-    apply_generate_patch(&mut options, parsed);
-    validate_generate_options(&options)?;
+    apply_generate_patch(&mut options, parsed).map_err(js_err)?;
     Ok(options)
 }
 
-fn validate_generate_options(options: &GenerateOptions) -> Result<(), JsValue> {
-    options
-        .validate()
-        .map_err(|e| JsValue::from_str(&e.to_string()))
+fn js_err(err: impl std::fmt::Display) -> JsValue {
+    JsValue::from_str(&err.to_string())
 }
 
 fn js_opts_to_svg_options(opts: JsValue) -> Result<SvgOptions, JsValue> {
     let parsed: SvgOptionsPatch = decode_opts(opts)?;
     let mut options = SvgOptions::default();
-    apply_svg_patch(&mut options, parsed).map_err(|e| JsValue::from_str(&e))?;
+    apply_svg_patch(&mut options, parsed).map_err(js_err)?;
     Ok(options)
 }
 

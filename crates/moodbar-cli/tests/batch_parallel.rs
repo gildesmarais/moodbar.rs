@@ -197,3 +197,29 @@ fn batch_progress_writes_status_lines() {
     assert!(stderr.contains("[1/2]") || stderr.contains("[2/2]"));
     assert!(stderr.contains("generated"));
 }
+
+#[test]
+fn batch_json_error_line_escapes_path() {
+    let temp = unique_temp_dir("json-escape");
+    let input_dir = temp.join("in");
+    let output_dir = temp.join("out");
+    fs::create_dir_all(&input_dir).expect("create input dir");
+    let bad = input_dir.join("quo\"te\\back.wav");
+    fs::write(&bad, b"not audio").expect("write bad wav");
+
+    let bin = moodbar_bin_path();
+    let out = Command::new(&bin)
+        .args(["--json", "batch", "-i"])
+        .arg(&input_dir)
+        .arg("-o")
+        .arg(&output_dir)
+        .output()
+        .unwrap_or_else(|err| panic!("run batch using {}: {err}", bin.display()));
+
+    assert_eq!(out.status.code(), Some(1));
+    let stderr = String::from_utf8(out.stderr).expect("utf8 stderr");
+    let line: serde_json::Value = serde_json::from_str(stderr.lines().next().expect("error line"))
+        .unwrap_or_else(|err| panic!("stderr is not JSON ({err}): {stderr}"));
+    assert_eq!(line["input"], bad.display().to_string());
+    assert!(line["error"].as_str().is_some_and(|e| !e.is_empty()));
+}

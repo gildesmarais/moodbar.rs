@@ -1,3 +1,5 @@
+use crate::types::MoodbarError;
+
 /// Visual theme presets.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Theme {
@@ -57,55 +59,53 @@ impl GenerateOptions {
         sample_rate as f64 / 2.0 * rate
     }
 
-    /// Validates the generate options, ensuring mathematical and physical constraints are met.
-    ///
-    /// # Errors
-    ///
-    /// Returns `MoodbarError::InvalidOptions` if validation fails.
-    pub fn validate(&self) -> Result<(), crate::types::MoodbarError> {
+    /// Rejects options that would make analysis panic or produce garbage.
+    /// Called once by `FrameAnalyzer::new`, the only analysis entry point.
+    pub(crate) fn validate(&self, sample_rate: u32) -> Result<(), MoodbarError> {
+        let fail = |msg: &str| Err(MoodbarError::InvalidOptions(msg.to_string()));
+        if sample_rate == 0 {
+            return fail("sample_rate must be greater than 0");
+        }
         if !self.fft_size.is_power_of_two() || self.fft_size < 64 {
-            return Err(crate::types::MoodbarError::InvalidOptions(
-                "fft_size must be a power of two and >= 64".to_string(),
-            ));
+            return fail("fft_size must be a power of two and >= 64");
         }
         if !(self.deterministic_floor.is_finite() && self.deterministic_floor > 0.0) {
-            return Err(crate::types::MoodbarError::InvalidOptions(
-                "deterministic_floor must be finite and > 0".to_string(),
-            ));
+            return fail("deterministic_floor must be finite and > 0");
         }
         if self.frames_per_color == 0 {
-            return Err(crate::types::MoodbarError::InvalidOptions(
-                "frames_per_color must be >= 1".to_string(),
-            ));
+            return fail("frames_per_color must be >= 1");
         }
-        if let Some(rate) = self.playback_rate {
-            if !(rate.is_finite() && rate > 0.0) {
-                return Err(crate::types::MoodbarError::InvalidOptions(
-                    "playback_rate must be finite and > 0".to_string(),
-                ));
-            }
+        if self
+            .playback_rate
+            .is_some_and(|rate| !(rate.is_finite() && rate > 0.0))
+        {
+            return fail("playback_rate must be finite and > 0");
         }
-
-        let edges = if self.band_edges_hz.is_empty() {
-            vec![self.low_cut_hz, self.mid_cut_hz]
-        } else {
-            self.band_edges_hz.clone()
-        };
-
-        if edges.is_empty() {
-            return Err(crate::types::MoodbarError::InvalidOptions(
-                "at least one band edge is required".to_string(),
-            ));
+        let edges = self.effective_band_edges();
+        if !edges.iter().all(|edge| edge.is_finite()) {
+            return fail("band edges must be finite");
         }
-        for pair in edges.windows(2) {
-            if pair[0] >= pair[1] {
-                return Err(crate::types::MoodbarError::InvalidOptions(
-                    "band edges must be strictly increasing".to_string(),
-                ));
-            }
+        if edges.windows(2).any(|pair| pair[0] >= pair[1]) {
+            return fail("band edges must be strictly increasing");
         }
         Ok(())
     }
+}
+
+/// Parses a `#RRGGBB` or `RRGGBB` hex color.
+///
+/// # Errors
+///
+/// Returns `MoodbarError::InvalidOptions` unless the trimmed input is exactly six ASCII hex digits.
+pub fn parse_hex_color(input: &str) -> Result<[u8; 3], MoodbarError> {
+    let hex = input.trim().trim_start_matches('#');
+    if hex.len() != 6 || !hex.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return Err(MoodbarError::InvalidOptions(format!(
+            "invalid color '{input}': expected 6 hex digits like #FF0000"
+        )));
+    }
+    let channel = |i: usize| u8::from_str_radix(&hex[i..i + 2], 16).unwrap_or_default();
+    Ok([channel(0), channel(2), channel(4)])
 }
 
 /// Band normalization strategy.
@@ -123,3 +123,60 @@ pub enum DetectionMode {
 }
 
 // Rust guideline compliant 2026-06-22
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn rejects(options: GenerateOptions) -> String {
+        match options.validate(44_100) {
+            Err(MoodbarError::InvalidOptions(msg)) => msg,
+            other => panic!("expected InvalidOptions, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn validate_rejects_non_finite_and_out_of_range_values() {
+        let base = GenerateOptions::default;
+        assert!(rejects(GenerateOptions {
+            fft_size: 0,
+            ..base()
+        })
+        .contains("fft_size"));
+        assert!(rejects(GenerateOptions {
+            band_edges_hz: vec![f32::NAN],
+            ..base()
+        })
+        .contains("finite"));
+        assert!(rejects(GenerateOptions {
+            band_edges_hz: vec![],
+            low_cut_hz: f32::INFINITY,
+            ..base()
+        })
+        .contains("finite"));
+        assert!(rejects(GenerateOptions {
+            band_edges_hz: vec![900.0, 100.0],
+            ..base()
+        })
+        .contains("increasing"));
+        assert!(rejects(GenerateOptions {
+            playback_rate: Some(f32::NAN),
+            ..base()
+        })
+        .contains("playback_rate"));
+        assert!(matches!(
+            base().validate(0),
+            Err(MoodbarError::InvalidOptions(_))
+        ));
+        assert!(base().validate(44_100).is_ok());
+    }
+
+    #[test]
+    fn parse_hex_color_accepts_only_six_ascii_hex_digits() {
+        assert_eq!(parse_hex_color(" #FF8000 ").unwrap(), [255, 128, 0]);
+        assert_eq!(parse_hex_color("00ff10").unwrap(), [0, 255, 16]);
+        for bad in ["", "#FFF", "GG0000", "+F+F+F", "€€", "#FF00001"] {
+            assert!(parse_hex_color(bad).is_err(), "{bad:?} should be rejected");
+        }
+    }
+}
