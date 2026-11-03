@@ -160,7 +160,7 @@ Build tooling choices:
   - `opt-level = "z"`
   - `lto = true`
   - `codegen-units = 1`
-  - `panic = "abort"`
+  - `panic = "unwind"` (so `ffi_guard`'s `catch_unwind` can turn panics into a status code)
   - `strip = true`
 
 ## Implementation Phases

@@ -81,9 +81,9 @@ cargo run -p moodbar -- batch -i ./music -o ./moods --progress
 ## Repository Layout
 
 - `crates/moodbar-analysis`: Source of truth for DSP, FFT, normalization, and rendering (SVG/PNG, including split-band shapes)
-- `crates/moodbar-decode`: Symphonia decode → mono PCM → `analyze_pcm_mono`
+- `crates/moodbar-decode`: Symphonia decode, streaming packets into `FrameAnalyzer` (stereo downmix, no full-PCM buffer)
 - `crates/moodbar-bindings-schema`: Serde option patches for WASM/FFI (no DSP)
-- `crates/moodbar-core`: Backward-compatible CLI API; rendering delegates to `moodbar-analysis`
+- `crates/moodbar-core`: Re-export facade over `moodbar-analysis` + `moodbar-decode`
 - `crates/moodbar-cli`: `generate`, `batch`, `inspect` commands
 - `crates/moodbar-wasm`: WASM bindings — pre-decoded PCM only (browser decodes)
 - `crates/moodbar-native-ffi`: C ABI for mobile; uses `moodbar-decode` + `moodbar-analysis`

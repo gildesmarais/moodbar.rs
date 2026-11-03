@@ -63,4 +63,4 @@ moodbar batch -i ./music -o ./moods --progress
 ## Related crates
 
 - [`moodbar-analysis`](https://crates.io/crates/moodbar-analysis) — DSP and rendering (source of truth)
-- [`moodbar-decode`](https://crates.io/crates/moodbar-decode) — Symphonia decode → `analyze_pcm_mono`
+- [`moodbar-decode`](https://crates.io/crates/moodbar-decode) — Symphonia decode streamed into `FrameAnalyzer`

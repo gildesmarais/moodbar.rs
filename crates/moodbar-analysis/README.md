@@ -52,7 +52,8 @@ use moodbar_analysis::{analyze_pcm_mono, render_svg, GenerateOptions, SvgOptions
 let sample_rate = 44_100;
 let pcm = vec![0.0f32; sample_rate as usize];
 
-let analysis = analyze_pcm_mono(sample_rate, &pcm, &GenerateOptions::default());
+let analysis = analyze_pcm_mono(sample_rate, &pcm, &GenerateOptions::default())
+    .expect("default options are valid");
 
 let svg = render_svg(
     &analysis,

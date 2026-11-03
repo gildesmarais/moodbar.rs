@@ -18,7 +18,7 @@ No raw Rust pointers cross the FFI boundary — only handles and owned buffers.
 static ANALYSIS_REGISTRY: Lazy<Mutex<HashMap<u64, Arc<MoodbarAnalysis>>>> = ...;
 ```
 
-The registry mutex is held for the duration of render calls (renders are serialized in v1).
+Render calls clone the `Arc` and release the lock before rendering, so renders on the same handle run concurrently.
 
 ## Buffer ownership
 
