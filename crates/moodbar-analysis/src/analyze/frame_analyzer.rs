@@ -29,6 +29,9 @@ pub struct FrameAnalyzer<'a> {
     frame_scratch: Vec<f64>,
     frames_flat: Vec<f64>,
     frame_count: usize,
+    /// `Some(samples fed so far)` when no length estimate was given and `max_target_frames`
+    /// must be enforced in `finish` instead of through the hop size.
+    unestimated_fed: Option<usize>,
 }
 
 impl<'a> FrameAnalyzer<'a> {
@@ -39,6 +42,7 @@ impl<'a> FrameAnalyzer<'a> {
     /// * `sample_rate` - Audio sampling frequency in Hz.
     /// * `options` - Configured analysis parameters.
     /// * `total_samples` - Optional expected total sample count for dynamic hop calculation.
+    ///   When `None`, `finish` decimates the frames to honor `max_target_frames` instead.
     ///
     /// # Errors
     ///
@@ -50,11 +54,10 @@ impl<'a> FrameAnalyzer<'a> {
     ) -> Result<Self, MoodbarError> {
         options.validate(sample_rate)?;
         let fft_size = options.fft_size;
-        let mut hop_size = fft_size / 2;
-        if let (Some(total), Some(target)) = (total_samples, options.max_target_frames) {
-            let dynamic_hop = total / target.max(1);
-            hop_size = hop_size.max(dynamic_hop);
-        }
+        let hop_size = match (total_samples, options.max_target_frames) {
+            (Some(total), Some(target)) => dynamic_hop(fft_size, total, target),
+            _ => fft_size / 2,
+        };
         let band_edges_hz = options.effective_band_edges();
         let channel_count = band_edges_hz.len() + 1;
 
@@ -82,6 +85,8 @@ impl<'a> FrameAnalyzer<'a> {
             frame_scratch: vec![0.0; channel_count],
             frames_flat: Vec::new(),
             frame_count: 0,
+            unestimated_fed: (total_samples.is_none() && options.max_target_frames.is_some())
+                .then_some(0),
         })
     }
 
@@ -97,9 +102,10 @@ impl<'a> FrameAnalyzer<'a> {
 
     /// Feeds incremental mono PCM samples into the streaming analyzer.
     pub fn feed_mono_samples(&mut self, samples: &[f32]) {
-        if !samples.is_empty() {
-            self.pending.extend_from_slice(samples);
+        if let Some(fed) = &mut self.unestimated_fed {
+            *fed += samples.len();
         }
+        self.pending.extend_from_slice(samples);
 
         while self.pending.len().saturating_sub(self.pending_start) >= self.fft_size {
             let start = self.pending_start;
@@ -115,6 +121,10 @@ impl<'a> FrameAnalyzer<'a> {
             let available = self.pending.len().saturating_sub(self.pending_start);
             let copy_len = available.min(self.fft_size);
             self.analyze_window_from_pending_padded(copy_len);
+        }
+        if let (Some(total), Some(target)) = (self.unestimated_fed, self.options.max_target_frames)
+        {
+            self.decimate_to_dynamic_hop(total, target);
         }
 
         let aggregated = aggregate_frames_flat(
@@ -216,10 +226,31 @@ impl<'a> FrameAnalyzer<'a> {
         self.frame_count += 1;
     }
 
+    /// Keeps, for each window the known-length dynamic hop would have analyzed, the base-hop
+    /// frame nearest to it. Spectral energy matches the known-length output exactly whenever
+    /// the dynamic hop is a multiple of the base hop; spectral flux stays base-hop flux.
+    fn decimate_to_dynamic_hop(&mut self, total: usize, target: usize) {
+        let base = self.hop_size;
+        let hop = dynamic_hop(self.fft_size, total, target);
+        if hop == base || total < self.fft_size {
+            return;
+        }
+        let kept = ((total - self.fft_size) / hop + 1).min(target.max(1));
+        let ch = self.channel_count;
+        for k in 0..kept {
+            let j = ((k * hop + base / 2) / base).min(self.frame_count - 1);
+            self.frames_flat.copy_within(j * ch..(j + 1) * ch, k * ch);
+        }
+        self.frames_flat.truncate(kept * ch);
+        self.frame_count = kept;
+    }
+
     fn compact_pending_if_needed(&mut self) {
-        if self.pending_start == self.pending.len() {
+        // A hop wider than the window can step past buffered samples; carry the overshoot
+        // into the next chunk so window starts stay exact multiples of the hop.
+        if self.pending_start >= self.pending.len() {
+            self.pending_start -= self.pending.len();
             self.pending.clear();
-            self.pending_start = 0;
             return;
         }
         let threshold = self.fft_size * 8;
@@ -228,6 +259,11 @@ impl<'a> FrameAnalyzer<'a> {
             self.pending_start = 0;
         }
     }
+}
+
+/// Hop that spreads `total` samples over at most `target` windows, never below half a window.
+fn dynamic_hop(fft_size: usize, total: usize, target: usize) -> usize {
+    (fft_size / 2).max(total / target.max(1))
 }
 
 fn resolve_band_colors(channel_count: usize, options: &GenerateOptions) -> Vec<[u8; 3]> {
@@ -326,6 +362,78 @@ mod tests {
         for (x, y) in batch.frames.iter().zip(streamed.frames.iter()) {
             assert!((x - y).abs() < 1e-9);
         }
+    }
+
+    fn stream_unestimated(pcm: &[f32], options: &GenerateOptions) -> MoodbarAnalysis {
+        let mut stream = FrameAnalyzer::new(44_100, options, None).unwrap();
+        for chunk in pcm.chunks(1_000) {
+            stream.feed_mono_samples(chunk);
+        }
+        stream.finish()
+    }
+
+    #[test]
+    fn unknown_length_stream_honors_max_target_frames() {
+        let pcm = sine(440.0, 44_100, 7.0);
+        for target in [1, 50, 199, 2000] {
+            let options = GenerateOptions {
+                max_target_frames: Some(target),
+                ..GenerateOptions::default()
+            };
+            let known = crate::analyze_pcm_mono(44_100, &pcm, &options).unwrap();
+            let streamed = stream_unestimated(&pcm, &options);
+            assert!(streamed.colors.len() <= target, "target {target}");
+            assert_eq!(streamed.colors.len(), known.colors.len(), "target {target}");
+        }
+    }
+
+    #[test]
+    fn chunked_stream_with_hop_wider_than_window_matches_batch() {
+        let pcm = sine(440.0, 44_100, 7.0);
+        let options = GenerateOptions {
+            max_target_frames: Some(10),
+            ..GenerateOptions::default()
+        };
+        let batch = crate::analyze_pcm_mono(44_100, &pcm, &options).unwrap();
+        let mut stream = FrameAnalyzer::new(44_100, &options, Some(pcm.len())).unwrap();
+        assert!(stream.hop_size() > options.fft_size);
+        for chunk in pcm.chunks(1_152) {
+            stream.feed_mono_samples(chunk);
+        }
+        assert_eq!(batch.frames, stream.finish().frames);
+    }
+
+    #[test]
+    fn unknown_length_matches_known_length_when_dynamic_hop_is_base_multiple() {
+        // 40 windows over 40 * 4096 samples: dynamic hop 4096 = 4 x base hop 1024.
+        let mut pcm = sine(150.0, 44_100, 1.0);
+        pcm.extend(sine(2500.0, 44_100, 1.0));
+        pcm.extend(sine(9000.0, 44_100, 2.0));
+        pcm.truncate(40 * 4096);
+        let options = GenerateOptions {
+            max_target_frames: Some(40),
+            ..GenerateOptions::default()
+        };
+        let known = crate::analyze_pcm_mono(44_100, &pcm, &options).unwrap();
+        let streamed = stream_unestimated(&pcm, &options);
+        assert_eq!(known.frames, streamed.frames);
+        assert_eq!(known.colors, streamed.colors);
+    }
+
+    #[test]
+    fn known_length_keeps_dynamic_hop_and_window_count() {
+        let pcm = sine(440.0, 44_100, 7.0);
+        let options = GenerateOptions {
+            max_target_frames: Some(50),
+            ..GenerateOptions::default()
+        };
+        let analyzer = FrameAnalyzer::new(44_100, &options, Some(pcm.len())).unwrap();
+        assert_eq!(analyzer.hop_size(), pcm.len() / 50);
+        let analysis = crate::analyze_pcm_mono(44_100, &pcm, &options).unwrap();
+        assert_eq!(
+            analysis.colors.len(),
+            (pcm.len() - options.fft_size) / (pcm.len() / 50) + 1
+        );
     }
 
     #[test]
