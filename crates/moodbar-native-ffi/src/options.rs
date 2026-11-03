@@ -21,7 +21,7 @@ pub(crate) fn parse_generate_options(
 pub(crate) fn parse_svg_options(options_json: *const c_char) -> Result<SvgOptions, FfiError> {
     let input: SvgOptionsPatch = parse_optional_json(options_json)?;
     let mut options = SvgOptions::default();
-    apply_svg_patch(&mut options, input).map_err(FfiError::InvalidArgument)?;
+    apply_svg_patch(&mut options, input)?;
     Ok(options)
 }
 

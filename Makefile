@@ -25,7 +25,7 @@ test:
 	cargo test --workspace
 
 test-core:
-	cargo test -p moodbar-core
+	cargo test -p moodbar-analysis -p moodbar-core
 
 test-cli:
 	cargo test -p moodbar
@@ -113,8 +113,8 @@ tdd:
 
 tdd-core:
 	@if command -v cargo-watch >/dev/null 2>&1; then \
-		cargo watch -q -w crates/moodbar-core -w tests -x "test -p moodbar-core"; \
+		cargo watch -q -w crates/moodbar-analysis -w crates/moodbar-core -w tests -x "test -p moodbar-analysis -p moodbar-core"; \
 	else \
 		echo "cargo-watch not found; running one test pass instead"; \
-		cargo test -p moodbar-core; \
+		$(MAKE) test-core; \
 	fi
