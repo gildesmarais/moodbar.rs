@@ -37,7 +37,7 @@ pub enum MoodbarDecodeError {
     /// Codec or container decoding failure.
     #[error("decode error: {0}")]
     Decode(#[from] SymphoniaError),
-    /// Analysis rejected the options (or failed) after decode setup.
+    /// Analysis rejected the options (checked before any I/O) or the decoded stream.
     #[error(transparent)]
     Analysis(#[from] MoodbarError),
 }
@@ -47,6 +47,7 @@ pub fn analyze_path(
     path: &Path,
     options: &GenerateOptions,
 ) -> Result<MoodbarAnalysis, MoodbarDecodeError> {
+    options.validate()?;
     let file = File::open(path)?;
     let mss = MediaSourceStream::new(Box::new(file), Default::default());
 
@@ -64,6 +65,7 @@ pub fn analyze_bytes(
     extension: Option<&str>,
     options: &GenerateOptions,
 ) -> Result<MoodbarAnalysis, MoodbarDecodeError> {
+    options.validate()?;
     let cursor = Cursor::new(bytes.to_vec());
     let mss = MediaSourceStream::new(Box::new(cursor), Default::default());
     let mut hint = Hint::new();
@@ -333,6 +335,28 @@ mod tests {
         downmix_multichannel_to_mono(&interleaved, 6, 2, &mut out, &mut diagnostics);
         assert_eq!(out, [0.5, 1.5, 2.5]);
         assert_eq!(diagnostics.truncated_frames, 1);
+    }
+
+    #[test]
+    fn invalid_options_fail_before_opening_or_probing_media() {
+        let options = GenerateOptions {
+            fft_size: 0,
+            ..GenerateOptions::default()
+        };
+        let missing = analyze_path(Path::new("/nonexistent/moodbar.wav"), &options);
+        assert!(matches!(
+            missing,
+            Err(MoodbarDecodeError::Analysis(MoodbarError::InvalidOptions(
+                _
+            )))
+        ));
+        let garbage = analyze_bytes(b"not audio", None, &options);
+        assert!(matches!(
+            garbage,
+            Err(MoodbarDecodeError::Analysis(MoodbarError::InvalidOptions(
+                _
+            )))
+        ));
     }
 
     #[test]

@@ -111,21 +111,25 @@ pub(crate) fn render_shape_png(buf: &mut [u8], analysis: &MoodbarAnalysis, optio
     }
 }
 
-/// Largest accepted PNG side in pixels; bounds the RGBA buffer to 1 GiB.
+/// Largest accepted PNG side in pixels.
 #[cfg(feature = "png")]
 pub(crate) const MAX_PNG_DIMENSION: u32 = 16_384;
+
+/// Largest accepted PNG area: 64 Mpx bounds the RGBA buffer to 256 MiB, which mobile survives.
+#[cfg(feature = "png")]
+pub(crate) const MAX_PNG_PIXELS: u32 = 64 * 1024 * 1024;
 
 #[cfg(feature = "png")]
 pub(crate) fn new_rgba_buffer(
     width: u32,
     height: u32,
 ) -> Result<Vec<u8>, crate::types::MoodbarError> {
-    if width > MAX_PNG_DIMENSION || height > MAX_PNG_DIMENSION {
+    // Both sides <= 2^14 keep the product within u32, so the area check cannot overflow.
+    if width > MAX_PNG_DIMENSION || height > MAX_PNG_DIMENSION || width * height > MAX_PNG_PIXELS {
         return Err(crate::types::MoodbarError::InvalidOptions(format!(
-            "png dimensions {width}x{height} exceed the {MAX_PNG_DIMENSION}px maximum per side"
+            "png dimensions {width}x{height} exceed {MAX_PNG_DIMENSION}px per side or {MAX_PNG_PIXELS} pixels"
         )));
     }
-    // Lossless: both sides are <= 2^14, so the product fits in u32 and therefore in usize.
     Ok(vec![0u8; width as usize * height as usize * 4])
 }
 
@@ -180,7 +184,13 @@ mod tests {
             diagnostics: AnalysisDiagnostics::default(),
             band_colors: vec![[255, 0, 0], [0, 255, 0], [0, 0, 255]],
         };
-        for (width, height) in [(65_536, 16_384), (MAX_PNG_DIMENSION + 1, 1), (1, u32::MAX)] {
+        for (width, height) in [
+            (65_536, 16_384),
+            (MAX_PNG_DIMENSION + 1, 1),
+            (1, u32::MAX),
+            (MAX_PNG_DIMENSION, MAX_PNG_DIMENSION),
+            (MAX_PNG_DIMENSION, MAX_PNG_PIXELS / MAX_PNG_DIMENSION + 1),
+        ] {
             let options = PngOptions {
                 width,
                 height,
@@ -191,6 +201,7 @@ mod tests {
                 Err(crate::types::MoodbarError::InvalidOptions(_))
             ));
         }
+        assert!(new_rgba_buffer(MAX_PNG_DIMENSION, MAX_PNG_PIXELS / MAX_PNG_DIMENSION).is_ok());
         for shape in [SvgShape::Waveform, SvgShape::SplitWaveform] {
             let zero_height = PngOptions {
                 width: 8,

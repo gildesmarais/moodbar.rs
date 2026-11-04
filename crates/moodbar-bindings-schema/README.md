@@ -8,22 +8,22 @@ Keeps `serde` out of `moodbar-analysis`. Patch types merge into `moodbar_analysi
 
 ## Generate options (`GenerateOptionsPatch`)
 
-| Field                 | Type              | Notes                                                                                                                                  |
-| --------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `fft_size`            | integer           | Default in analysis: `2048` (power of two, ≥ 64).                                                                                      |
-| `normalize_mode`      | string            | `PerChannelPeak` (default) or `GlobalPeak`.                                                                                            |
-| `deterministic_floor` | float             | Default: `1e-12`.                                                                                                                      |
-| `detection_mode`      | string            | `SpectralEnergy` (default) or `SpectralFlux`.                                                                                          |
-| `frames_per_color`    | integer           | Default: `1`.                                                                                                                          |
-| `band_edges_hz`       | float array       | Default: `[500.0, 2000.0]` (3 bands). When empty, falls back to `low_cut_hz` / `mid_cut_hz`.                                           |
-| `max_target_frames`   | integer, optional | Caps output frames: widens the hop when the stream length is known, otherwise decimates frames at finish. Default in analysis: `2000`. |
-| `playback_rate`       | float, optional   | Scales band mapping for pitch-shifted playback. Must be finite and > 0.                                                                |
+| Field                 | Type              | Notes                                                                                                                                                                                                           |
+| --------------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fft_size`            | integer           | Default in analysis: `2048` (power of two, ≥ 64).                                                                                                                                                               |
+| `normalize_mode`      | string            | `PerChannelPeak` (default) or `GlobalPeak`.                                                                                                                                                                     |
+| `deterministic_floor` | float             | Default: `1e-12`.                                                                                                                                                                                               |
+| `detection_mode`      | string            | `SpectralEnergy` (default) or `SpectralFlux`.                                                                                                                                                                   |
+| `frames_per_color`    | integer           | Default: `1`.                                                                                                                                                                                                   |
+| `band_edges_hz`       | float array       | Default: `[500.0, 2000.0]` (3 bands). When empty, falls back to `low_cut_hz` / `mid_cut_hz`.                                                                                                                    |
+| `max_target_frames`   | integer, optional | Caps output frames: widens the hop when the stream length is known, otherwise decimates frames at finish. Unknown-length `SpectralFlux` streams keep base-hop flux when decimated. Default in analysis: `2000`. |
+| `playback_rate`       | float, optional   | Scales band mapping for pitch-shifted playback. Must be finite and > 0.                                                                                                                                         |
 
 ## Render options
 
 **SVG** (`SvgOptionsPatch`): `width`, `height`, `shape`, `background` (`transparent` \| `black` \| `white` \| `none`), `max_gradient_stops`.
 
-**PNG** (`PngOptionsPatch`): `width`, `height`, `shape`.
+**PNG** (`PngOptionsPatch`): `width`, `height`, `shape`. Renders over 16384 px per side or 64 Mpx (256 MiB RGBA) in total fail with invalid options.
 
 ### SvgShape values
 
