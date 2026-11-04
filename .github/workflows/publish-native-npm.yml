@@ -11,6 +11,7 @@ permissions:
 jobs:
   publish:
     runs-on: macos-latest
+    timeout-minutes: 60
     env:
       NODE_VERSION: "22.22.0"
       NPM_VERSION: "11.8.0"
@@ -31,14 +32,18 @@ jobs:
         with:
           workspaces: . -> target
 
-      - name: Setup Android SDK + NDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install NDK
-        run: sdkmanager "ndk;${ANDROID_NDK_VERSION}"
-
-      - name: Export NDK path
-        run: echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/${ANDROID_NDK_VERSION}" >> "$GITHUB_ENV"
+      # Uses the runner's preinstalled SDK; setup-android@v3 requested the
+      # deprecated 'tools' package, which Google no longer serves.
+      - name: Install pinned Android NDK
+        run: |
+          sdkmanager="${ANDROID_HOME:?runner has no Android SDK}/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$sdkmanager" || { echo "::error::sdkmanager missing at $sdkmanager"; exit 1; }
+          ndk="$ANDROID_HOME/ndk/${ANDROID_NDK_VERSION}"
+          if [ ! -d "$ndk" ]; then
+            (yes || true) | "$sdkmanager" --licenses > /dev/null
+            "$sdkmanager" --install "ndk;${ANDROID_NDK_VERSION}"
+          fi
+          echo "ANDROID_NDK_HOME=$ndk" >> "$GITHUB_ENV"
 
       - name: Install cargo-ndk
         run: cargo install cargo-ndk --locked
@@ -49,7 +54,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Pin npm
-        run: npm install -g npm@${NPM_VERSION}
+        run: npm install -g "npm@${NPM_VERSION}"
 
       - name: Validate release tag matches workspace version
         run: |
