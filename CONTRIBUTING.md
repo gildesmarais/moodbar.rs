@@ -5,7 +5,7 @@ This document outlines the workflows for developing, building, and publishing th
 ## Developer Workflow
 
 ```bash
-# core crate fast loop
+# analysis + core fast loop
 make test-core
 
 # full workspace tests

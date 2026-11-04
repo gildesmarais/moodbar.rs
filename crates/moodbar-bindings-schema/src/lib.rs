@@ -163,7 +163,10 @@ pub fn apply_generate_patch(
     Ok(())
 }
 
-pub fn apply_svg_patch(options: &mut SvgOptions, patch: SvgOptionsPatch) -> Result<(), String> {
+pub fn apply_svg_patch(
+    options: &mut SvgOptions,
+    patch: SvgOptionsPatch,
+) -> Result<(), MoodbarError> {
     if let Some(v) = patch.width {
         options.width = v;
     }
@@ -177,7 +180,17 @@ pub fn apply_svg_patch(options: &mut SvgOptions, patch: SvgOptionsPatch) -> Resu
         options.max_gradient_stops = v;
     }
     if let Some(v) = patch.background {
-        options.background = parse_svg_background(&v)?;
+        options.background = match v.as_str() {
+            "transparent" => "transparent",
+            "black" => "black",
+            "white" => "white",
+            "none" => "none",
+            _ => {
+                return Err(MoodbarError::InvalidOptions(
+                    "unsupported background; use one of: transparent, black, white, none".into(),
+                ))
+            }
+        };
     }
 
     Ok(())
@@ -192,16 +205,6 @@ pub fn apply_png_patch(options: &mut PngOptions, patch: PngOptionsPatch) {
     }
     if let Some(v) = patch.shape {
         options.shape = v.into();
-    }
-}
-
-pub fn parse_svg_background(background: &str) -> Result<&'static str, String> {
-    match background {
-        "transparent" => Ok("transparent"),
-        "black" => Ok("black"),
-        "white" => Ok("white"),
-        "none" => Ok("none"),
-        _ => Err("unsupported background; use one of: transparent, black, white, none".to_string()),
     }
 }
 
@@ -229,5 +232,20 @@ mod tests {
             Err(MoodbarError::InvalidOptions(_))
         ));
         assert!(options.custom_colors.is_none());
+    }
+
+    #[test]
+    fn apply_svg_patch_rejects_unknown_background() {
+        let mut options = SvgOptions::default();
+        let patch = |background: &str| SvgOptionsPatch {
+            background: Some(background.into()),
+            ..SvgOptionsPatch::default()
+        };
+        apply_svg_patch(&mut options, patch("white")).unwrap();
+        assert_eq!(options.background, "white");
+        assert!(matches!(
+            apply_svg_patch(&mut options, patch("plaid")),
+            Err(MoodbarError::InvalidOptions(_))
+        ));
     }
 }

@@ -12,16 +12,10 @@ npm install @moodbar/wasm
 
 ## Usage
 
-```js
-import init, {
-  analyze,
-  analyze_with_options,
-  svg,
-  png,
-  raw_rgb,
-} from "@moodbar/wasm";
+The package is built with `wasm-pack --target bundler`: it has no default `init` export and needs a bundler that loads `.wasm` imports (webpack 5 `asyncWebAssembly`, Vite with `vite-plugin-wasm`). The module is ready once the import resolves.
 
-await init();
+```js
+import { analyze, analyze_with_options, svg, png, raw_rgb } from "@moodbar/wasm";
 
 const sampleRate = 44_100;
 const pcm = new Float32Array(sampleRate).fill(0);

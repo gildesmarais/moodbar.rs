@@ -2,15 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/moodbar-core.svg)](https://crates.io/crates/moodbar-core)
 
-Backward-compatible API surface used by the CLI and existing Rust integrations.
-
-## Role today
-
-| Concern                                             | Where it lives                                                          |
-| --------------------------------------------------- | ----------------------------------------------------------------------- |
-| SVG/PNG rendering                                   | Delegates to `moodbar-analysis` (`render_svg`, `render_png`)            |
-| PCM analysis (`analyze_pcm_mono`)                   | Local implementation (parity with `moodbar-analysis` enforced by tests) |
-| File/bytes decode (`analyze_path`, `analyze_bytes`) | Local Symphonia path when `decode` feature is enabled                   |
+Re-export facade used by the CLI: `pub use moodbar_analysis::*` plus `moodbar_decode::*` when the `decode` feature is enabled. It holds no logic of its own.
 
 New projects should depend on [`moodbar-analysis`](https://crates.io/crates/moodbar-analysis) and/or [`moodbar-decode`](https://crates.io/crates/moodbar-decode) directly to avoid pulling duplicate DSP dependencies.
 

@@ -555,10 +555,8 @@ moodbar batch -i ./music -o ./moodbars --format png --shape SplitStacked</code><
                     >View @moodbar/wasm on NPM</a
                   >
                 </p>
-                <pre><code>import init, { analyze_with_options, svg, png } from '@moodbar/wasm';
-
-<span class="comment">// 1. Load WASM module</span>
-await init();
+                <pre><code><span class="comment">// 1. Import via a wasm-aware bundler (no init() call needed)</span>
+import { analyze_with_options, svg, png } from '@moodbar/wasm';
 
 <span class="comment">// 2. Decode file to mono PCM using Web Audio API</span>
 const audioCtx = new OfflineAudioContext(1, duration * 11025, 11025);

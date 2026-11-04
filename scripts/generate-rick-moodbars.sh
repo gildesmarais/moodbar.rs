@@ -10,7 +10,7 @@ INPUT="${1:-$DEFAULT_INPUT}"
 # Check if input file exists
 if [ ! -f "$INPUT" ]; then
   echo "Error: Input audio file not found at: $INPUT"
-  echo "Usage: bash generate-rick-moodbars.sh [path/to/audio/file]"
+  echo "Usage (from repo root): bash scripts/generate-rick-moodbars.sh [path/to/audio/file]"
   exit 1
 fi
 

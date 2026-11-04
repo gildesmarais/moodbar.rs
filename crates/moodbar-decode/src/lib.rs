@@ -10,7 +10,8 @@ use std::io::Cursor;
 use std::path::Path;
 
 use moodbar_analysis::{
-    analysis_to_raw_rgb_bytes, FrameAnalyzer, GenerateOptions, MoodbarAnalysis, MoodbarError,
+    analysis_to_raw_rgb_bytes, AnalysisDiagnostics, FrameAnalyzer, GenerateOptions,
+    MoodbarAnalysis, MoodbarError,
 };
 use symphonia::core::audio::{AudioBufferRef, SampleBuffer};
 use symphonia::core::codecs::DecoderOptions;
@@ -39,17 +40,6 @@ pub enum MoodbarDecodeError {
     /// Analysis rejected the options (or failed) after decode setup.
     #[error(transparent)]
     Analysis(#[from] MoodbarError),
-}
-
-/// Non-fatal diagnostics tracked across audio packet decode.
-#[derive(Debug, Clone, Default)]
-pub struct DecodeDiagnostics {
-    /// Count of packet decode errors recovered during stream processing.
-    pub decode_errors: usize,
-    /// Count of audio packets reporting zero channels.
-    pub zero_channel_packets: usize,
-    /// Count of incomplete multi-channel frames truncated at packet end.
-    pub truncated_frames: usize,
 }
 
 /// Decodes and analyzes media from a filesystem path into moodbar frames.
@@ -140,8 +130,8 @@ fn downmix_stereo_to_mono(interleaved: &[f32], out: &mut Vec<f32>) {
     #[cfg(not(target_arch = "aarch64"))]
     let processed = 0;
 
-    for pair in interleaved[processed..].chunks_exact(2) {
-        out.push((pair[0] + pair[1]) * 0.5);
+    for [l, r] in interleaved[processed..].as_chunks::<2>().0 {
+        out.push((l + r) * 0.5);
     }
 }
 
@@ -151,7 +141,7 @@ fn downmix_multichannel_to_mono(
     channels: usize,
     max_channels: usize,
     out: &mut Vec<f32>,
-    diagnostics: &mut DecodeDiagnostics,
+    diagnostics: &mut AnalysisDiagnostics,
 ) {
     let inv_channels = 1.0 / max_channels as f32;
     for frame in interleaved.chunks(channels) {
@@ -211,7 +201,7 @@ fn analyze_media_source(
     let estimated_samples = track.codec_params.n_frames.map(|n| n as usize);
     let mut analyzer = FrameAnalyzer::new(sample_rate, options, estimated_samples)?;
     let mut saw_samples = false;
-    let mut diagnostics = DecodeDiagnostics::default();
+    let mut diagnostics = AnalysisDiagnostics::default();
     let mut sample_buf: Option<SampleBuffer<f32>> = None;
     let mut mono_scratch = Vec::<f32>::new();
 
@@ -278,11 +268,10 @@ fn analyze_media_source(
         return Err(MoodbarDecodeError::EmptyAudio);
     }
 
-    let mut analysis = analyzer.finish();
-    analysis.diagnostics.decode_errors = diagnostics.decode_errors;
-    analysis.diagnostics.zero_channel_packets = diagnostics.zero_channel_packets;
-    analysis.diagnostics.truncated_frames = diagnostics.truncated_frames;
-    Ok(analysis)
+    Ok(MoodbarAnalysis {
+        diagnostics,
+        ..analyzer.finish()
+    })
 }
 
 #[cfg(test)]
@@ -324,10 +313,8 @@ mod tests {
     fn stereo_downmix_matches_scalar_reference() {
         for len in [0, 1, 2, 3, 7, 8, 9, 15, 17, 33, 1025] {
             let interleaved: Vec<f32> = (0..len).map(|i| (i as f32 * 0.37).sin()).collect();
-            let expected: Vec<f32> = interleaved
-                .chunks_exact(2)
-                .map(|p| (p[0] + p[1]) * 0.5)
-                .collect();
+            let (pairs, _) = interleaved.as_chunks::<2>();
+            let expected: Vec<f32> = pairs.iter().map(|[l, r]| (l + r) * 0.5).collect();
             let mut out = vec![42.0];
             downmix_stereo_to_mono(&interleaved, &mut out);
             assert_eq!(out[0], 42.0, "len {len}: existing samples must be kept");
@@ -342,7 +329,7 @@ mod tests {
             .collect();
         interleaved.extend_from_slice(&[1.0, 1.0, 1.0]);
         let mut out = Vec::new();
-        let mut diagnostics = DecodeDiagnostics::default();
+        let mut diagnostics = AnalysisDiagnostics::default();
         downmix_multichannel_to_mono(&interleaved, 6, 2, &mut out, &mut diagnostics);
         assert_eq!(out, [0.5, 1.5, 2.5]);
         assert_eq!(diagnostics.truncated_frames, 1);
