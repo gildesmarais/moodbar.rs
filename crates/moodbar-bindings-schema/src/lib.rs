@@ -1,5 +1,6 @@
 use moodbar_analysis::{
-    DetectionMode, GenerateOptions, NormalizeMode, PngOptions, SvgOptions, SvgShape, Theme,
+    parse_hex_color, DetectionMode, GenerateOptions, MoodbarError, NormalizeMode, PngOptions,
+    SvgOptions, SvgShape, Theme,
 };
 use serde::{Deserialize, Serialize};
 
@@ -110,7 +111,15 @@ impl From<ThemeInput> for Theme {
     }
 }
 
-pub fn apply_generate_patch(options: &mut GenerateOptions, patch: GenerateOptionsPatch) {
+/// Applies `patch` onto `options`.
+///
+/// # Errors
+///
+/// Returns `MoodbarError::InvalidOptions` when a custom color is not valid hex.
+pub fn apply_generate_patch(
+    options: &mut GenerateOptions,
+    patch: GenerateOptionsPatch,
+) -> Result<(), MoodbarError> {
     if let Some(v) = patch.fft_size {
         options.fft_size = v;
     }
@@ -145,23 +154,13 @@ pub fn apply_generate_patch(options: &mut GenerateOptions, patch: GenerateOption
         options.theme = v.into();
     }
     if let Some(v) = patch.custom_colors {
-        let colors = v.iter().map(|s| parse_hex_color(s)).collect::<Vec<_>>();
+        let colors = v
+            .iter()
+            .map(|s| parse_hex_color(s))
+            .collect::<Result<_, _>>()?;
         options.custom_colors = Some(colors);
     }
-}
-
-fn parse_hex_color(s: &str) -> [u8; 3] {
-    let s = s.trim().trim_start_matches('#');
-    if s.len() == 6 {
-        if let (Ok(r), Ok(g), Ok(b)) = (
-            u8::from_str_radix(&s[0..2], 16),
-            u8::from_str_radix(&s[2..4], 16),
-            u8::from_str_radix(&s[4..6], 16),
-        ) {
-            return [r, g, b];
-        }
-    }
-    [0, 0, 0]
+    Ok(())
 }
 
 pub fn apply_svg_patch(options: &mut SvgOptions, patch: SvgOptionsPatch) -> Result<(), String> {
@@ -216,7 +215,19 @@ mod tests {
         let patch: GenerateOptionsPatch =
             serde_json::from_str(r#"{"playback_rate": 1.09}"#).unwrap();
         let mut options = GenerateOptions::default();
-        apply_generate_patch(&mut options, patch);
+        apply_generate_patch(&mut options, patch).unwrap();
         assert_eq!(options.playback_rate, Some(1.09));
+    }
+
+    #[test]
+    fn apply_generate_patch_rejects_invalid_custom_color() {
+        let patch: GenerateOptionsPatch =
+            serde_json::from_str(r##"{"custom_colors": ["#FF0000", "not-hex"]}"##).unwrap();
+        let mut options = GenerateOptions::default();
+        assert!(matches!(
+            apply_generate_patch(&mut options, patch),
+            Err(MoodbarError::InvalidOptions(_))
+        ));
+        assert!(options.custom_colors.is_none());
     }
 }

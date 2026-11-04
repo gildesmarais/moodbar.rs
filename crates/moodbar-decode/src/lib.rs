@@ -10,9 +10,9 @@ use std::io::Cursor;
 use std::path::Path;
 
 use moodbar_analysis::{
-    analysis_to_raw_rgb_bytes, FrameAnalyzer, GenerateOptions, MoodbarAnalysis,
+    analysis_to_raw_rgb_bytes, FrameAnalyzer, GenerateOptions, MoodbarAnalysis, MoodbarError,
 };
-use symphonia::core::audio::SampleBuffer;
+use symphonia::core::audio::{AudioBufferRef, SampleBuffer};
 use symphonia::core::codecs::DecoderOptions;
 use symphonia::core::errors::Error as SymphoniaError;
 use symphonia::core::formats::FormatOptions;
@@ -36,9 +36,9 @@ pub enum MoodbarDecodeError {
     /// Codec or container decoding failure.
     #[error("decode error: {0}")]
     Decode(#[from] SymphoniaError),
-    /// Invalid analysis or DSP options configuration.
-    #[error("invalid options: {0}")]
-    InvalidOptions(String),
+    /// Analysis rejected the options (or failed) after decode setup.
+    #[error(transparent)]
+    Analysis(#[from] MoodbarError),
 }
 
 /// Non-fatal diagnostics tracked across audio packet decode.
@@ -57,10 +57,6 @@ pub fn analyze_path(
     path: &Path,
     options: &GenerateOptions,
 ) -> Result<MoodbarAnalysis, MoodbarDecodeError> {
-    options
-        .validate()
-        .map_err(|e| MoodbarDecodeError::InvalidOptions(e.to_string()))?;
-
     let file = File::open(path)?;
     let mss = MediaSourceStream::new(Box::new(file), Default::default());
 
@@ -78,10 +74,6 @@ pub fn analyze_bytes(
     extension: Option<&str>,
     options: &GenerateOptions,
 ) -> Result<MoodbarAnalysis, MoodbarDecodeError> {
-    options
-        .validate()
-        .map_err(|e| MoodbarDecodeError::InvalidOptions(e.to_string()))?;
-
     let cursor = Cursor::new(bytes.to_vec());
     let mss = MediaSourceStream::new(Box::new(cursor), Default::default());
     let mut hint = Hint::new();
@@ -172,6 +164,23 @@ fn downmix_multichannel_to_mono(
     }
 }
 
+/// Interleaves `decoded` into `slot`, reallocating when the packet holds more samples than fit.
+///
+/// `SampleBuffer::capacity` counts samples (frames x channels), while
+/// `AudioBufferRef::capacity` counts frames per channel.
+fn interleave<'a>(slot: &'a mut Option<SampleBuffer<f32>>, decoded: AudioBufferRef) -> &'a [f32] {
+    let needed = decoded.capacity() * decoded.spec().channels.count();
+    let buf = match slot.take() {
+        Some(buf) if buf.capacity() >= needed => slot.insert(buf),
+        _ => slot.insert(SampleBuffer::new(
+            decoded.capacity() as u64,
+            *decoded.spec(),
+        )),
+    };
+    buf.copy_interleaved_ref(decoded);
+    buf.samples()
+}
+
 fn analyze_media_source(
     mss: MediaSourceStream,
     hint: Hint,
@@ -200,7 +209,7 @@ fn analyze_media_source(
     let mut decoder =
         symphonia::default::get_codecs().make(&track.codec_params, &DecoderOptions::default())?;
     let estimated_samples = track.codec_params.n_frames.map(|n| n as usize);
-    let mut analyzer = FrameAnalyzer::new(sample_rate, options, estimated_samples);
+    let mut analyzer = FrameAnalyzer::new(sample_rate, options, estimated_samples)?;
     let mut saw_samples = false;
     let mut diagnostics = DecodeDiagnostics::default();
     let mut sample_buf: Option<SampleBuffer<f32>> = None;
@@ -223,18 +232,8 @@ fn analyze_media_source(
 
         match decoder.decode(&packet) {
             Ok(decoded) => {
-                let spec = *decoded.spec();
-                let channels = spec.channels.count();
-
-                if sample_buf.is_none()
-                    || sample_buf.as_ref().unwrap().capacity() < decoded.capacity()
-                {
-                    sample_buf = Some(SampleBuffer::<f32>::new(decoded.capacity() as u64, spec));
-                }
-
-                let buf = sample_buf.as_mut().unwrap();
-                buf.copy_interleaved_ref(decoded);
-                let interleaved = buf.samples();
+                let channels = decoded.spec().channels.count();
+                let interleaved = interleave(&mut sample_buf, decoded);
 
                 if channels == 0 {
                     diagnostics.zero_channel_packets += 1;
@@ -284,4 +283,36 @@ fn analyze_media_source(
     analysis.diagnostics.zero_channel_packets = diagnostics.zero_channel_packets;
     analysis.diagnostics.truncated_frames = diagnostics.truncated_frames;
     Ok(analysis)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use symphonia::core::audio::{AsAudioBufferRef, AudioBuffer, Channels, Signal, SignalSpec};
+
+    fn stereo_packet(frames: usize) -> AudioBuffer<f32> {
+        let spec = SignalSpec::new(44_100, Channels::FRONT_LEFT | Channels::FRONT_RIGHT);
+        let mut buf = AudioBuffer::new(frames as u64, spec);
+        buf.render_reserved(Some(frames));
+        buf
+    }
+
+    #[test]
+    fn interleave_grows_buffer_for_larger_multichannel_packet() {
+        let mut slot = None;
+        assert_eq!(
+            interleave(&mut slot, stereo_packet(100).as_audio_buffer_ref()).len(),
+            200
+        );
+        // 150 frames > 100 frames but < 200 samples: the old frames-vs-samples check kept the
+        // 200-sample buffer and tripped symphonia's capacity assert.
+        assert_eq!(
+            interleave(&mut slot, stereo_packet(150).as_audio_buffer_ref()).len(),
+            300
+        );
+        assert_eq!(
+            interleave(&mut slot, stereo_packet(50).as_audio_buffer_ref()).len(),
+            100
+        );
+    }
 }

@@ -407,8 +407,8 @@ mod tests {
         };
         let width = 64;
         let height = 24;
-        let mut a = new_rgba_buffer(width, height);
-        let mut b = new_rgba_buffer(width, height);
+        let mut a = new_rgba_buffer(width, height).expect("buffer");
+        let mut b = new_rgba_buffer(width, height).expect("buffer");
         render_split_stacked_png(&mut a, &analysis, width, height);
         render_split_stacked_png(&mut b, &analysis, width, height);
         assert_eq!(a, b);
