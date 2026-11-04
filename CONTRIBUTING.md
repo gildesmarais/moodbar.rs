@@ -39,11 +39,11 @@ make native-android
 
 ## WASM Demo (Browser)
 
-If you are developing the WASM module locally:
+`make wasm` builds the bundler npm package; the demo needs the web target:
 ```bash
-make wasm
-python3 -m http.server
-# open http://localhost:8000/docs/wasm-demo.html
+make wasm-docs
+python3 -m http.server -d docs
+# open http://localhost:8000/
 ```
 
 ## CI and Releases
