@@ -45,7 +45,7 @@ const metricFrames = document.getElementById("metricFrames");
 
 // State variables
 let initialized = false;
-let wasmInit, wasmAnalyze, wasmAnalyzeWithOptions, wasmSvg, wasmPng;
+let wasmAnalyzeWithOptions, wasmSvg, wasmPng;
 
 let cachedDecode = null; // { pcm, sampleRate, duration, decodeTimeMs }
 let latestAnalysis = null;
@@ -69,42 +69,26 @@ function setStatus(message, isError = false) {
   statusEl.className = isError ? "status-bar error" : "status-bar";
 }
 
-// Initialize WASM
+// Initialize WASM. The `--target web` build only exists after `make wasm-docs`
+// (pages.yml runs it before deploy); the npm package is a bundler build and
+// cannot be imported by a browser directly, so there is no fallback.
 async function ensureWasmInit() {
   if (initialized) return;
   setStatus("Loading WASM DSP core...");
-  const candidates = [
-    "./moodbar-wasm/moodbar_wasm.js",
-    "../../crates/moodbar-wasm/pkg/moodbar_wasm.js",
-    "https://cdn.jsdelivr.net/npm/@moodbar/wasm@latest/moodbar_wasm.js",
-  ];
-
-  let lastError;
-  for (const url of candidates) {
-    try {
-      const mod = await import(url);
-      wasmInit = mod.default;
-      wasmAnalyze = mod.analyze;
-      wasmAnalyzeWithOptions = mod.analyze_with_options;
-      wasmSvg = mod.svg;
-      wasmPng = mod.png;
-      break;
-    } catch (error) {
-      lastError = error;
-    }
+  let mod;
+  try {
+    mod = await import("./moodbar-wasm/moodbar_wasm.js");
+  } catch (error) {
+    throw new Error(
+      `WASM module missing at docs/assets/moodbar-wasm/: run \`make wasm-docs\` first (${error.message})`,
+    );
   }
-
-  if (
-    !wasmInit ||
-    !wasmAnalyze ||
-    !wasmSvg ||
-    !wasmPng ||
-    !wasmAnalyzeWithOptions
-  ) {
-    throw new Error("Failed to load WASM module. Check build or CDNs.");
-  }
-
-  await wasmInit();
+  await mod.default();
+  ({
+    analyze_with_options: wasmAnalyzeWithOptions,
+    svg: wasmSvg,
+    png: wasmPng,
+  } = mod);
   initialized = true;
 }
 
