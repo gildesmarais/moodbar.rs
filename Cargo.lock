@@ -605,12 +605,8 @@ dependencies = [
  "image",
  "moodbar-analysis",
  "moodbar-decode",
- "num-complex",
- "rustfft",
  "serde",
  "serde_json",
- "symphonia",
- "thiserror 2.0.18",
 ]
 
 [[package]]
